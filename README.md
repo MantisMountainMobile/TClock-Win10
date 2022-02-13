@@ -1,6 +1,5 @@
 # TClock-Win10
-TClock with graph for Windows10(AU or later) &amp; Windows11
-
+TClock with graph for Windows10(AU or later) &amp; Windows11  
 TClock(グラフ表示機能つき)のWindows10 & Windows11対応版
 
 
@@ -8,8 +7,7 @@ TClock(グラフ表示機能つき)のWindows10 & Windows11対応版
 https://github.com/MantisMountainMobile/TClock-Win10/releases
 
 ## Features (特徴)
-The graph display function, which was a feature of TClock2ch-analog, can be used.
-
+The graph display function, which was a feature of TClock2ch-analog, can be used.  
 This application is designed to be used in a Japanese environment, but you can change the display language to English from the right-click menu.
 
 Network information such as the SSID for WiFi connections and the access point name for WAN (LTE) connections can be displayed.
