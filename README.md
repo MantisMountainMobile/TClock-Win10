@@ -1,7 +1,7 @@
 # TClock-Win10
 TClock with graph for Windows10(AU or later) &amp; Windows11
 
-## Shortcut for binaly download
+## Shortcut for Download page
 https://github.com/MantisMountainMobile/TClock-Win10/releases
 
 ## Features
