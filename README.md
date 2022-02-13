@@ -7,8 +7,8 @@ TClock (グラフ表示機能つき)のWindows10 & Windows11対応版
 https://github.com/MantisMountainMobile/TClock-Win10/releases
 
 ## Features (特徴)
+This application is designed for Japanese environment, but you can change the display language to English from the right-click menu.  
 The graph display function, which was a feature of TClock2ch-analog, can be used.  
-This application is designed to be used in a Japanese environment, but you can change the display language to English from the right-click menu.  
 Network information such as the SSID for WiFi connections and the access point name for WAN (LTE) connections can be displayed.  
 It can display the BL (battery level in %), VL&VM (volume and mute status), CU (CPU load), and communication speed bars in the background.  
 You can remove removable drives from the right-click menu. (UnplugDrive.exe required)  
