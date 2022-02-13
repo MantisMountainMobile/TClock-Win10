@@ -1,7 +1,7 @@
 Build Information
 2018/11/25 by Mantis Mountain Mobile
 
-EnvironmentÅF
+Environment
 Microsoft Visual Studio Community 2015
 
 Target Platform Version:
