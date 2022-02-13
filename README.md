@@ -16,7 +16,7 @@ The indicator can be displayed for some VPN connections (Additional setting may 
 
 TClock2ch-analog系の機能であるグラフ表示ができます。  
 WiFiのSSIDやWANのアクセスポイント名などを取得して表示できます。  
-電池残量、ボリュームとミュート状態、CPU負荷およびネットワーク通信料を棒グラフで表示できます。  
+電池残量、ボリュームとミュート状態、CPU負荷およびネットワーク通信速度を棒グラフで表示できます。  
 右クリックメニューからリムーバブルドライブの取り外しを行うことができます(要UnplugDrive.exe)  
 VPN接続を検出して表示することができます(追加設定が必要な場合があります)。
 
