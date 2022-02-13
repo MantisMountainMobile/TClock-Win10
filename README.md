@@ -48,8 +48,10 @@ Remove your folder. (Windows registry is not used)
 フォルダごと削除してください (レジストリは使っていません)。
 
 
-## License
+## License (ライセンス)
 You may redistribute it and/or modify it under the terms of the GNU General Public License.
+
+TClockおよびTClock LightがGNU GPLでの配布がなされていますので、本ソフトウェアもGNU GPLに従って再配布または変更することができます。
 
 ## Links (関連リンク)
 TClock2ch付属サイト (Instruction is availabe, but only in Japanese):
