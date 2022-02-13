@@ -22,7 +22,7 @@ VPN接続を検出して表示することができます(追加設定が必要�
 
 ## How to install (インストール方法)
 Simply extract and lanuch TClock-Win10.exe.  
-*This application is intended to placed in your private folder, not in OS folders such as "program files". 
+*This application is intended to be placed in your private folder, not in OS folders such as "program files". 
 
 アーカイブを展開してTClock-Win10.exeを実行してください。  
 *本アプリはユーザーフォルダに入れて利用してください。Program FilesなどのWindows管理下のフォルダでの利用は想定していません。
