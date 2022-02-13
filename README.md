@@ -24,7 +24,6 @@ Simply extract and lanuch tclock-win10.exe.
 
 ## How to uninstall
 Remove your folder.
-
 (Windows registry is not used)
 
 ## License
