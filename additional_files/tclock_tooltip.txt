@@ -1,0 +1,45 @@
+ Physical Cores: <%PCORE%>
+ Logical Processors: <%LPROC%>
+ System Memory: <%MS%>GB
+
+ <%ST%> in Operation
+
+ Available Memory: <%MAPP_x%>%
+ <%MAPG_x.xx%>GB free in <%MTPG_x.xx%>GB
+
+Available Page File: <%MAFP_x%>%
+ <%MAFG_x.xx%>GB free in <%MTFG_x.xx%>GB
+
+Available DiskSpace: <%HACP_x%>%
+C: <%HACG___x%>GB free in <%HTCG___x%>GB
+
+ All CPU:<%CU__x%>% / <%CC___x%>MHz
+------------------------
+Thread 00:<%CUe00__x%>% / <%CCe00___x%>MHz
+Thread 01:<%CUe01__x%>% / <%CCe01___x%>MHz
+Thread 02:<%CUe02__x%>% / <%CCe02___x%>MHz
+Thread 03:<%CUe03__x%>% / <%CCe03___x%>MHz
+Thread 04:<%CUe04__x%>% / <%CCe04___x%>MHz
+Thread 05:<%CUe05__x%>% / <%CCe05___x%>MHz
+Thread 06:<%CUe06__x%>% / <%CCe06___x%>MHz
+Thread 07:<%CUe07__x%>% / <%CCe07___x%>MHz
+
+ Total Send:     <%NSAA%>
+ Total Received: <%NRAA%>
+
+      IP Addresses
+  Active:<%IPA%>
+------------------------
+Ethernet:<%IPE%>
+    WiFi:<%IPW%>
+     LTE:<%IPL%>
+     VPN:<%IPV%>
+
+       World Clock
+------------------------
+  Japan <%td+00:00 mmedd dde hh:nn%>
+ <%te-09:00%><%StE%>UK     <%mmedd dde hh:nn%>
+  UTC   <%td-09:00%> <%mmedd dde hh:nn%>
+ <%tu-14:00%><%StU%>NY     <%mmedd dde hh:nn%>
+ <%tu-17:00%><%StU%>LA     <%mmedd dde hh:nn%>
+     (*:Summer Time)
