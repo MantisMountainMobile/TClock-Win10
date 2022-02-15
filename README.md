@@ -3,7 +3,7 @@ TClock (with graph) for Windows10(AU or later) &amp; Windows11
 TClock (グラフ表示機能つき)のWindows10 & Windows11対応版
 
 
-## Shortcut to Download page (ダウンロードページへのショートカット)
+## Shortcut to Download page (ダウンロードページ)
 https://github.com/MantisMountainMobile/TClock-Win10/releases
 
 ## Features (特徴)
