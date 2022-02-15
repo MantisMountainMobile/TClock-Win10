@@ -1,0 +1,9 @@
+source/tc2ch/dll/Release/
+source/tc2ch/dll/x64/
+source/tc2ch/exe/Release/
+source/tc2ch/exe/x64/
+source/tc2ch/language/Release/
+source/tc2ch/language/x64/
+*.aps
+*.user
+tc2ch.VC.db
