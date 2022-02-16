@@ -1,7 +1,7 @@
 # TClock-Win10
-![Introduction Image](https://github.com/MantisMountainMobile/TClock-Win10/blob/main/additional_files/TClock-WIn10_introduction01.png)  
 TClock (with graph) for Windows10(AU or later) &amp; Windows11  
-TClock (グラフ表示機能つき)のWindows10 & Windows11対応版
+TClock (グラフ表示機能つき)のWindows10 & Windows11対応版  
+![Introduction Image](https://github.com/MantisMountainMobile/TClock-Win10/blob/main/additional_files/TClock-WIn10_introduction01.png)  
 
 
 ## Shortcut to Download page (ダウンロードページ)
