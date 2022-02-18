@@ -530,10 +530,10 @@ CAPTION "TClockのプロパティ"
 FONT 9, "MS UI Gothic", 0, 0, 0x0
 BEGIN
     CONTROL         "Tree1",IDC_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,5,5,90,225
-    DEFPUSHBUTTON   "OK",IDOK,100,215,50,14
+    PUSHBUTTON      "OK",IDOK,100,215,50,14
     PUSHBUTTON      "ｷｬﾝｾﾙ",IDCANCEL,155,215,50,14
     DEFPUSHBUTTON   "適用",ID_APPLY,210,215,50,14
-    DEFPUSHBUTTON   "Readme",ID_HELP,265,215,50,14
+    PUSHBUTTON      "Readme",ID_HELP,265,215,50,14
 END
 
 IDD_PROPERTY_ENG DIALOGEX 0, 0, 320, 235
@@ -542,10 +542,10 @@ CAPTION "TClock Preferences"
 FONT 9, "MS UI Gothic", 0, 0, 0x0
 BEGIN
     CONTROL         "Tree1",IDC_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,5,5,90,225
-    DEFPUSHBUTTON   "OK",IDOK,100,215,50,14
+    PUSHBUTTON      "OK",IDOK,100,215,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,155,215,50,14
     DEFPUSHBUTTON   "Apply",ID_APPLY,210,215,50,14
-    DEFPUSHBUTTON   "Readme",ID_HELP,265,215,50,14
+    PUSHBUTTON      "Readme",ID_HELP,265,215,50,14
 END
 
 IDD_PAGEANALOG DIALOG 0, 0, 210, 200
@@ -868,6 +868,50 @@ BEGIN
     LTEXT           "※Set VPN keywords in ""Additional Setting""",IDC_STATIC,14,174,136,8
 END
 
+IDD_PAGECHIME DIALOGEX 0, 0, 210, 200
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 9, "MS UI Gothic", 0, 0, 0x0
+BEGIN
+    LTEXT           "再生オフセット(秒)",-1,8,85,52,11
+    LTEXT           "- : 先行 / + : 遅れ",-1,121,83,54,11
+    CONTROL         "時報を鳴らす",IDC_CHECK_ENABLE_CHIME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,8,81,11
+    EDITTEXT        IDC_CHIME_WAV,53,36,134,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_CHIME_WAV_BROWSE,191,36,12,13
+    EDITTEXT        IDC_EDIT_CHIME_OFFSET_S,69,82,38,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_OFFSET_S,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,108,82,10,13
+    PUSHBUTTON      "テスト再生",IDC_PLAY_WAV,102,52,50,15
+    PUSHBUTTON      "再生停止",IDC_PLAY_WAV_STOP,154,52,50,15
+    LTEXT           "音声ファイル",-1,8,38,39,12
+    EDITTEXT        IDC_EDIT_CHIME_START,73,108,27,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_START,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,101,108,10,13
+    LTEXT           "鳴動時間帯",-1,8,112,42,11
+    EDITTEXT        IDC_EDIT_CHIME_END,127,108,26,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_END,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,154,108,10,13
+    CTEXT           "-",-1,114,112,8,11
+END
+
+IDD_PAGECHIME_ENG DIALOGEX 0, 0, 210, 200
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
+FONT 9, "MS UI Gothic", 0, 0, 0x0
+BEGIN
+    LTEXT           "Offset Time (Sec)",-1,8,87,63,8
+    LTEXT           "(+：advance / -：delay)",-1,125,86,81,8
+    CONTROL         "Enable Hourly Chime",IDC_CHECK_ENABLE_CHIME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,7,81,11
+    EDITTEXT        IDC_CHIME_WAV,52,35,136,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_CHIME_WAV_BROWSE,191,35,12,13
+    EDITTEXT        IDC_EDIT_CHIME_OFFSET_S,69,83,37,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_OFFSET_S,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,107,83,10,13
+    PUSHBUTTON      "Play",IDC_PLAY_WAV,100,51,50,15
+    PUSHBUTTON      "Stop",IDC_PLAY_WAV_STOP,153,51,50,15
+    LTEXT           "Sound File",-1,8,37,39,8
+    LTEXT           "Working Hours",-1,8,112,55,11
+    EDITTEXT        IDC_EDIT_CHIME_START,73,108,27,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_START,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,101,108,10,13
+    EDITTEXT        IDC_EDIT_CHIME_END,127,108,26,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_END,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,154,108,10,13
+    CTEXT           "-",-1,114,112,8,11
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -875,8 +919,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,5,0,1
- PRODUCTVERSION 4,5,0,1
+ FILEVERSION 4,6,1,1
+ PRODUCTVERSION 4,6,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -893,11 +937,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock-Win10 Language DLL（日本語/English）"
             VALUE "FileDescription", "TClock-Win10 Language DLL（日本語/English）"
-            VALUE "FileVersion", "4.5.0.1"
+            VALUE "FileVersion", "4.6.1.1"
             VALUE "InternalName", "LANGJA"
             VALUE "OriginalFilename", "tclang-win10.dll"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "4.5.0.1"
+            VALUE "ProductVersion", "4.6.1.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -1094,6 +1138,17 @@ BEGIN
         HORZGUIDE, 110
         HORZGUIDE, 157
     END
+
+    IDD_PAGECHIME, DIALOG
+    BEGIN
+        VERTGUIDE, 8
+        HORZGUIDE, 123
+    END
+
+    IDD_PAGECHIME_ENG, DIALOG
+    BEGIN
+        VERTGUIDE, 8
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1243,6 +1298,16 @@ BEGIN
     0
 END
 
+IDD_PAGECHIME AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_PAGECHIME_ENG AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1342,6 +1407,8 @@ BEGIN
     IDS_PROP_COLOR_ADDITIONAL "色設定2"
     IDS_ALARM_CLOCK         "アラーム＆クロック"
     IDS_ALARM_CLOCK2        "アラーム＆クロック (Windows標準)"
+    IDS_WAVFILE             "WAVファイル (*.wav)"
+    IDS_PROP_CHIME          "時報"
 END
 
 STRINGTABLE
@@ -1580,6 +1647,8 @@ BEGIN
     IDS_PROP_COLOR_ADDITIONAL2 "Text Color 2"
     IDS_ALARM_CLOCK_ENG     "Alarms and Clock"
     IDS_ALARM_CLOCK2_ENG    "Windows Alarms and Clock"
+    IDS_WAVFILE_ENG         "WAV File (*.wav)"
+    IDS_PROP_CHIME_ENG      "Hourly Chime"
 END
 
 #endif    // 日本語 (日本) resources

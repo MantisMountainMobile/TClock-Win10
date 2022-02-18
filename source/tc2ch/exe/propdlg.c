@@ -21,6 +21,7 @@ INT_PTR CALLBACK PageGraphProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageMiscProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageAnalogClockProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageAboutProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK PageChimeProc(HWND, UINT, WPARAM, LPARAM);
 
 INT_PTR CALLBACK PageBarmeterProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageDataPlanProc(HWND, UINT, WPARAM, LPARAM);
@@ -202,6 +203,10 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 			tv.item.lParam = 105;
 			hChild[5] = TreeView_InsertItem(hTree, &tv);
 
+			tv.item.pszText = MyString(IDS_PROP_CHIME);
+			tv.item.lParam = 107;
+			hChild[7] = TreeView_InsertItem(hTree, &tv);
+
 			CreatePageDialog(hDwnd, hDlg, bDlgFlg, 0, Language_Offset + IDD_PAGECOLOR, PageColorProc);
 			nowDlg = startpage;
 			//nowDlg = 0;
@@ -297,6 +302,11 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 						case 106:
 							nowDlg = 6;
 							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGECOLOR_ADDITIONAL, PageColorAdditionalProc);
+							break;
+
+						case 107:
+							nowDlg = 7;
+							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGECHIME, PageChimeProc);
 							break;
 
 						default:

@@ -155,6 +155,8 @@
 #define IDS_PROP_COLOR_ADDITIONAL       232
 #define IDS_ALARM_CLOCK                 233
 #define IDS_ALARM_CLOCK2                234
+#define IDS_WAVFILE                     235
+#define IDS_PROP_CHIME                  236
 #define IDC_DATETIME_Win10              406
 #define IDC_DATETIME                    408
 #define IDC_TASKBARPROP                 413
@@ -387,6 +389,7 @@
 #define IDC_CHECK_ACLOCK                1131
 #define IDS_POWERPNL2                   1131
 #define IDS_DATAUSAGE2                  1132
+#define IDC_CHECK_ENABLE_CHIME          1132
 #define IDC_COLHOUR                     1133
 #define IDC_CHOOSECOLHOUR               1134
 #define IDS_NETWORKSTG2                 1134
@@ -408,6 +411,16 @@
 #define IDC_EDIT_ACLOCK_SIZE            1146
 #define IDC_SPIN_ACLOCK_SIZE            1147
 #define IDC_DATAPLANALWAYSACTIVE        1148
+#define IDC_CHIME_WAV                   1148
+#define IDC_CHIME_WAV_BROWSE            1149
+#define IDC_EDIT_CHIME_VOL              1150
+#define IDC_SPIN_CHIME_VOL              1151
+#define IDC_EDIT_CHIME_OFFSET_S         1152
+#define IDC_SPIN_CHIME_OFFSET_S         1153
+#define IDC_EDIT_CHIME_START            1154
+#define IDC_SPIN_CHIME_START            1155
+#define IDC_EDIT_CHIME_END              1156
+#define IDC_SPIN_CHIME_END              1157
 #define IDC_LOCALE                      1200
 #define IDC_YEAR4                       1201
 #define IDC_YEAR                        1202
@@ -450,6 +463,8 @@
 #define IDS_PROP_COLOR_ADDITIONAL2      1232
 #define IDS_ALARM_CLOCK_ENG             1233
 #define IDS_ALARM_CLOCK2_ENG            1234
+#define IDS_WAVFILE_ENG                 1235
+#define IDS_PROP_CHIME_ENG              1236
 #define IDC_AMSYMBOL                    1251
 #define IDC_PMSYMBOL                    1252
 #define IDC_ZERO                        1253
@@ -608,6 +623,8 @@
 #define IDC_DESKTOPICONCOLOR            2503
 #define IDC_COLDESKTOPICON              2504
 #define IDC_CHOOSECOLDESKTOPICON        2505
+#define IDC_PLAY_WAV                    2506
+#define IDC_PLAY_WAV_STOP               2507
 #define IDC_RADDESKTOPICONNORMAL        2510
 #define IDC_RADDESKTOPICONLIST          2511
 #define IDC_RADDESKTOPICONREPORT        2512
@@ -618,6 +635,7 @@
 #define IDD_PAGE_ETC                    10002
 #define IDD_PAGE_WIN11                  10003
 #define IDD_PAGECOLOR_ADDITIONAL        10004
+#define IDD_PAGECHIME                   10005
 #define IDC_USEBARVOL                   10201
 #define IDC_USEBARCPU                   10202
 #define IDC_USEBARBAT                   10203
@@ -671,6 +689,7 @@
 #define IDD_PAGE_ETC_ENG                11002
 #define IDD_PAGE_WIN11_ENG              11003
 #define IDD_PAGECOLOR_ADDITIONAL_ENG    11004
+#define IDD_PAGECHIME_ENG               11005
 #define IDC_REMOVE_DRIVE_SEPARATOR      40001
 #define IDC_TOGGLE_BARMETER_VOLUME      40002
 #define IDC_TOGGLE_BARMETER_CPU         40003
@@ -700,7 +719,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        103
+#define _APS_NEXT_RESOURCE_VALUE        106
 #define _APS_NEXT_COMMAND_VALUE         40011
 #define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           101

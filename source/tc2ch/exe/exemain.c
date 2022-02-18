@@ -972,8 +972,8 @@ void OnTimerZombieCheck2(HWND hwnd)
 		}
 		else
 		{
-			if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2] TClock is unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
-			if (b_NormalLog) WriteNormalLog("TClock is unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
+			if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2] No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
+			if (b_NormalLog) WriteNormalLog("No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
 			TerminateTClockFromDLL(hwnd);		//すでにTClockの改造部は終了/消失していると判断されるため、FromDLLでの終了動作を行う。
 
 			//if (b_AutoRestart)

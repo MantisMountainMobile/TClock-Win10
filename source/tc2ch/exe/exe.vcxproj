@@ -425,6 +425,7 @@
     <ClCompile Include="pageabout.c" />
     <ClCompile Include="pageanalog.c" />
     <ClCompile Include="pagebarmeter.c" />
+    <ClCompile Include="pagechime.c" />
     <ClCompile Include="pagecolor.c" />
     <ClCompile Include="pagecolor_additional.c" />
     <ClCompile Include="page_etc.c" />

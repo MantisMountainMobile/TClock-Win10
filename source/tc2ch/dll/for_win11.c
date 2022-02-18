@@ -911,78 +911,7 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 
 void SetModifiedWidthWin11Tray(void)
 {
-	//int tempWidth = 0;
-	//POINT pos = { 0,0 };
-	//HWND tempHwnd;
-	//BOOL bPositioning = 0;
-	//int tempDetectionPoint = 0;
 
-	//tempHwnd = FindWindowEx(hwndTrayMain, NULL, "TrayInputIndicatorWClass", NULL);
-	//MapWindowPoints(tempHwnd, hwndTrayMain, &pos, 1);
-
-	//cutOffWidthWin11Tray = origWidthWin11Tray - pos.x;	//cutOffWidthWin11Trayが右から切断すべき長さ=時計部長さとして計算していく。
-	//if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] TrayInput X =", pos.x);
-
-
-
-	////まず、固定分を引いていく。
-
-	////手動調節分を引く。IMEアイコンは通常アイコンと同じ幅なので後で自動で引かれる。
-	//cutOffWidthWin11Tray -= adjustWin11TrayCutPosition;
-
-
-
-	////WiFi+スピーカー+バッテリアイコン部を引く。
-	//if (b_BatteryLifeAvailable) {
-	//	//システムにバッテリが存在する場合にはWiFi+スピーカー+バッテリの3アイコンと推測されるのでさらにボタン10/3個分(実測値)を引く※。
-	//	//アイコン1つwidthWin11Button *2/3, 隙間はwidthWin11Button * 1/3
-	//	cutOffWidthWin11Tray -= widthWin11Button * 10 / 3;
-	//}
-	//else
-	//{
-	//	//デスクトップなど、WiFiアイコン部に2個しかない構成の場合は7 / 3 個分(実測値)を引く※。
-	//	cutOffWidthWin11Tray -= widthWin11Button * 7 / 3;
-	//}
-	////※の値は正確な値を選ぶ必要がある。2021/11月現在の具体的な値はGetWin11ElementSize関数のコメントに記載
-
-
-	////ここまで引いたら、cutOffWidthWin11Trayは
-	////最小の時計の幅
-	////右側の通知マーク(ボタン幅x1.2弱)
-	////IMEアイコン、位置情報やソフトキーボードなどの臨時アイコン(アイコン幅 = widthWin11Icon)
-
-	////アイコン幅(ボタンx4/3)単位で右部長さを減らしていく。
-	//while ((cutOffWidthWin11Tray - defaultWin11ClockWidth) >= widthWin11Icon)
-	//{
-	//	cutOffWidthWin11Tray -= widthWin11Icon;		//右部の長さからアイコン1個分短くする。
-	//}
-
-	////残った長さは、時計(+通知)の部分だけになるので、元の長さからひけばうまくいくはず。
-	//modifiedWidthWin11Tray = origWidthWin11Tray - cutOffWidthWin11Tray;
-
-	//if (b_DebugLog)
-	//{
-	//	writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] A: origWidthWin11Tray =", origWidthWin11Tray);
-	//	writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] defaultWin11ClockWidth =", defaultWin11ClockWidth);
-	//	writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] B: cutOffWidthWin11Tray =", cutOffWidthWin11Tray);
-	//	writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] A-B: modifiedWidthWin11Tray =", modifiedWidthWin11Tray);
-	//}
-
-	//tempDetectionPoint = widthWin11Button / 2;	//この値は実際には　ボタン幅 x 7/6以下なら効果は同じはず。adjustWin11DetectNotifyは余り意味がない。
-	//if (cutOffWidthWin11Tray > (defaultWin11ClockWidth + tempDetectionPoint - adjustWin11DetectNotify))		//ここで普段より有意に長いか判定する。
-	//{
-	//	bExistWin11Notify = TRUE;
-	//}
-	//else
-	//{
-	//	bExistWin11Notify = FALSE;
-	//}
-
-	//	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][SetModifiedWidthWin11Tray] bExistWin11Notify is speculated to be ", bExistWin11Notify);
-
-
-
-	//Ver 4.2.1以降は通知数が取得できるようになった。
 	bExistWin11Notify = FALSE;
 	cutOffWidthWin11Tray = defaultWin11ClockWidth;
 
@@ -995,8 +924,6 @@ void SetModifiedWidthWin11Tray(void)
 	}
 
 	modifiedWidthWin11Tray = origWidthWin11Tray - cutOffWidthWin11Tray;
-
-
 
 }
 
@@ -1023,8 +950,6 @@ void SetMainClockOnTasktray_Win11(void)
 
 	//Win11タスクトレイ切り落とし幅を決定
 	SetModifiedWidthWin11Tray();
-
-
 
 
 
@@ -1079,7 +1004,6 @@ void SetMainClockOnTasktray_Win11(void)
 //	bTokenMoveContentBridge = TRUE;
 
 	//ContentBridgeの移動は少し遅れて行う必要があるので、こちらでまとめて実行する。
-//	DelayedMoveWin11ContentBridge();
 	PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);	//タイマーを使うほどのディレイは不要で、Postmessage経由の実行でOK
 
 	//サイズ更新したら、hdcClockを作り直すようにする。CreateClockDCはここから呼ぶだけで必要充分なはず。
@@ -1093,7 +1017,7 @@ void SetMainClockOnTasktray_Win11(void)
 
 	//	SetAllSubClocks();	//メインクロックの状態が変わったら、毎回サブクロックも反映させる必要あり。
 	//->すぐに実行するとうまく行かない＆処理が繰り返されるのでディレイで実行
-	//Ver 4.0.3では実効的には何も起こらない。
+
 	if (bEnableSubClks) DelayedUpdateSubClks();
 }
 
@@ -1123,12 +1047,6 @@ void GetWin11TaskbarType(void)
 		if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][GetWin11TaskbarType] Registry access failed...", 999);
 	}
 }
-
-//void DelayedMoveWin11ContentBridge(void)
-//{
-////	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] DelayedMoveWin11ContentBridge called.", 999);
-//	SetTimer(hwndClockMain, IDTIMERDLL_MOVEWIN11CONTENTBRIDGE, 10, NULL);		//10ms後に動作->実際にはタイマをつかわなくてPostmessageでOKだった。
-//}
 
 
 void MoveWin11ContentBridge(void)
