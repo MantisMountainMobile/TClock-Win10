@@ -20,8 +20,9 @@ extern BOOL g_bVertTaskbar;
 extern WNDPROC oldWndProcSub[];
 extern HWND hwndTaskBarSubClk[];
 extern HWND hwndClockSubClk[];
+extern HWND hwndOriginalWin11SubClk[];
 extern BOOL bEnableSpecificSubClk[];
-extern BOOL bClearSubClk[];
+extern BOOL bSuppressUpdateSubClk[];
 extern BOOL bEnableSubClks;
 extern BOOL bTimerSubClks;
 extern int	heightSubClock[];
@@ -33,9 +34,9 @@ extern int	heightSubTaskbar[];
 
 extern BOOL bEnableTooltip;
 
-
-
-
+BOOL bWmPaintRecevied = FALSE;
+BOOL bWmWinPosChangingRecevied = FALSE;
+BOOL bSubClkRecovering = FALSE;
 
 
 /*------------------------------------------------
@@ -95,6 +96,7 @@ LRESULT CALLBACK WndProcSubClk(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 				//新しいタスクバーサイズなどは保存できないが、うまく動くのでまあいいか、というところ。
 			}
 		}
+
 		break;
 	}
 	case WM_SIZE:
@@ -108,14 +110,81 @@ LRESULT CALLBACK WndProcSubClk(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 		//}
 		break;
 	}
+	case WM_PAINT:	// =15, タスクバーを隠す、から表示が起こると、このほか70, 20, 15, が1秒以内に連続して入ってくる(Win10のみ、Win11では来ない？)
+						//隠していたタスクバーが出てくるときは最後にWM_PAINT(15)が2回連続届く。隠れるときは最後にWM_NCPAINT(70)->WM_PAINT(15)になる。
+						//Win10ではサブ時計のサイズが変更されてしまう。Win11ではサイズ変更は行われないが元の時計を隠していたのが表示されてしまう。
+						//このメッセージが100ms以内に2回来たらサブタスクバー再表示と判定して、時間差でサイズ調整を実施する。
+						//このサブ時計プロシージャは共通なので、Win10のみで実行されるように実装する。
+	{
+		if (bWmPaintRecevied)
+		{
+			bSubClkRecovering = FALSE;
+			if (b_DebugLog) writeDebugLog_Win10("[subclock.c][WndProcSubClk] Hidden SubTaskBar recovered. Index = ", GetSubClkIndexFromHWND(hwnd));
+			//出現完了したらすみやかに処理を実施する。(Delayは不要)
+			if (!bWin11Sub) {
+				int i = GetSubClkIndexFromHWND(hwnd);
+				if ((i != 999) && bEnableSpecificSubClk[i])
+				{
+//					bSuppressUpdateSubClk[i] = FALSE;		//SetSpecificSubClock()で描画抑制解除されるので不要
+					SetSpecificSubClock(i);
+					RedrawTClock();
+				}
+			}		
+		}
+		if (bWmWinPosChangingRecevied)
+		{
+			bSubClkRecovering = FALSE;
+			if (b_DebugLog) writeDebugLog_Win10("[subclock.c][WndProcSubClk] SubTaskBar was hidden. Index = ", GetSubClkIndexFromHWND(hwnd));
+		}
+		bWmPaintRecevied = TRUE;
+		bWmWinPosChangingRecevied = FALSE;
+		break;
+	}
 	case WM_CONTEXTMENU:
 	{	// 右クリックメニュー。なおWin11では今一つうまく消えないが、それはOSのせいだと考えられる。
 		PostMessage(hwndTClockExeMain, message, wParam, lParam);
 		return 0;
 	}
+	case WM_WINDOWPOSCHANGING:		// =70, これが2回連続する。
+	{
+		if (bWmWinPosChangingRecevied)
+		{
+			if (!bSubClkRecovering)
+			{
+				if (b_DebugLog) writeDebugLog_Win10("[subclock.c][WndProcSubClk] Hidden SubTaskBar recovering /hiding started. Index = ", GetSubClkIndexFromHWND(hwnd));
+				bSubClkRecovering = TRUE;
+				//隠されたタスクバーの表示/隠すプロセスの開始時
+				//ここにサブクロック配置修正の処理を入れても、残念ながら出現中のプロセスで上書きされてしまう。WM_PAINT(15)の連続で出現完了を判定して処理するしかない。
+				//表示をクリア(全部は消えない)して更新抑制することで、再表示時に半端な表示が見えないようにする。
+				//なお、ここでWindowsのVisibilityを帰るとウィンドウメッセージが受け取れなくなるので処理ができなくなる。
+				if (!bWin11Sub)
+				{
+					int i = GetSubClkIndexFromHWND(hwnd);
+					if ((i != 999) && bEnableSpecificSubClk[i])
+					{
+						ClearSpecificSubClock(i);
+						bSuppressUpdateSubClk[i] = TRUE;
+					}
+				}
+			}
+		}
+		bWmPaintRecevied = FALSE;	//隠れたタスクバーが現れる場合の最後をWM_PAINT(15)の連続で判定するためのフラグ下げ
+		bWmWinPosChangingRecevied = TRUE;	//タスクバーが隠れた場合の最後をWM_PAINT(70)への連続で判定するためのフラグ上げ
+		break;
+	}
+	case WM_NCPAINT:
+	case WM_ERASEBKGND:
+	{
+		bWmPaintRecevied = FALSE;
+		bWmWinPosChangingRecevied = FALSE;
+		break;
+	}
 	}
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
+
+
+
 
 void ActivateSubClocks(void)
 {
@@ -305,9 +374,7 @@ void SetSpecificSubClock(int i)
 	}
 
 	//サブクロック描画抑制を解除する
-	bClearSubClk[i] = FALSE;
-
-	//Win11ではここまでで処理完了(Inkspaceボタンはなく、WorkerWのウィンドウは広がってきていない)
+	bSuppressUpdateSubClk[i] = FALSE;
 
 	tempHwnd = hwndClockSubClk[i];
 	pos.x = 0;
@@ -317,6 +384,7 @@ void SetSpecificSubClock(int i)
 	if (bWin11Sub)
 	{
 		tempHwnd = NULL;
+		hwndOriginalWin11SubClk[i] = NULL;
 		for (int j = 0; j < 2; j++) {
 			tempHwnd = FindWindowEx(hwndTaskBarSubClk[i], tempHwnd, "Windows.UI.Composition.DesktopWindowContentBridge", NULL);
 			if (tempHwnd)
@@ -329,6 +397,12 @@ void SetSpecificSubClock(int i)
 						SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 				}
 				else {	//Win11のサブクロック時計クラスの場合
+					hwndOriginalWin11SubClk[i] = tempHwnd;	//オリジナル時計のHWNDを更新
+					//DWORD dwStyle = (DWORD)GetWindowLong(hwndOriginalWin11SubClk[i], GWL_STYLE);
+					//if ((dwStyle & WS_VISIBLE) != 0)
+					//{
+					//	SetWindowLongPtr(hwndOriginalWin11SubClk[i], GWL_STYLE, dwStyle & ~WS_VISIBLE);
+					//}
 					ShowWindow(tempHwnd, SW_HIDE);
 				}
 			}
@@ -467,7 +541,7 @@ void FindAllSubClocks(void)
 		hwndTaskBarSubClk[i] = NULL;
 		hwndClockSubClk[i] = NULL;
 		bEnableSpecificSubClk[i] = FALSE;
-		bClearSubClk[i] = FALSE;
+		bSuppressUpdateSubClk[i] = FALSE;
 	}
 
 	if (!bEnableSubClks) return;	//ダブルチェック

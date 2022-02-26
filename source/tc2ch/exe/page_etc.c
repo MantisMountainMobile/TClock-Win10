@@ -107,8 +107,7 @@ static void OnInit(HWND hDlg)
 	b_exe_UseSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
 	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, b_exe_UseSubClks);
 
-	b_exe_UseSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
-	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, b_exe_UseSubClks);
+	//CheckDlgButton(hDlg, IDC_ENHANCE_SUBCLK, GetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", FALSE));
 
 
 	GetMyRegStr("ETC", "Ethernet_Keyword1", str, 32, "");
@@ -170,6 +169,9 @@ void OnApply(HWND hDlg)
 	char str[32];
 
 	SetMyRegLong(NULL, "EnableOnSubDisplay", IsDlgButtonChecked(hDlg, IDC_USE_SUBCLKS));
+
+	//SetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", IsDlgButtonChecked(hDlg, IDC_ENHANCE_SUBCLK));
+
 	b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
 	SetMyRegLong(NULL, "AutoRestart", b_AutoRestart);
 

@@ -145,6 +145,9 @@ SYSTEMTIME CalcTimeDifference_US_Win10(SYSTEMTIME*, int, int, BOOL);
 SYSTEMTIME CalcTimeDifference_Europe_Win10(SYSTEMTIME*, int, int, BOOL);
 
 
+//tclock.c
+void SetWindowVisible_Win10(HWND targetHWND, BOOL bVisibility);
+
 //for_win11.c
 void CreateWin11MainClock(void);
 HWND CreateWin11SubClock(HWND tempHwndTaskbar);
@@ -179,7 +182,6 @@ void CheckSubClocks(void);
 BOOL GetInkWorkspaceSetting(void);
 void CreateMyNotificationFont(int fontwidth, int fontheigt);
 void ClearSpecificSubClock(int i);
-
 
 
 // traynotifywnd.c

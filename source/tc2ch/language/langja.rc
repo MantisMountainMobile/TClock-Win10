@@ -728,7 +728,7 @@ IDD_PAGE_ETC DIALOGEX 0, 0, 210, 200
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_VISIBLE
 FONT 9, "MS UI Gothic", 0, 0, 0x1
 BEGIN
-    CONTROL         "サブモニタ上でTClockを表示する",IDC_USE_SUBCLKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,4,186,11
+    CONTROL         "サブモニタ上でTClockを表示する",IDC_USE_SUBCLKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,4,141,11
     CONTROL         "explorer.exeに合わせて再起動する",IDC_ETC_AUTORESTART,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,9,15,182,11
     EDITTEXT        IDC_ETHERNET_KEYWORD1,9,39,94,13,ES_AUTOHSCROLL
     EDITTEXT        IDC_ETHERNET_KEYWORD2,108,39,94,13,ES_AUTOHSCROLL
@@ -754,7 +754,7 @@ IDD_PAGE_ETC_ENG DIALOGEX 0, 0, 210, 200
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
 FONT 9, "MS UI Gothic", 0, 0, 0x1
 BEGIN
-    CONTROL         "Show TClock on Sub Monitors",IDC_USE_SUBCLKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,2,186,11
+    CONTROL         "Show TClock on Sub Monitors",IDC_USE_SUBCLKS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,2,131,11
     CONTROL         "Restart TClock following explorer.exe",IDC_ETC_AUTORESTART,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,15,166,11
     EDITTEXT        IDC_ETHERNET_KEYWORD1,9,39,94,13,ES_AUTOHSCROLL
@@ -919,8 +919,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,6,1,1
- PRODUCTVERSION 4,6,1,1
+ FILEVERSION 4,7,2,1
+ PRODUCTVERSION 4,7,2,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -937,11 +937,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock-Win10 Language DLL（日本語/English）"
             VALUE "FileDescription", "TClock-Win10 Language DLL（日本語/English）"
-            VALUE "FileVersion", "4.6.1.1"
+            VALUE "FileVersion", "4.7.2.1"
             VALUE "InternalName", "LANGJA"
             VALUE "OriginalFilename", "tclang-win10.dll"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "4.6.1.1"
+            VALUE "ProductVersion", "4.7.2.1"
         END
     END
     BLOCK "VarFileInfo"

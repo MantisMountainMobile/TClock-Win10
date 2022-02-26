@@ -136,18 +136,19 @@ HWND hwndTrayMain = NULL;
 //以下の配列の初期化はFindAllSubClocksのループの中で行う。
 HWND hwndTaskBarSubClk[MAX_SUBSCREEN];
 HWND hwndClockSubClk[MAX_SUBSCREEN];
+HWND hwndOriginalWin11SubClk[MAX_SUBSCREEN];
 BOOL bEnableSpecificSubClk[MAX_SUBSCREEN];
-BOOL bClearSubClk[MAX_SUBSCREEN];
-
-
+BOOL bSuppressUpdateSubClk[MAX_SUBSCREEN];
 
 int heightSubClock[MAX_SUBSCREEN];
 int widthSubClock[MAX_SUBSCREEN];
 int widthMainClockContent, heightMainClockContent;
 int widthMainClockFrame, heightMainClockFrame;
 
-
 BOOL bEnableSubClks = FALSE;
+//BOOL bEnhanceSubClkOnDarkTray = FALSE;
+//int indexSubClkToUpdate = 255;
+
 
 /*------------------------------------------------
   globals
@@ -167,6 +168,7 @@ static HGDIOBJ hbmpClockOld = NULL;
 HBITMAP hbmpClock = NULL;
 HBITMAP hbm_DIBSection = NULL;
 HBITMAP hbm_DIBSection_work = NULL;
+BITMAPINFO bmi_MainClock;
 
 HFONT hFon = NULL;
 HFONT hFontNotify = NULL;
@@ -1032,8 +1034,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				else if (wParam == IDTIMERDLL_UPDATESUBCLKS) {
 					KillTimer(tempHwnd, IDTIMERDLL_UPDATESUBCLKS);
 					bTimerSubClks = FALSE;
-					CheckSubClocks();
-					SetAllSubClocks();
+					//if (indexSubClkToUpdate == 255) {
+						CheckSubClocks();
+						SetAllSubClocks();
+					//}
+					//else {
+					//	SetSpecificSubClock(indexSubClkToUpdate);
+					//	indexSubClkToUpdate = 255;
+					//}
 				}
 				//else if (wParam == IDTIMERDLL_MOVEWIN11CONTENTBRIDGE) {
 				//	KillTimer(tempHwnd, IDTIMERDLL_MOVEWIN11CONTENTBRIDGE);
@@ -1222,7 +1230,10 @@ void RestartOnRefresh(void)
 	//いったんサブクロックをクリア
 	for (int i = 0; i < MAX_SUBSCREEN; i++)
 	{
-		if (bEnableSpecificSubClk[i]) bClearSubClk[i] = TRUE;
+		if (bEnableSpecificSubClk[i]) {
+			ClearSpecificSubClock(i);
+			bSuppressUpdateSubClk[i] = TRUE;
+		}
 	}
 
 	RedrawMainTaskbar();
@@ -1291,7 +1302,8 @@ void ReadData()
 	bEnableSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
 	SetMyRegLong(NULL, "EnableOnSubDisplay", bEnableSubClks);
 
-
+	//bEnhanceSubClkOnDarkTray = GetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", FALSE);
+	//SetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", bEnhanceSubClkOnDarkTray);
 
 	offsetClockMS = (int)(short)GetMyRegLong(NULL, "OffsetClockMS", 0);
 	SetMyRegLong(NULL, "OffsetClockMS", (int)(short)offsetClockMS);
@@ -2047,6 +2059,7 @@ void CreateClockDC(void)
 	static BITMAPINFO bmi = { { sizeof(BITMAPINFO),0,0,1,32,BI_RGB }, };
 	bmi.bmiHeader.biWidth = widthMainClockFrame;
 	bmi.bmiHeader.biHeight = heightMainClockFrame;
+	bmi_MainClock = bmi;
 
 	hbm_DIBSection = CreateDIBSection(hdc, &bmi, DIB_RGB_COLORS, (void**)&m_color_start, NULL, 0);
 	m_color_end = m_color_start + (widthMainClockFrame * heightMainClockFrame);
@@ -2278,6 +2291,29 @@ void OnTimer_Win10(void)
 	else if (nDispBeat == FORMAT_BEAT2) beatLast = beat100;
 
 
+	//Windows11で『タスクバーを隠す』にしておくと、再表示の際にオリジナルサブクロックがWS_VISIBLEになるので隠す。
+//	if (bWin11Sub) {
+//		for (int i = 0; i < MAX_SUBSCREEN; i++) {
+//			if (bEnableSpecificSubClk[i]) {
+//				if (hwndOriginalWin11SubClk[i]) {
+//					DWORD dwStyle = (DWORD)GetWindowLong(hwndOriginalWin11SubClk[i], GWL_STYLE);
+//					if ((dwStyle & WS_VISIBLE) != 0)
+//					{
+//						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][OnTimer_Win10] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
+//						ShowWindow(hwndOriginalWin11SubClk[i], SW_HIDE);
+////						SetSpecificSubClock(i);
+//					}
+//					else 
+//					{
+////						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][OnTimer_Win10] Original Win11 Clock on Subscreen is not visible, Index =", i);
+//					}
+//				}
+//			}
+//		}
+//	}
+
+
+
 	if (bRedraw)
 	{
 		RedrawTClock();
@@ -2289,6 +2325,9 @@ void OnTimer_Win10(void)
 	//Ver4.0.4現在、exemainにおけるOnTimerZombieCheck2と二重チェックになっているのでいずれ整理が必要
 	//しかもこちらの仕組みは停止動作等は実装されていない。
 	SendStatusDLL2Main();	
+
+
+
 
 	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] OnTimer_Win10 finished.", 999);
 
@@ -3675,7 +3714,10 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 		}
 	}
 
-	xsrc = 0; ysrc = 0; wsrc = wclock; hsrc = hclock;
+	//hdcClock_workはここでお役御免なので、サブクロック描画の際の透過率算出用に再利用する(赤チャネルだけ)
+	for (color = m_color_start, color_work = m_color_work_start; color < m_color_end; ++color, ++color_work) {
+		color_work->rgbRed = color->rgbReserved;
+	}
 
 
 	if(nBlink == 0 || (nBlink % 2))
@@ -3696,6 +3738,12 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 
 	HDC hdcSub = NULL;
+	HDC hdcSubBuffer = NULL;
+	HBITMAP hbm_tempDIBSection = NULL;
+	RGBQUAD* temp_m_color_start = NULL, *temp_m_color_end;
+
+	HBITMAP hbm_tempDIBSection2 = NULL;
+	RGBQUAD* temp_m_color_start2 = NULL, *temp_m_color_end2;
 
 	for (int i = 0; i < MAX_SUBSCREEN; i++) {
 		if (bEnableSpecificSubClk[i]) {
@@ -3703,28 +3751,96 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 			hdcSub = GetDC(hwndClockSubClk[i]);		//サブディスプレイの時計が存在するとhdcSubが存在することになる。
 			if (hdcSub != NULL)
 			{
-				if (bClearSubClk[i])		//サブクロック調整待ちでフラグが立っている場合はサブクロックをクリアする。それ以外は描画
+
+				if (bWin11Sub && hwndOriginalWin11SubClk[i]) {
+					if (IsWindowVisible(hwndOriginalWin11SubClk[i]))
+					{
+						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][DrawClockSub] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
+						SetWindowVisible_Win10(hwndOriginalWin11SubClk[i], FALSE);
+					}
+
+					//DWORD dwStyle = (DWORD)GetWindowLong(hwndOriginalWin11SubClk[i], GWL_STYLE);
+					//if ((dwStyle & WS_VISIBLE) != 0)
+					//{
+					//	if (b_DebugLog) writeDebugLog_Win10("[tclock.c][DrawClockSub] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
+					//	SetWindowLongPtr(hwndOriginalWin11SubClk[i], GWL_STYLE, dwStyle & ~WS_VISIBLE);
+					//}
+				}
+
+
+
+				if (bSuppressUpdateSubClk[i])
 				{
-					HBRUSH tempHbrush;
-					tempHbrush = CreateSolidBrush(RGB(0, 0, 0));
-					SelectObject(hdc, tempHbrush);
+					//HBRUSH tempHbrush;
+					//tempHbrush = CreateSolidBrush(RGB(0, 0, 0));
+					//SelectObject(hdcSub, tempHbrush);
 					PatBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], BLACKNESS);
-					DeleteObject(tempHbrush);
+					//DeleteObject(tempHbrush);
 				}
 				else
 				{
-					SetStretchBltMode(hdcSub, BLACKONWHITE);	//HALFTONEにするとグラフ等の色が薄くなるがきれい(少しボケる。ライトテーマでNG)。COLORONCOLORはきれいに表示できないケースあり。BLCKONWHITEが一番良かった。
-															//サブウィンドウクロックには画面外領域をコピーしないようにFrameのサイズで転送する(3.5.0.1の時点ではhdcClockのサイズははみ出てないので大丈夫だが)。
+					//if (!bEnhanceSubClkOnDarkTray)		//描画に先立ってクリアする。bEnhanceSubClkOnDarkTrayの場合はSRCCOPYで表示するのでクリア不要
+					//{
+					//	HBRUSH tempHbrush;
+					//	tempHbrush = CreateSolidBrush(RGB(0, 0, 0));
+					//	SelectObject(hdcSub, tempHbrush);
+					//	PatBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], BLACKNESS);
+					//	DeleteObject(tempHbrush);
+					//}					
+					
+					//SetStretchBltMode(hdcSub, HALFTONE);
+					//SetBrushOrgEx(hdcSub, 0, 0, NULL);
+
+				//StretchBltは、HALFTONEモード+SRCCOPYでないと画質が落ちるが、その組み合わせだとrgbReservedはすべて0になってしまう。
+				//rgbReservedを求めるために、hdcClock_workの赤チャネルを使って別途StretcBltで計算する。
+
+
+					hdcSubBuffer = CreateCompatibleDC(hdcSub);
+
+					BITMAPINFO bmi = { { sizeof(BITMAPINFO),0,0,1,32,BI_RGB }, };
+					bmi.bmiHeader.biWidth = widthSubClock[i];
+					bmi.bmiHeader.biHeight = heightSubClock[i];
+
+					hbm_tempDIBSection = CreateDIBSection(hdcSub, &bmi, DIB_RGB_COLORS, (void**)&temp_m_color_start, NULL, 0);
+					temp_m_color_end = temp_m_color_start + (widthSubClock[i] * heightSubClock[i]);
+
+					hbm_tempDIBSection2 = CreateDIBSection(hdcSub, &bmi, DIB_RGB_COLORS, (void**)&temp_m_color_start2, NULL, 0);
+					temp_m_color_end2 = temp_m_color_start2 + (widthSubClock[i] * heightSubClock[i]);
+
+
 
 					if (nBlink == 0 || (nBlink % 2))
 					{
-						StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, xsrc, ysrc, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+						//if (bEnhanceSubClkOnDarkTray) {
+						//	StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+						//}
+						//else {
+
+							SelectObject(hdcSubBuffer, hbm_tempDIBSection);
+							SetStretchBltMode(hdcSubBuffer, HALFTONE);
+							StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock_work, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+
+							SelectObject(hdcSubBuffer, hbm_tempDIBSection2);
+							SetStretchBltMode(hdcSubBuffer, HALFTONE);
+							StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+
+							for (color = temp_m_color_start, color_work = temp_m_color_start2; color < temp_m_color_end; ++color, ++color_work)
+							{
+								color_work->rgbReserved = color->rgbRed;
+							}
+
+							BitBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcSubBuffer, 0, 0, SRCCOPY);
+						//}
 					}
 					else {
-						StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, xsrc, ysrc, widthMainClockFrame, heightMainClockFrame, NOTSRCCOPY);
+						StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, NOTSRCCOPY);
 					}
 				}
+
 				ReleaseDC(hwndClockSubClk[i], hdcSub);
+				DeleteDC(hdcSubBuffer);
+				DeleteObject(hbm_tempDIBSection);
+				DeleteObject(hbm_tempDIBSection2);
 			}
 			else {
 				DisableSpecificSubClock(i);
@@ -4895,6 +5011,25 @@ BOOL IsHoliday_Win10(SYSTEMTIME* pt)
 	}
 	return(b_ret);
 }
+
+
+void SetWindowVisible_Win10(HWND targetHWND, BOOL bVisibility)
+{
+	if (b_DebugLog) writeDebugLog_Win10("[tclock.c]SetWindowVisible_Win10 called. bVisibility = ", bVisibility);
+
+	DWORD dwStyle = (DWORD)GetWindowLong(targetHWND, GWL_STYLE);
+
+	if (!bVisibility)
+	{
+		SetWindowLongPtr(targetHWND, GWL_STYLE, dwStyle & ~WS_VISIBLE);
+	}
+	else
+	{
+		SetWindowLongPtr(targetHWND, GWL_STYLE, dwStyle | WS_VISIBLE);
+	}
+}
+
+
 
 //以下のコードは現在使っていない。
 //void Check_Light_Theme_Win10(void)

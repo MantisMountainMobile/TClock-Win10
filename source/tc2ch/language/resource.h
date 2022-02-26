@@ -235,6 +235,7 @@
 #define IDC_ETC_USE_WIN11NOTIFY         1028
 #define IDS_CXBUTTON1_ENG               1029
 #define IDC_ETC_CUTPOSITION             1029
+#define IDC_ENHANCE_SUBCLK              1029
 #define IDS_CXBUTTON2_ENG               1030
 #define IDC_SPG_ETC_CUTPOSITION         1030
 #define IDS_SLEFTBUTTON2                1031

@@ -7,6 +7,8 @@
 #include <iprtrmib.h>
 #include <string.h>
 
+#define TRAFFIC_THRESHOLD	256
+
 void Net_start(void);
 void Net_get(void);
 void Net_end(void);
@@ -567,17 +569,17 @@ void Net_get(void)
 
 
 		//Added for LTE indicator by TTTT (3 lines)
-		if ((recvWAN - net[13]) > 9) net[12] = 2;
-		if ((sendWAN - net[14]) > 9) net[12] = 2;
+		if ((recvWAN - net[13]) > TRAFFIC_THRESHOLD) net[12] = 2;
+		if ((sendWAN - net[14]) > TRAFFIC_THRESHOLD) net[12] = 2;
 		net[13] = recvWAN;
 		net[14] = sendWAN;
 		//Added for WiFi indicator by TTTT (3 lines)
-		if ((recvWiFi - net[16]) > 9) net[15] = 2;
-		if ((sendWiFi - net[17]) > 9) net[15] = 2;
+		if ((recvWiFi - net[16]) > TRAFFIC_THRESHOLD) net[15] = 2;
+		if ((sendWiFi - net[17]) > TRAFFIC_THRESHOLD) net[15] = 2;
 		net[16] = recvWiFi;
 		net[17] = sendWiFi;
 
-		if (((recvEther - net[19]) > 9) || ((sendEther - net[20]) > 9))
+		if (((recvEther - net[19]) > TRAFFIC_THRESHOLD) || ((sendEther - net[20]) > TRAFFIC_THRESHOLD))
 		{
 			if (net[18] == 1) net[18] = 2;
 		}
