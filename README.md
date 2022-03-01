@@ -23,10 +23,10 @@ VPN接続を検出して表示することができます(追加設定が必要�
 
 ## How to install (インストール方法)
 Simply extract and lanuch TClock-Win10.exe.  
-*This application is intended to be placed in your user folder, not in OS folders such as "Program Files". 
+*This application is intended to be placed in your user folder, not in OS folders such as "Program Files". This application requires Microsoft Visual C++ 2015 redistributable package.  
 
 アーカイブを展開してTClock-Win10.exeを実行してください。  
-*本アプリはユーザーフォルダに入れて利用してください。Program FilesなどのWindows管理下のフォルダでの利用は想定していません。
+*本アプリはユーザーフォルダに入れて利用してください。Program FilesなどのWindows管理下のフォルダでの利用は想定していません。動作条件を満たしている(Win10AU以降, 64bit)にもかかわらず、起動時に『＊.dllが見つからない』というメッセージが出る場合には、(現時点の最新版)『Microsoft Visual C++ 2015 再頒布可能パッケージ Update 3(x64)』をマイクロソフトよりダウンロードしてインストールしてください。
 
 
 ## How to uninstall (アンインストール方法)
