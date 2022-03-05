@@ -394,6 +394,7 @@
   <ItemGroup>
     <ClCompile Include="bmp.c" />
     <ClCompile Include="for_win11.c" />
+    <ClCompile Include="gpumon.c" />
     <ClCompile Include="newCodes_Win10.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">true</CompileAsWinRT>
@@ -405,7 +406,6 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsWinRT>
       <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
-    <ClCompile Include="cpu.c" />
     <ClCompile Include="dllmain.c" />
     <ClCompile Include="font.c" />
     <ClCompile Include="format.c" />

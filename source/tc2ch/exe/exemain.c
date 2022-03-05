@@ -817,8 +817,8 @@ LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wParam, LPARAM lParam)	
 		}
 		else if (b_AutoRestart)
 		{
-			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] Windows Taskbar restarted. b_AutoRestart = TRUE, Restart TClock-WIn10.");
-			if (b_NormalLog) WriteNormalLog("b_AutoRestart = TRUE, Restart TClock-WIn10");
+			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] Windows Taskbar restarted. b_AutoRestart = TRUE, Restart TClock-Win10.");
+			if (b_NormalLog) WriteNormalLog("b_AutoRestart = TRUE, Restart TClock-Win10");
 
 			char fname[MAX_PATH];
 			strcpy(fname, g_mydir);

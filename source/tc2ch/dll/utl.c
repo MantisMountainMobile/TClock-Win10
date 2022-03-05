@@ -483,6 +483,7 @@ void WriteDebugDLL_New(LPSTR s)
 
 
 
+
 // 与えられたファイル名が相対パスならば
 // TClockのフォルダからの絶対パスに変換
 PSTR CreateFullPathName(HINSTANCE hmod, PSTR fname)

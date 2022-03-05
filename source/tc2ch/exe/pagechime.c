@@ -58,11 +58,14 @@ BOOL CALLBACK PageChimeProc(HWND hDlg, UINT message,
 				}
 
 			case IDC_CHECK_ENABLE_CHIME:
+			case IDC_CHECK_ENABLE_CHIME_BLINK:
 			case IDC_CHIME_WAV:
 			//case IDC_EDIT_CHIME_VOL:
 			//case IDC_SPIN_CHIME_VOL:
 			case IDC_EDIT_CHIME_OFFSET_S:
 			case IDC_SPIN_CHIME_OFFSET_S:
+			case IDC_EDIT_CHIME_BLINK:
+			case IDC_SPIN_CHIME_BLINK:
 				if(code == EN_CHANGE)
 					SendPSChanged(hDlg);
 				break;
@@ -101,12 +104,6 @@ void OnInit(HWND hDlg)
 
 	b_suppress_response = TRUE;
 
-	//char fname[MAX_PATH + 1];
-
-	//SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_VOL, UDM_SETRANGE, 0,
-	//	MAKELONG(100, 1));
-	//SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_VOL, UDM_SETPOS, 0,
-	//	(int)(short)GetMyRegLong("Chime", "VolChime", 100));
 
 	SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_OFFSET_S, UDM_SETRANGE, 0,
 		MAKELONG(1800, -1799));
@@ -115,6 +112,14 @@ void OnInit(HWND hDlg)
 
 	CheckDlgButton(hDlg, IDC_CHECK_ENABLE_CHIME,
 		GetMyRegLong("Chime", "EnableChime", FALSE));
+
+	CheckDlgButton(hDlg, IDC_CHECK_ENABLE_CHIME_BLINK,
+		GetMyRegLong("Chime", "EnableBlinkOnChime", FALSE));
+
+	SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_BLINK, UDM_SETRANGE, 0,
+		MAKELONG(10, 0));
+	SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_BLINK, UDM_SETPOS, 0,
+		(int)(short)GetMyRegLong("Chime", "BlinksOnChime", 3));
 
 	GetMyRegStr("Chime", "ChimeWav", fname, MAX_PATH, "C:\\Windows\\Media\\notify.wav");
 	SetDlgItemText(hDlg, IDC_CHIME_WAV, fname);
@@ -159,10 +164,16 @@ void OnApply(HWND hDlg)
 	SetMyRegLong("Chime", "EnableChime",
 		IsDlgButtonChecked(hDlg, IDC_CHECK_ENABLE_CHIME));
 
+	SetMyRegLong("Chime", "EnableBlinkOnChime",
+		IsDlgButtonChecked(hDlg, IDC_CHECK_ENABLE_CHIME_BLINK));
+
 	//SetMyRegLong("Chime", "VolChime", intVolChime);
 
 	SetMyRegLong("Chime", "OffsetChimeSec", 
 		(short)SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_OFFSET_S, UDM_GETPOS, 0, 0));
+
+	SetMyRegLong("Chime", "BlinksOnChime",
+		(short)SendDlgItemMessage(hDlg, IDC_SPIN_CHIME_BLINK, UDM_GETPOS, 0, 0));
 
 	SetMyRegLong("Chime", "ChimeHourStart", hStart);
 	SetMyRegLong("Chime", "ChimeHourEnd", hEnd);

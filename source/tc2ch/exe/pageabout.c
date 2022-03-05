@@ -62,7 +62,12 @@ INT_PTR CALLBACK PageAboutProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			{
 				char fname[1024];
 				strcpy(fname, g_mydir);
-				add_title(fname, "readme.txt");
+				if (b_EnglishMenu) {
+					add_title(fname, "readme_en.txt");
+				}
+				else {
+					add_title(fname, "readme_jp.txt");
+				}
 				ShellExecute(NULL, "open", "notepad.exe", fname, NULL, SW_SHOWNORMAL);
 			}
 				break;

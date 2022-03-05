@@ -386,22 +386,22 @@ BEGIN
     PUSHBUTTON      "...",IDC_CHOOSECOLSR,130,73,12,13
     COMBOBOX        IDC_COLSEND,51,93,76,120,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_CHOOSECOLSEND,130,93,12,13
-    CONTROL         "対数表示にする",IDC_LOGGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,148,44,57,11
-    CONTROL         "横方向にする",IDC_GPTATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,148,64,52,11
-    CONTROL         "逆方向にする",IDC_RVGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,148,84,51,11
+    CONTROL         "対数表示にする",IDC_LOGGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,19,57,11
+    CONTROL         "横方向にする",IDC_GPTATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,39,52,11
+    CONTROL         "逆方向にする",IDC_RVGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,59,51,11
     RTEXT           "グラフ種別",IDC_LABG1,14,23,34,8
-    RTEXT           "高負荷時の色",IDC_MODE21,7,56,42,8
+    RTEXT           "低負荷時の色",IDC_MODE21,7,56,42,8
     RTEXT           "受信側の色",IDC_MODE11,11,56,38,8
-    RTEXT           "重複部分の色",IDC_MODE12,5,75,44,8
-    RTEXT           "低負荷時の色",IDC_MODE22,7,75,42,8
+    RTEXT           "重複部分の色",IDC_MODE12,6,73,44,8
+    RTEXT           "高負荷時の色",IDC_MODE22,7,75,42,8
     RTEXT           "送信側の色",IDC_MODE13,11,95,38,8
     RTEXT           "受信グラフスケール値",IDC_MODE14,8,115,63,8
-    RTEXT           "CPU使用率が",IDC_MODE23,29,114,43,8
+    RTEXT           "CPU使用率が",IDC_MODE23,29,142,43,8
     EDITTEXT        IDC_TBGGRAPHRATE,73,111,29,13,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        IDC_CPUHIGH,73,111,29,13,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "",IDC_CPUHIGHSPIN,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,93,111,7,13
+    EDITTEXT        IDC_CPUHIGH,73,140,29,13,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_CPUHIGHSPIN,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,94,140,7,13
     LTEXT           "KB/s",IDC_MODE15,103,116,47,8
-    LTEXT           "％以上の時、高負荷とする",IDC_MODE24,103,113,79,8
+    LTEXT           "％以上の時、高負荷とする",IDC_MODE24,103,142,79,8
     RTEXT           "送信グラフスケール値",IDC_MODE16,4,132,67,8
     EDITTEXT        IDC_TBGGRAPHRATE2,73,129,29,13,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "KB/s",IDC_MODE17,103,134,47,8
@@ -420,6 +420,9 @@ BEGIN
     CONTROL         "",IDC_SPGRAPHBOTTOM,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,163,167,7,14
     COMBOBOX        IDC_GRAPHTYPE,51,33,76,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "グラフ範囲\n線形：0 - スケール値\n対数：1 - スケール値x10",IDC_LOGCOMMENT,129,115,80,30
+    RTEXT           "GPUグラフの色",IDC_MODE27,2,95,47,8
+    RTEXT           "CPUグラフの色",IDC_MODE28,2,55,47,8
+    CONTROL         "GPUグラフ",IDC_GPUGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,94,51,11
 END
 
 IDD_PAGEGRAPH_ENG DIALOGEX 0, 0, 210, 200
@@ -444,12 +447,12 @@ BEGIN
     RTEXT           "CPU Low Color",IDC_MODE22,17,75,42,8
     RTEXT           "Send Color",IDC_MODE13,21,95,38,8
     RTEXT           "Graph Scale (Receive)",IDC_MODE14,8,115,77,8
-    RTEXT           "CPU High Threshold: ",IDC_MODE23,5,114,82,8
+    RTEXT           "CPU High Threshold: ",IDC_MODE23,19,143,82,8
     EDITTEXT        IDC_TBGGRAPHRATE,89,111,29,13,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        IDC_CPUHIGH,89,111,29,13,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "",IDC_CPUHIGHSPIN,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,109,111,10,13
+    EDITTEXT        IDC_CPUHIGH,102,141,29,13,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_CPUHIGHSPIN,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,121,141,10,13
     LTEXT           "KB/s",IDC_MODE15,119,116,47,8
-    LTEXT           "%",IDC_MODE24,119,115,79,8
+    LTEXT           "%",IDC_MODE24,132,143,15,8
     RTEXT           "Graph Scale (Send)",IDC_MODE16,14,133,70,8
     EDITTEXT        IDC_TBGGRAPHRATE2,89,129,29,13,ES_RIGHT | ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "KB/s",IDC_MODE17,119,134,47,8
@@ -468,6 +471,9 @@ BEGIN
     CONTROL         "",IDC_SPGRAPHBOTTOM,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,195,167,7,14
     COMBOBOX        IDC_GRAPHTYPE,61,33,76,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Graph Range\nLinear: 0 - Scale\nLog: 1 - (Scale x 10)",IDC_LOGCOMMENT,142,116,67,30
+    RTEXT           "GPU Color",IDC_MODE27,12,95,47,8
+    RTEXT           "CPU Color",IDC_MODE28,12,55,47,8
+    CONTROL         "GPU Graph",IDC_GPUGRAPH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,156,94,51,11
 END
 
 IDD_PAGEMISC DIALOGEX 0, 0, 210, 200
@@ -480,7 +486,7 @@ BEGIN
     LTEXT           "本プログラムは、Windows 10 Anniversary update (RS1) 以降で動作するTClockです。ほかのバージョンのTClockと同様に、本プログラムを利用することによる一切の損害等の責任は負いません。",IDC_STATIC,10,29,181,36
     LTEXT           "本プログラムは、TClock2ch:\n　tclock-101021-analog (Kazubon氏 -> 2ch有志)\nのソースコードをベースに、\n　TClock Light kt160911 (Kazubon氏 -> K.Takata氏)\nを参考にして現行Windows10に対応させたものです。",IDC_STATIC,10,70,172,50
     LTEXT           "以下の機能を削除・追加しています。\n　　・他のソフトで代替可能な機能を削除しました。\n　　・通信関係の情報取得・表示機能を拡充しました。\n　　・レジストリ不使用化(削除機能は維持)。\n",IDC_STATIC,10,119,182,41
-    LTEXT           "旧来の機能はTClock付属サイトを、新機能はreadme.txtファイルを参照してください。",IDC_STATIC,12,157,127,21
+    LTEXT           "旧来の機能はTClock付属サイトを、新機能はreadme_jp.txtファイルを参照してください。",IDC_STATIC,12,157,127,21
     PUSHBUTTON      "Windowsが起動するたびにTClockを起動",IDC_STARTUP,6,181,136,15
     PUSHBUTTON      "レジストリ削除",IDC_DELREG,146,181,50,15
     PUSHBUTTON      "TClock付属サイト",IDC_README1,144,157,60,15,BS_CENTER
@@ -499,7 +505,7 @@ BEGIN
     PUSHBUTTON      "Create a Shortcut in Startup",IDC_STARTUP,6,145,118,15
     PUSHBUTTON      "*Clean Registry",IDC_DELREG,128,145,68,15
     LTEXT           "This version is based on TClock2ch:\n　tclock-101021-analog (Kazubon -> Japanese Netgeeks)\nwith a revision referring\n　TClock Light kt160911 (Kazubon -> K.Takata)\nto comply with current Windows OS.",IDC_STATIC,10,88,194,46
-    LTEXT           "Refer readme.txt for further information.",IDC_STATIC,10,133,130,12
+    LTEXT           "Refer readme_en.txt for further information.",IDC_STATIC,10,133,130,12
 END
 
 IDD_PAGEABOUT DIALOGEX 0, 0, 210, 200
@@ -510,7 +516,7 @@ BEGIN
     LTEXT           "現時点で一部の機能については設定ダイアログがありません。設定ファイル(tclock-win10.ini)を直接編集してください。主要設定項目は以下です。",IDC_STATIC,10,27,181,37
     PUSHBUTTON      "設定ファイル (tclock-win10.ini) 編集",IDC_EDITINI,6,181,136,15
     LTEXT           "[ETC]\nLTE / ミュート 状態表示文字列等を設定・変更できます。",IDC_STATIC,10,61,181,100
-    LTEXT           "詳細な設定方法は、readme.txtファイルを参照してください。",IDC_STATIC,10,163,181,12
+    LTEXT           "詳細な設定方法は、readme_jp.txtファイルを参照してください。",IDC_STATIC,10,163,181,12
 END
 
 IDD_PAGEABOUT_ENG DIALOGEX 0, 0, 210, 200
@@ -521,7 +527,7 @@ BEGIN
     LTEXT           "The setting dialogs do not cover all the functionality of the sotware. Please edit setting file (tclock-win10.ini) for additional settings. Following settings can be edited.",IDC_STATIC,10,27,181,37
     PUSHBUTTON      "Edit tclock-win10.ini",IDC_EDITINI,6,178,136,15
     LTEXT           "[ETC] Strings for LTE / Mute  indicators, etc.",IDC_STATIC,10,61,181,100
-    LTEXT           "Refer readme.txt for further information.",IDC_STATIC,10,163,181,12
+    LTEXT           "Refer readme_en.txt for further information.",IDC_STATIC,10,163,181,12
 END
 
 IDD_PROPERTY DIALOGEX 0, 0, 320, 235
@@ -872,7 +878,7 @@ IDD_PAGECHIME DIALOGEX 0, 0, 210, 200
 STYLE DS_SETFONT | DS_CONTROL | WS_CHILD
 FONT 9, "MS UI Gothic", 0, 0, 0x0
 BEGIN
-    LTEXT           "再生オフセット(秒)",-1,8,85,52,11
+    LTEXT           "回数",-1,87,134,16,11
     LTEXT           "- : 先行 / + : 遅れ",-1,121,83,54,11
     CONTROL         "時報を鳴らす",IDC_CHECK_ENABLE_CHIME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,8,81,11
     EDITTEXT        IDC_CHIME_WAV,53,36,134,13,ES_AUTOHSCROLL
@@ -888,6 +894,10 @@ BEGIN
     EDITTEXT        IDC_EDIT_CHIME_END,127,108,26,13,ES_RIGHT | ES_AUTOHSCROLL
     CONTROL         "",IDC_SPIN_CHIME_END,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,154,108,10,13
     CTEXT           "-",-1,114,112,8,11
+    CONTROL         "点滅させる",IDC_CHECK_ENABLE_CHIME_BLINK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,134,70,11
+    EDITTEXT        IDC_EDIT_CHIME_BLINK,106,132,24,13,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN_CHIME_BLINK,"msctls_updown32",UDS_WRAP | UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,131,132,10,13
+    LTEXT           "再生オフセット(秒)",-1,16,95,52,11
 END
 
 IDD_PAGECHIME_ENG DIALOGEX 0, 0, 210, 200
@@ -919,8 +929,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,7,2,1
- PRODUCTVERSION 4,7,2,1
+ FILEVERSION 4,8,1,1
+ PRODUCTVERSION 4,8,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -937,11 +947,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock-Win10 Language DLL（日本語/English）"
             VALUE "FileDescription", "TClock-Win10 Language DLL（日本語/English）"
-            VALUE "FileVersion", "4.7.2.1"
+            VALUE "FileVersion", "4.8.1.1"
             VALUE "InternalName", "LANGJA"
             VALUE "OriginalFilename", "tclang-win10.dll"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "4.7.2.1"
+            VALUE "ProductVersion", "4.8.1.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -1038,10 +1048,12 @@ BEGIN
 
     IDD_PAGEGRAPH, DIALOG
     BEGIN
+        VERTGUIDE, 149
     END
 
     IDD_PAGEGRAPH_ENG, DIALOG
     BEGIN
+        VERTGUIDE, 156
         HORZGUIDE, 138
     END
 
@@ -1143,6 +1155,7 @@ BEGIN
     BEGIN
         VERTGUIDE, 8
         HORZGUIDE, 123
+        HORZGUIDE, 142
     END
 
     IDD_PAGECHIME_ENG, DIALOG

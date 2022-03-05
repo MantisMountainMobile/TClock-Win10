@@ -137,7 +137,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt);
 #define FORMAT_HDD       0x0200
 #define FORMAT_CPU       0x0400
 #define FORMAT_VOL       0x0800
-#define FORMAT_DISPLAY     0x1000
+#define FORMAT_GPU     0x1000
 DWORD FindFormat(char* fmt);
 
 SYSTEMTIME CalcTimeDifference_Win10(SYSTEMTIME*, int, int, BOOL);
@@ -219,15 +219,26 @@ void UpdateCpuClock(void);
 void FreeCpuClock(void);
 
 // cpu.c
-void CpuMoni_start(void);
-int CpuMoni_get(void);
-void CpuMoni_end(void);
+//void CpuMoni_start(void);
+//int CpuMoni_get(void);
+//void CpuMoni_end(void);
 
 
 // permon.c
+//typedef PDH_STATUS(WINAPI *pfnPdhOpenQueryW)(LPCWSTR, DWORD_PTR, PDH_HQUERY*);
+//typedef PDH_STATUS(WINAPI *pfnPdhAddCounterW)(PDH_HQUERY, LPCWSTR, DWORD_PTR, PDH_HCOUNTER*);
+//typedef PDH_STATUS(WINAPI *pfnPdhCollectQueryData)(PDH_HQUERY);
+//typedef PDH_STATUS(WINAPI *pfnPdhGetFormattedCounterValue)(PDH_HCOUNTER, DWORD, LPDWORD, PPDH_FMT_COUNTERVALUE);
+//typedef PDH_STATUS(WINAPI *pfnPdhCloseQuery)(PDH_HQUERY);
+//typedef PDH_STATUS(WINAPI *pfnPdhRemoveCounter)(PDH_HCOUNTER);
 void PerMoni_start(void);
 int PerMoni_get(void);
 void PerMoni_end(void);
+
+//gpumon.c
+int SetGPUUsageCounter(void);
+void GPUMoni_start(void);
+void GPUMoni_end(void);
 
 // net.c
 void Net_start(void);
@@ -284,6 +295,7 @@ extern "C" {
 	void newCodes_startup_Win10(void);
 	void newCodes_close_Win10(void);
 	void writeDebugLog_Win10(LPSTR s, int n);
+
 	void getMasterVolume_Win10(void); //added for new iVolume function
 	void initializeVolume_Win10(void); //added for new iVolume function
 	int WINAPI CheckWinVersion_Win10(void);	//added for currently reliable versioncheck
@@ -325,6 +337,7 @@ extern "C" {
 	int GetNotificationNumber(void);
 
 	int GetFocusAssistState(void);
+
 
 
 #ifdef __cplusplus

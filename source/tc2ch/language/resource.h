@@ -411,7 +411,6 @@
 #define IDC_ACLOCKBMPBROWSE             1145
 #define IDC_EDIT_ACLOCK_SIZE            1146
 #define IDC_SPIN_ACLOCK_SIZE            1147
-#define IDC_DATAPLANALWAYSACTIVE        1148
 #define IDC_CHIME_WAV                   1148
 #define IDC_CHIME_WAV_BROWSE            1149
 #define IDC_EDIT_CHIME_VOL              1150
@@ -422,6 +421,9 @@
 #define IDC_SPIN_CHIME_START            1155
 #define IDC_EDIT_CHIME_END              1156
 #define IDC_SPIN_CHIME_END              1157
+#define IDC_EDIT_CHIME_BLINK            1158
+#define IDC_SPIN_CHIME_BLINK            1159
+#define IDC_CHECK_ENABLE_CHIME_BLINK    1160
 #define IDC_LOCALE                      1200
 #define IDC_YEAR4                       1201
 #define IDC_YEAR                        1202
@@ -568,6 +570,7 @@
 #define IDC_RVGRAPH                     1564
 #define IDC_LABG1                       1565
 #define IDC_LABG2                       1566
+#define IDC_GPUGRAPH                    1566
 #define IDC_LABG3                       1567
 #define IDC_GINTERVAL                   1568
 #define IDC_GINTERVALSPIN               1569
@@ -596,6 +599,8 @@
 #define IDC_SPGRAPHBOTTOM               1592
 #define IDC_MODE26                      1593
 #define IDC_LOGGRAPH                    1594
+#define IDC_MODE27                      1595
+#define IDC_MODE28                      1596
 #define IDC_STARTUP                     1619
 #define IDC_DELREG                      1620
 #define IDC_README1                     1621

@@ -9,6 +9,7 @@
 #include <pdhmsg.h>
 //#include <sysinfoapi.h>
 #define MAX_PROCESSOR               64
+#include "tcdll.h"
 
 
 void PerMoni_start(void);
@@ -21,6 +22,8 @@ void PerMoni_end(void);
 int CPUUsage[MAX_PROCESSOR] = { 0 };
 static PDH_HCOUNTER hCPUCounter[MAX_PROCESSOR] = { NULL };
 
+
+
 int CPUClock2[MAX_PROCESSOR] = { 0 };						//20201230, TTTT
 static PDH_HCOUNTER hCPUClock2[MAX_PROCESSOR] = { NULL };	//20201230, TTTT
 int CPUClock2Ave = 0;										//20201230, TTTT
@@ -29,7 +32,7 @@ int MaxCPUClock[MAX_PROCESSOR] = { 0 };						//20201230, TTTT
 BOOL b_EnableClock2 = FALSE;
 
 // cpu total usage
-int totalCPUUsage = 0;
+extern int totalCPUUsage;
 static PDH_HCOUNTER hTotalCPUCounter = NULL;
 
 int nLogicalProcessors = 0;
@@ -38,15 +41,6 @@ int nCores = 0;
 
 static HMODULE hmodPDH = NULL;
 static PDH_HQUERY hQuery = NULL;
-// static PDH_HCOUNTER hCounter[4] = { NULL, NULL, NULL, NULL };
-
-//static wchar_t *pwszCounter[4] =
-//{
-//	L"\\Network Interface(MS TCP Loopback interface)\\Bytes Sent/sec",
-//	L"\\Network Interface(MS TCP Loopback interface)\\Bytes Received/sec",
-//	L"\\PhysicalDisk(_Total)\\Avg. Disk Bytes/Read",
-//	L"\\PhysicalDisk(_Total)\\Avg. Disk Bytes/Write",
-//};
 
 typedef PDH_STATUS (WINAPI *pfnPdhOpenQueryW)(LPCWSTR, DWORD_PTR, PDH_HQUERY*);
 typedef PDH_STATUS (WINAPI *pfnPdhAddCounterW)(PDH_HQUERY, LPCWSTR, DWORD_PTR, PDH_HCOUNTER*);
@@ -54,6 +48,8 @@ typedef PDH_STATUS (WINAPI *pfnPdhCollectQueryData)(PDH_HQUERY);
 typedef PDH_STATUS (WINAPI *pfnPdhGetFormattedCounterValue)(PDH_HCOUNTER, DWORD, LPDWORD, PPDH_FMT_COUNTERVALUE);
 typedef PDH_STATUS (WINAPI *pfnPdhCloseQuery)(PDH_HQUERY);
 typedef PDH_STATUS (WINAPI *pfnPdhRemoveCounter)(PDH_HCOUNTER);
+
+
 static pfnPdhOpenQueryW pPdhOpenQueryW;
 static pfnPdhAddCounterW pPdhAddCounterW;
 static pfnPdhCollectQueryData pPdhCollectQueryData;
@@ -96,28 +92,29 @@ void PerMoni_start(void)
 
 	
 
+	//if (hmodPDH) PerMoni_end();
+	if(hQuery)PerMoni_end();
 
+	if (!hmodPDH) {
+		hmodPDH = LoadLibrary("pdh.dll");
+		if (hmodPDH == NULL) return;
 
+		pPdhOpenQueryW = (pfnPdhOpenQueryW)GetProcAddress(hmodPDH, "PdhOpenQueryW");
+		pPdhAddCounterW = (pfnPdhAddCounterW)GetProcAddress(hmodPDH, "PdhAddCounterW");
+		pPdhRemoveCounter = (pfnPdhRemoveCounter)GetProcAddress(hmodPDH, "PdhRemoveCounter");
+		pPdhCollectQueryData = (pfnPdhCollectQueryData)GetProcAddress(hmodPDH, "PdhCollectQueryData");
+		pPdhGetFormattedCounterValue = (pfnPdhGetFormattedCounterValue)GetProcAddress(hmodPDH, "PdhGetFormattedCounterValue");
+		pPdhCloseQuery = (pfnPdhCloseQuery)GetProcAddress(hmodPDH, "PdhCloseQuery");
 
-	if(hmodPDH) PerMoni_end();
-	hmodPDH = LoadLibrary("pdh.dll");
-	if(hmodPDH == NULL) return;
-
-	pPdhOpenQueryW               = (pfnPdhOpenQueryW)GetProcAddress(hmodPDH, "PdhOpenQueryW");
-	pPdhAddCounterW              = (pfnPdhAddCounterW)GetProcAddress(hmodPDH, "PdhAddCounterW");
-	pPdhRemoveCounter            = (pfnPdhRemoveCounter)GetProcAddress(hmodPDH, "PdhRemoveCounter");
-	pPdhCollectQueryData         = (pfnPdhCollectQueryData)GetProcAddress(hmodPDH, "PdhCollectQueryData");
-	pPdhGetFormattedCounterValue = (pfnPdhGetFormattedCounterValue)GetProcAddress(hmodPDH, "PdhGetFormattedCounterValue");
-	pPdhCloseQuery               = (pfnPdhCloseQuery)GetProcAddress(hmodPDH, "PdhCloseQuery");
-
-	if(pPdhOpenQueryW == NULL || 
-		pPdhAddCounterW == NULL ||
-		pPdhCollectQueryData == NULL || 
-		pPdhRemoveCounter == NULL ||
-		pPdhGetFormattedCounterValue == NULL || 
-		pPdhCloseQuery == NULL)
-	{
-		goto FAILURE_PDH_COUNTER_INITIALIZATION;
+		if (pPdhOpenQueryW == NULL ||
+			pPdhAddCounterW == NULL ||
+			pPdhCollectQueryData == NULL ||
+			pPdhRemoveCounter == NULL ||
+			pPdhGetFormattedCounterValue == NULL ||
+			pPdhCloseQuery == NULL)
+		{
+			goto FAILURE_PDH_COUNTER_INITIALIZATION;
+		}
 	}
 
 	if(pPdhOpenQueryW(NULL, 0, &hQuery) != ERROR_SUCCESS)
@@ -125,26 +122,16 @@ void PerMoni_start(void)
 		goto FAILURE_PDH_COUNTER_INITIALIZATION;
 	}
 	
-	//for(i=0; i<4; i++)
-	//{
-	//	PDH_STATUS s = pPdhAddCounterW(hQuery, pwszCounter[i], 0, &hCounter[i]) ;
-	//	if(s != ERROR_SUCCESS)
-	//	{
-	//		goto FAILURE_PDH_COUNTER_INITIALIZATION;
-	//	}
-	//	
-	//	s = pPdhRemoveCounter(hCounter[i]);
-	//}
 
 	// create cpu counter
 	for(i=0; i< nLogicalProcessors; i++)
 	{
 		wchar_t counterName[64];
-		wsprintfW(counterName, L"\\Processor(%d)\\%% Processor Time", i);	//shoud be "%%" because of using wsprintfW
+		wsprintfW(counterName, L"\\Processor Information(0,%d)\\%% Processor Utility", i);	//shoud be "%%" because of using wsprintfW
 		if(pPdhAddCounterW(hQuery, counterName, 0, &hCPUCounter[i]) != ERROR_SUCCESS)
 		{
-			if (b_DebugLog && i == 0) writeDebugLog_Win10("[permon.c][PerMoni_start] Processor(N) Performance Counter unavailable. Try for Processor Information(*).", 999);
-			wsprintfW(counterName, L"\\Processor Information(0,%d)\\%% Processor Time", i);	//shoud be "%%" because of using wsprintfW
+			if (b_DebugLog && i == 0) writeDebugLog_Win10("[permon.c][PerMoni_start] Processor Information(N) Performance Counter unavailable. Try for Processor(*).", 999);
+			wsprintfW(counterName, L"\\Processor(%d)\\%% Processor Time", i);	//shoud be "%%" because of using wsprintfW
 			if (pPdhAddCounterW(hQuery, counterName, 0, &hCPUCounter[i]) != ERROR_SUCCESS)
 			{
 				goto FAILURE_PDH_COUNTER_INITIALIZATION;
@@ -166,12 +153,10 @@ void PerMoni_start(void)
 
 
 	// create total cpu usage counter
-	if(pPdhAddCounterW(hQuery, L"\\Processor(_Total)\\% Processor Time",	//should be "%" because of not using wsprintfW
-						0, &hTotalCPUCounter) != ERROR_SUCCESS)
+	if (pPdhAddCounterW(hQuery, L"\\Processor Information(_Total)\\% Processor Utility",0, &hTotalCPUCounter) != ERROR_SUCCESS)	//should be "%" because of not using wsprintfW
 	{
-		if (b_DebugLog) writeDebugLog_Win10("[permon.c][PerMoni_start] Processor(_Total) Performance Counter unavailable. Try for Processor Information(*).", 999);
-		if (pPdhAddCounterW(hQuery, L"\\Processor Information(_Total)\\% Processor Time",	//should be "%" because of not using wsprintfW
-			0, &hTotalCPUCounter) != ERROR_SUCCESS) {
+		if (b_DebugLog) writeDebugLog_Win10("[permon.c][PerMoni_start] Processor Information(_Total) Performance Counter unavailable. Try for Processor(*).", 999);
+		if (pPdhAddCounterW(hQuery, L"\\Processor(_Total)\\% Processor Time", 0, &hTotalCPUCounter) != ERROR_SUCCESS) {//should be "%" because of not using wsprintfW
 			goto FAILURE_PDH_COUNTER_INITIALIZATION;
 		}
 	}
@@ -249,6 +234,7 @@ int PerMoni_get(void)
 		if(pPdhGetFormattedCounterValue(hTotalCPUCounter, PDH_FMT_DOUBLE, NULL, &FmtValue) == ERROR_SUCCESS)
 		{
 			totalCPUUsage = (int)(FmtValue.doubleValue + 0.5);
+			if (totalCPUUsage > 100)totalCPUUsage = 100;
 		}
 		else
 		{
@@ -261,11 +247,15 @@ int PerMoni_get(void)
 void PerMoni_end(void)
 {
 
-	
-	if(hmodPDH)
+	if (hQuery)
 	{
 		pPdhCloseQuery(hQuery);
-		FreeLibrary(hmodPDH);
+		hQuery = NULL;
 	}
-	hmodPDH = NULL; hQuery = NULL;
+
+	if(hmodPDH)
+	{
+		FreeLibrary(hmodPDH);
+		hmodPDH = NULL;
+	}
 }

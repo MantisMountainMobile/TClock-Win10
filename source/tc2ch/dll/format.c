@@ -31,7 +31,7 @@ extern BOOL bHour12, bHourZero;
 
 
 
-extern int iFreeRes[3], iCPUUsage, iBatteryLife, iVolume;
+extern int iFreeRes[3], totalCPUUsage, iBatteryLife, iVolume, totalGPUUsage;
 extern int iCPUClock[];
 extern int CPUClock2[];
 extern int CPUClock2Ave;
@@ -880,7 +880,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 				// CPU Usage
 				else if(*sp == 'C') 
 				{
-					if(iCPUUsage >= 0 && *(sp + 1) == 'U')
+					if(totalCPUUsage >= 0 && *(sp + 1) == 'U')
 					{
 						int len, slen;
 						BOOL bComma = FALSE;
@@ -914,7 +914,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 						}
 						else
 						{	// legacy(Total)
-							CPU = iCPUUsage;
+							CPU = totalCPUUsage;
 							sp += 2;
 						}
 
@@ -1005,6 +1005,33 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 					else {
 						*dp++ = *sp++; *infop++ = 0x01;
 					}
+				}
+
+
+				// GPU Usage
+				else if (*sp == 'G')
+				{
+					if (totalCPUUsage >= 0 && *(sp + 1) == 'U')
+					{
+						int len, slen;
+						BOOL bComma = FALSE;
+						sp += 2;
+
+						if (GetNumFormat(&sp, 'x', ',', &len, &slen, &bComma) == TRUE)
+						{
+							len_ret = SetNumFormat(&dp, totalGPUUsage, len, slen, bComma);
+							for (int i = 0; i < len_ret; i++)*infop++ = 0x01;
+						}
+						else
+						{
+							if (totalGPUUsage > 99) {
+								*dp++ = (char)((totalGPUUsage % 1000) / 100 + '0'); *infop++ = 0x01;
+							}
+							*dp++ = (char)((totalGPUUsage % 100) / 10 + '0'); *infop++ = 0x01;
+							*dp++ = (char)((totalGPUUsage % 10) + '0'); *infop++ = 0x01;
+						}
+					}
+
 				}
 
 				// Battery mode
@@ -2449,10 +2476,10 @@ DWORD FindFormat(char* fmt)
 					sp += 2;
 					ret |= FORMAT_VOL;
 				}
-				else if (*sp == 'D' && *(sp + 1) == 'I' && *(sp + 2) == 'S' && *(sp + 3) == 'P')
+				else if (*sp == 'G' && *(sp + 1) == 'U')
 				{
-					sp += 4;
-					ret |= FORMAT_DISPLAY;
+					sp += 2;
+					ret |= FORMAT_GPU;
 				}
 				else sp = CharNext(sp);
 			}

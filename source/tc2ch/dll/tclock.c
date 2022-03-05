@@ -56,7 +56,7 @@ void OnTimerUpperTaskbar(void);
 static void DrawClockFocusRect(HDC hdc);
 void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100);
 void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock);
-void UpdateSysRes(BOOL bsysres, BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol);
+void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol, BOOL bgpu);
 void GetTimeZoneBias_Win10(void);
 void getGraphVal();
 void OntimerCheckNetStat_Win10(HWND hwnd); //added by TTTT
@@ -76,7 +76,7 @@ BOOL IsVertTaskbar(HWND hwndTaskBarMain);
 void DrawBarMeter(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left, int value, COLORREF color);
 void DrawBarMeter2(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left,
 	int bar_bottom, int bar_top, int value, COLORREF color, BOOL b_Horizontal);
-void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, COLORREF textshadow, COLORREF textcol_temp);
+void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval);
 
 COLORREF TextColorFromInfoVal(int infoval);
 
@@ -235,12 +235,14 @@ SYSTEMTIME LastTime;
 int beatLast = -1;
 int bDispSecond = FALSE;
 int nDispBeat = 0;
-int nBlink = 0;
+int nBlink = 0;		//Integer for TEST, This should be Zero
+int BlinksOnChime = 3;
 int dwidth = 0, dheight = 0, dvpos = 0, dlineheight = 0, dclkvpos = 0;
 BOOL bDispSysInfo = FALSE, bTimerSysInfo = FALSE;
-BOOL bGetSysRes = FALSE, bGetBattery = FALSE, bGetMem = FALSE,
-     bGetMb = FALSE, bGetPm = FALSE, bGetNet = FALSE, bGetHdd = FALSE, bGetCpu = FALSE, bGetVol = FALSE;
-int iFreeRes[3] = {0,0,0}, iCPUUsage = 0, iBatteryLife = 0, iVolume = 0;
+//BOOL bGetSysRes = FALSE,
+BOOL bGetBattery = FALSE, bGetMem = FALSE,
+     bGetMb = FALSE, bGetPm = FALSE, bGetNet = FALSE, bGetHdd = FALSE, bGetCpu = FALSE, bGetVol = FALSE, bGetGpu = FALSE;
+int iFreeRes[3] = {0,0,0}, totalCPUUsage = 0, iBatteryLife = 0, iVolume = 0, totalGPUUsage = 0;
 extern int CPUUsage[];
 BOOL b_SoundCapability = TRUE;
 int iCPUClock[MAX_PROCESSOR] = {0};
@@ -264,6 +266,7 @@ BOOL bLogGraph = FALSE;
 BOOL bGraphTate = FALSE;
 BOOL bReverseGraph = FALSE;
 BOOL bGraphRedraw = FALSE;
+BOOL bEnableGPUGraph = TRUE;
 int NetGraphScaleRecv = 100;
 int NetGraphScaleSend = 100;
 int GraphL=0;
@@ -576,6 +579,7 @@ BOOL bShowWin11NotifyNumber = TRUE;
 
 
 BOOL b_EnableChime = FALSE; 
+BOOL b_EnableBlinkOnChime = FALSE;
 static TCHAR szChimeWav[MAX_PATH] = "";
 //int intVolChime = 100;
 int intOffsetChimeSec = 0;
@@ -653,8 +657,9 @@ void InitClock()
 		writeDebugLog_Win10("[tclock.c][InitClock] bWin11Main =", bWin11Main);
 	}
 
-	CpuMoni_start(); // cpu.c
+//	CpuMoni_start(); // cpu.c
 	PerMoni_start(); // permon.c
+	GPUMoni_start(); // gpumon.c
 	Net_start();     // net.c
 
 	CheckBatteryAvailability();
@@ -864,8 +869,9 @@ void EndClock()
 	EndSysres();
 	FreeBatteryLife();
 	FreeCpuClock();
-	CpuMoni_end(); // cpu.c
+//	CpuMoni_end(); // cpu.c
 	PerMoni_end(); // permon.c
+	GPUMoni_end(); // gpumon.c
 	Net_end();     // net.c
 
 	if(hwndClockMain && IsWindow(hwndClockMain))
@@ -1021,7 +1027,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else if (wParam == IDTIMERDLL_SYSINFO)
 				{
-					UpdateSysRes(bGetSysRes, bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol);
+					UpdateSysRes(bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu);
 				}
 				else if (wParam == IDTIMERDLL_CHECKNETSTAT)
 				{
@@ -1419,6 +1425,9 @@ void ReadData()
 
 	bGraph = GetMyRegLong("Graph", "BackNet", FALSE);
 	SetMyRegLong("Graph", "BackNet", bGraph);
+
+	bEnableGPUGraph = GetMyRegLong("Graph", "EnableGPUGraph", TRUE);
+	SetMyRegLong("Graph", "EnableGPUGraph", bEnableGPUGraph);
 
 	bLogGraph = GetMyRegLong("Graph", "LogGraph", FALSE);
 	bReverseGraph = GetMyRegLong("Graph", "ReverseGraph", FALSE);
@@ -1885,6 +1894,13 @@ void ReadData()
 	}
 	SetMyRegStr("Chime", "ChimeWav", szChimeWav);
 
+	b_EnableBlinkOnChime = GetMyRegLong("Chime", "EnableBlinkOnChime", 0);
+	SetMyRegLong("Chime", "EnableBlinkOnChime", b_EnableBlinkOnChime);
+
+	BlinksOnChime = (int)(short)GetMyRegLong("Chime", "BlinksOnChime", 3);
+	SetMyRegLong("Chime", "BlinksOnChime", BlinksOnChime);
+
+
 	if(bGraphTimerStart) KillTimer(hwndClockMain, IDTIMERDLL_GRAPH); bGraphTimerStart = FALSE;
 	if(bGraph)
 		bGraphTimerStart = SetTimer(hwndClockMain, IDTIMERDLL_GRAPH, graphInterval*1000, NULL) != 0;
@@ -1945,21 +1961,21 @@ void InitSysInfo()
 
 	//if(bTimerSysInfo) KillTimer(hwndClockMain, IDTIMERDLL_SYSINFO);	// deactivated by TTTT
 	bDispSysInfo = bTimerSysInfo = FALSE;
-	bGetSysRes = bGetBattery = bGetMem = FALSE;
+	//bGetSysRes = 
+	bGetBattery = bGetMem = FALSE;
 	memset(&msMemory, 0, sizeof(msMemory));
 
 	dwInfoFormat = FindFormat(format);
 	dwInfoTip = TooltipFindFormat();
 
-	bGetSysRes = (((dwInfoFormat | dwInfoTip) & FORMAT_SYSINFO))? TRUE:FALSE;
-	if(dwInfoFormat & FORMAT_SYSINFO) bDispSysInfo = TRUE;
+	//bGetSysRes = (((dwInfoFormat | dwInfoTip) & FORMAT_SYSINFO))? TRUE:FALSE;
+	//if(dwInfoFormat & FORMAT_SYSINFO) bDispSysInfo = TRUE;
 
 
-	{
-		bGetBattery = ((dwInfoFormat | dwInfoTip) & FORMAT_BATTERY)? TRUE:FALSE;
-		if(dwInfoFormat & FORMAT_BATTERY) bDispSysInfo = TRUE;
-		if (b_UseBarMeterBL) bGetBattery = TRUE;	//Added by TTTT 2011028
-	}
+	//bGetBattery = ((dwInfoFormat | dwInfoTip) & FORMAT_BATTERY) ? TRUE : FALSE;
+	//if (dwInfoFormat & FORMAT_BATTERY) bDispSysInfo = TRUE;
+	//if (b_UseBarMeterBL) bGetBattery = TRUE;	//Added by TTTT 2011028
+
 	bGetBattery = TRUE; //Modified to check battery availability as default. Modified by TTTT
 
 	bGetMem = ((dwInfoFormat | dwInfoTip) & FORMAT_MEMORY)? TRUE:FALSE;
@@ -1984,10 +2000,13 @@ void InitSysInfo()
 	bGetVol = ((dwInfoFormat | dwInfoTip) & FORMAT_VOL)? TRUE:FALSE;
 	if(dwInfoFormat & FORMAT_VOL) bDispSysInfo = TRUE;
 
+	bGetGpu = ((dwInfoFormat | dwInfoTip) & FORMAT_GPU) ? TRUE : FALSE;
+	if (dwInfoFormat & FORMAT_GPU) bDispSysInfo = TRUE;
+	if (bEnableGPUGraph && (graphMode == 2)) bGetGpu = TRUE;
 
-	if(bGetSysRes || bGetBattery || bGetMem || bGetMb || bGetPm || bGetNet || bGetHdd || bGetCpu || bGetVol)
+	if(bGetBattery || bGetMem || bGetMb || bGetPm || bGetNet || bGetHdd || bGetCpu || bGetVol || bGetGpu)
 	{
-		UpdateSysRes(bGetSysRes, bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol);
+		UpdateSysRes(bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu);
 	}
 
 }
@@ -2261,25 +2280,34 @@ void OnTimer_Win10(void)
 	}
 
 
-	if (b_EnableChime && (((t.wMinute * 60 + t.wSecond - intOffsetChimeSec) % 3600) == 0))
+	if (nBlink > 0)nBlink--;
+
+
+	if (((t.wMinute * 60 + t.wSecond - intOffsetChimeSec) % 3600) == 0)
 	{
-		if (intOffsetChimeSec < 0)
-		{
-			if (((t.wHour == 23) && (chimeHourStart == 0)) || ((chimeHourStart - t.wHour - 1) <= 0))
+		if (b_EnableBlinkOnChime) {
+			nBlink = BlinksOnChime * 2;
+		}
+
+		if (b_EnableChime) {
+			if (intOffsetChimeSec < 0)
 			{
-				if ((chimeHourEnd - t.wHour) > 0)
+				if (((t.wHour == 23) && (chimeHourStart == 0)) || ((chimeHourStart - t.wHour - 1) <= 0))
 				{
-					PlayChime();
+					if ((chimeHourEnd - t.wHour) > 0)
+					{
+						PlayChime();
+					}
 				}
 			}
-		}
-		else 
-		{
-			if ((chimeHourStart - t.wHour) <= 0)
+			else
 			{
-				if (((chimeHourEnd - t.wHour) >= 0) || ((t.wHour == 0) && (chimeHourEnd == 24)))
+				if ((chimeHourStart - t.wHour) <= 0)
 				{
-					PlayChime();
+					if (((chimeHourEnd - t.wHour) >= 0) || ((t.wHour == 0) && (chimeHourEnd == 24)))
+					{
+						PlayChime();
+					}
 				}
 			}
 		}
@@ -2289,28 +2317,6 @@ void OnTimer_Win10(void)
 
 	if (nDispBeat == FORMAT_BEAT1) beatLast = beat100 / 100;
 	else if (nDispBeat == FORMAT_BEAT2) beatLast = beat100;
-
-
-	//Windows11で『タスクバーを隠す』にしておくと、再表示の際にオリジナルサブクロックがWS_VISIBLEになるので隠す。
-//	if (bWin11Sub) {
-//		for (int i = 0; i < MAX_SUBSCREEN; i++) {
-//			if (bEnableSpecificSubClk[i]) {
-//				if (hwndOriginalWin11SubClk[i]) {
-//					DWORD dwStyle = (DWORD)GetWindowLong(hwndOriginalWin11SubClk[i], GWL_STYLE);
-//					if ((dwStyle & WS_VISIBLE) != 0)
-//					{
-//						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][OnTimer_Win10] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
-//						ShowWindow(hwndOriginalWin11SubClk[i], SW_HIDE);
-////						SetSpecificSubClock(i);
-//					}
-//					else 
-//					{
-////						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][OnTimer_Win10] Original Win11 Clock on Subscreen is not visible, Index =", i);
-//					}
-//				}
-//			}
-//		}
-//	}
 
 
 
@@ -3190,8 +3196,13 @@ static void DrawClockFocusRect(HDC hdc)
 
 
 
-void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, COLORREF textshadow, COLORREF textcol_temp)
+void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval)
 {
+	COLORREF textshadow, textcol_dow, textcol_temp;
+
+	textshadow = TextColorFromInfoVal(99);
+	textcol_dow = TextColorFromInfoVal(88);
+	textcol_temp = TextColorFromInfoVal(infoval);
 
 	if (fillbackcolor) 
 	{
@@ -3239,7 +3250,7 @@ void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, COLORREF textshadow
 			TextOut(hdcClock_work, x - 1, y - 1, sp, len);
 		}
 
-		if (textcol_temp == textcol_DoWzone) {
+		if (textcol_temp == textcol_dow) {
 			SetTextColor(hdcClock_work, RGB(0, 255, 0));
 		}
 		else {
@@ -3255,16 +3266,21 @@ COLORREF TextColorFromInfoVal(int infoval)
 {
 	COLORREF colRet;
 
-	if (bUseAllColor)
+	if (infoval == 99) {
+		colRet = colShadow;
+	}
+	else if (infoval == 88) {
+		colRet = textcol_DoWzone;
+	}
+	else if (flag_VPN && bUseVPNColor)
+	{
+		colRet = ColorVPNText;
+	}
+	else if (bUseAllColor)
 	{
 		colRet = textcol_DoWzone;
 	}
-	else
-	{
-		colRet = ColorWeekdayText;
-	}
-
-	if (infoval == 0x02)	//日付
+	else if (infoval == 0x02)	//日付
 	{
 		if (bUseDateColor)colRet = textcol_DoWzone;
 	}
@@ -3276,9 +3292,14 @@ COLORREF TextColorFromInfoVal(int infoval)
 	{
 		if (bUseTimeColor)colRet = textcol_DoWzone;
 	}
-	else if (flag_VPN && bUseVPNColor)
+	else
 	{
-		colRet = ColorVPNText;
+		colRet = ColorWeekdayText;
+	}
+
+	if ((nBlink % 2) != 0)
+	{
+		colRet = (~colRet & 0xFFFFF) + 0xFF000000;
 	}
 
 	return colRet;
@@ -3312,7 +3333,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	int xclock, yclock, wclock, hclock, xsrc, ysrc, wsrc, hsrc;
 	int xcenter;
 	HRGN hRgn = NULL, hOldRgn = NULL;
-	COLORREF textcol, textshadow;
+	COLORREF textcol, textshadow, textcol_dow;
 
 	RGBQUAD* color;
 	RGBQUAD* color_work;
@@ -3326,7 +3347,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 
 
-	textshadow = colShadow;
+
 
 
 	//3.4.5.2 (2021/10/14) by TTTT
@@ -3458,7 +3479,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	if (b_UseBarMeterCU)
 	{
 		DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterCU_Right, BarMeterCU_Left,
-			BarMeterCU_Bottom, BarMeterCU_Top, iCPUUsage, MyColorTT_CU(), b_BarMeterCU_Horizontal);
+			BarMeterCU_Bottom, BarMeterCU_Top, totalCPUUsage, MyColorTT_CU(), b_BarMeterCU_Horizontal);
 	}
 
 	if (!b_BarMeterCU_Horizontal && b_UseBarMeterCore)
@@ -3519,6 +3540,8 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 
 	//文字の出力
+
+
 
 	//w = 0;
 	GetTextMetrics(hdcClock, &tm);
@@ -3602,7 +3625,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 				tempXpos += sz.cx / 2;
 			}
 
-			Textout_Tclock_Win10_3(tempXpos, y + dvpos, sp, zonelength, textshadow, TextColorFromInfoVal(currentzoneval));
+			Textout_Tclock_Win10_3(tempXpos, y + dvpos, sp, zonelength, currentzoneval);
 
 			if (nTextPos == 1)
 			{
@@ -3637,7 +3660,9 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	//r, g, bをαとみなして、color_workのデータからcolorのデータを作っていく。
 
 
-	textcol = TextColorFromInfoVal(1);	//この関数で、VPN色もしくは通常色が自動的に得られる。
+	textcol = TextColorFromInfoVal(1);	//引数1で、VPN色もしくは通常色が自動的に得られる。
+	textshadow = TextColorFromInfoVal(99);
+	textcol_dow = TextColorFromInfoVal(88);
 
 	if (fillbackcolor) {	//背景非透過の場合
 		for (color = m_color_start; color < m_color_end; ++color) {
@@ -3652,10 +3677,10 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 		textcol_g = GetGValue(textcol);
 		textcol_b = GetBValue(textcol);
 
-		BYTE textcol_DoWzone_r, textcol_DoWzone_g, textcol_DoWzone_b;
-		textcol_DoWzone_r = GetRValue(textcol_DoWzone);
-		textcol_DoWzone_g = GetGValue(textcol_DoWzone);
-		textcol_DoWzone_b = GetBValue(textcol_DoWzone);
+		BYTE textcol_dow_r, textcol_dow_g, textcol_dow_b;
+		textcol_dow_r = GetRValue(textcol_dow);
+		textcol_dow_g = GetGValue(textcol_dow);
+		textcol_dow_b = GetBValue(textcol_dow);
 
 		BYTE textshadow_r, textshadow_g, textshadow_b;
 		textshadow_r = GetRValue(textshadow);
@@ -3678,13 +3703,13 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 					color->rgbReserved = temp_alpha;
 				}
 				else if (color_work->rgbGreen > 10) {
-					//			*(unsigned*)color = ((unsigned)(color_work->rgbGreen)) << 24 | (textcol_DoWzone & 0x0000FF00) | ((textcol_DoWzone & 0xFF) << 16) | ((textcol_DoWzone >> 16) & 0xFF);
+					//			*(unsigned*)color = ((unsigned)(color_work->rgbGreen)) << 24 | (textcol_dow & 0x0000FF00) | ((textcol_dow & 0xFF) << 16) | ((textcol_dow >> 16) & 0xFF);
 					temp_alpha = color_work->rgbGreen;
-					channel = textcol_DoWzone_r * temp_alpha / 255;
+					channel = textcol_dow_r * temp_alpha / 255;
 					color->rgbRed = (channel>255 ? 255 : (BYTE)channel);
-					channel = textcol_DoWzone_g * temp_alpha / 255;
+					channel = textcol_dow_g * temp_alpha / 255;
 					color->rgbGreen = (channel>255 ? 255 : (BYTE)channel);
-					channel = textcol_DoWzone_b * temp_alpha / 255;
+					channel = textcol_dow_b * temp_alpha / 255;
 					color->rgbBlue = (channel>255 ? 255 : (BYTE)channel);
 					color->rgbReserved = temp_alpha;
 				}
@@ -3720,22 +3745,16 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	}
 
 
-	if(nBlink == 0 || (nBlink % 2))
-	{
-		//202110月時点のWindowsではrgbReservedを透明度(255:非透明, 0:透明,ただしクリア)としてhdcにコピーしたら、そののちはαブレンドしてくれる。
-		//ただしr, g, bの値もあらかじめαをかけておく必要がある。
-		//Alphaブレンドの設定のAC_SRC_ALPHAのところの説明が該当する。
-		//https://docs.microsoft.com/ja-jp/windows/win32/api/wingdi/ns-wingdi-blendfunction?redirectedfrom=MSDN
+	//202110月時点のWindowsではrgbReservedを透明度(255:非透明, 0:透明,ただしクリア)としてhdcにコピーしたら、そののちはαブレンドしてくれる。
+	//ただしr, g, bの値もあらかじめαをかけておく必要がある。
+	//Alphaブレンドの設定のAC_SRC_ALPHAのところの説明が該当する。
+	//https://docs.microsoft.com/ja-jp/windows/win32/api/wingdi/ns-wingdi-blendfunction?redirectedfrom=MSDN
 
-		//TransparentBltとかいう関数があることを後から知ったが、すでにうまく行っているのでいじらない。困ったら調べること。
+	//TransparentBltとかいう関数があることを後から知ったが、すでにうまく行っているのでいじらない。困ったら調べること。
 
-		BitBlt(hdc, 0, 0, widthMainClockFrame, heightMainClockFrame, hdcClock, 0, 0, SRCCOPY);
-	}
-	else
-	{
-		BitBlt(hdc, 0, 0, widthMainClockFrame, heightMainClockFrame, hdcClock, 0, 0, NOTSRCCOPY);
-	}
 
+	//点滅処理は、フォントのみ反転として、TextColorFromInfoVal()の機能として実装
+	BitBlt(hdc, 0, 0, widthMainClockFrame, heightMainClockFrame, hdcClock, 0, 0, SRCCOPY);
 
 	HDC hdcSub = NULL;
 	HDC hdcSubBuffer = NULL;
@@ -3758,13 +3777,6 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 						if (b_DebugLog) writeDebugLog_Win10("[tclock.c][DrawClockSub] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
 						SetWindowVisible_Win10(hwndOriginalWin11SubClk[i], FALSE);
 					}
-
-					//DWORD dwStyle = (DWORD)GetWindowLong(hwndOriginalWin11SubClk[i], GWL_STYLE);
-					//if ((dwStyle & WS_VISIBLE) != 0)
-					//{
-					//	if (b_DebugLog) writeDebugLog_Win10("[tclock.c][DrawClockSub] Original Win11 Clock on Subscreen is visible -> Hide, Index =", i);
-					//	SetWindowLongPtr(hwndOriginalWin11SubClk[i], GWL_STYLE, dwStyle & ~WS_VISIBLE);
-					//}
 				}
 
 
@@ -3779,18 +3791,6 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 				}
 				else
 				{
-					//if (!bEnhanceSubClkOnDarkTray)		//描画に先立ってクリアする。bEnhanceSubClkOnDarkTrayの場合はSRCCOPYで表示するのでクリア不要
-					//{
-					//	HBRUSH tempHbrush;
-					//	tempHbrush = CreateSolidBrush(RGB(0, 0, 0));
-					//	SelectObject(hdcSub, tempHbrush);
-					//	PatBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], BLACKNESS);
-					//	DeleteObject(tempHbrush);
-					//}					
-					
-					//SetStretchBltMode(hdcSub, HALFTONE);
-					//SetBrushOrgEx(hdcSub, 0, 0, NULL);
-
 				//StretchBltは、HALFTONEモード+SRCCOPYでないと画質が落ちるが、その組み合わせだとrgbReservedはすべて0になってしまう。
 				//rgbReservedを求めるために、hdcClock_workの赤チャネルを使って別途StretcBltで計算する。
 
@@ -3809,32 +3809,21 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 
 
-					if (nBlink == 0 || (nBlink % 2))
+					SelectObject(hdcSubBuffer, hbm_tempDIBSection);
+					SetStretchBltMode(hdcSubBuffer, HALFTONE);
+					StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock_work, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+
+					SelectObject(hdcSubBuffer, hbm_tempDIBSection2);
+					SetStretchBltMode(hdcSubBuffer, HALFTONE);
+					StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
+
+					for (color = temp_m_color_start, color_work = temp_m_color_start2; color < temp_m_color_end; ++color, ++color_work)
 					{
-						//if (bEnhanceSubClkOnDarkTray) {
-						//	StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
-						//}
-						//else {
-
-							SelectObject(hdcSubBuffer, hbm_tempDIBSection);
-							SetStretchBltMode(hdcSubBuffer, HALFTONE);
-							StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock_work, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
-
-							SelectObject(hdcSubBuffer, hbm_tempDIBSection2);
-							SetStretchBltMode(hdcSubBuffer, HALFTONE);
-							StretchBlt(hdcSubBuffer, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, SRCCOPY);
-
-							for (color = temp_m_color_start, color_work = temp_m_color_start2; color < temp_m_color_end; ++color, ++color_work)
-							{
-								color_work->rgbReserved = color->rgbRed;
-							}
-
-							BitBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcSubBuffer, 0, 0, SRCCOPY);
-						//}
+						color_work->rgbReserved = color->rgbRed;
 					}
-					else {
-						StretchBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcClock, 0, 0, widthMainClockFrame, heightMainClockFrame, NOTSRCCOPY);
-					}
+
+					BitBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], hdcSubBuffer, 0, 0, SRCCOPY);
+
 				}
 
 				ReleaseDC(hwndClockSubClk[i], hdcSub);
@@ -3970,8 +3959,10 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 		// 横方向
 		if ( bGraphTate )
 		{
-			one_dotr /= (double)(xclock + wclock);
-			one_dots /= (double)(xclock + wclock);
+			//one_dotr /= (double)(xclock + wclock);
+			//one_dots /= (double)(xclock + wclock);
+			one_dotr /= (double)wclock;
+			one_dots /= (double)wclock;
 			MoveToEx(hdc, (xclock + wclock) - 1, yclock, NULL);
 			for(y = yclock;y < (yclock + hclock);y++)
 			{
@@ -3991,6 +3982,8 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 					{
 						graphSizeS = (int)((LogDigit2 - 1 + log10(sendlog[i]) - log10(NetGraphScaleSend * 1024)) * wclock / LogDigit2);
 						graphSizeR = (int)((LogDigit - 1 + log10(recvlog[i]) - log10(NetGraphScaleRecv * 1024)) * wclock / LogDigit);
+						if (graphSizeS < 0)graphSizeS = 0;
+						if (graphSizeR < 0)graphSizeR = 0;
 					}
 					else
 					{
@@ -4006,12 +3999,12 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 							if(graphSizeS > 0)
 							{
 								SelectObject(hdc, (HGDIOBJ)penSR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeS, 0), y);
+								LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
 							}
 							if(graphSizeR > graphSizeS)
 							{
 								SelectObject(hdc, (HGDIOBJ)penR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeR, 0), y);
+								LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
 							}
 						}
 						else
@@ -4019,12 +4012,12 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 							if(graphSizeR > 0)
 							{
 								SelectObject(hdc,(HGDIOBJ)penSR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeR, 0), y);
+								LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
 							}
 							if(graphSizeR < graphSizeS)
 							{
 								SelectObject(hdc,(HGDIOBJ)penS);
-								LineTo(hdc, max((xclock + wclock) - graphSizeS, 0), y);
+								LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
 							}
 						}
 					}
@@ -4049,6 +4042,11 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 									else SendPrev = (int)((LogDigit2 - 1 + log10(sendlog[i + 1]) - log10(NetGraphScaleSend * 1024)) * wclock / LogDigit2);
 									if (recvlog[i+1] == 0) RecvPrev = 0;
 									else RecvPrev = (int)((LogDigit - 1 + log10(recvlog[i + 1]) - log10(NetGraphScaleRecv * 1024)) * wclock / LogDigit);
+
+									if (SendThis < 0)SendThis = 0;
+									if (RecvThis < 0)RecvThis = 0;
+									if (SendPrev < 0)SendPrev = 0;
+									if (RecvPrev < 0)RecvPrev = 0;
 								}
 								else
 								{
@@ -4059,17 +4057,23 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								}
 
 
-								MoveToEx(hdc,xclock+wclock- max(SendPrev,0),y-d,NULL);
+								MoveToEx(hdc, max(xclock+wclock- SendPrev, xclock),y-d,NULL);
 								SelectObject(hdc,(HGDIOBJ)penS);
-								LineTo(hdc,xclock+wclock - max(SendThis,0),y);
-								MoveToEx(hdc,xclock+wclock- max(RecvPrev,0),y-d,NULL);
+								LineTo(hdc, max(xclock+wclock - SendThis, xclock),y);
+								MoveToEx(hdc, max(xclock+wclock- RecvPrev, xclock),y-d,NULL);
 								SelectObject(hdc,(HGDIOBJ)penR);
-								LineTo(hdc,xclock+wclock- max(RecvThis,0),y);
+								LineTo(hdc, max(xclock+wclock- RecvThis, xclock),y);
 							}
 							else if(graphMode==2)	//CPU
 							{
-								MoveToEx(hdc,max((xclock+wclock)-(int)(recvlog[i+1]/one_dotr),0),y-d,NULL);
-								if(sendlog[i]==recvlog[i])
+								if (bEnableGPUGraph) {
+									MoveToEx(hdc, max((xclock + wclock) - (int)(sendlog[i + 1] / one_dots), xclock), y - d, NULL);
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, max((xclock + wclock) - (int)(sendlog[i] / one_dots), xclock), y);
+								}
+
+								MoveToEx(hdc,max((xclock+wclock)-(int)(recvlog[i+1]/one_dotr), xclock),y-d,NULL);
+								if (recvlog[i] >= cpuHigh)
 								{
 									SelectObject(hdc,(HGDIOBJ)penSR);
 								}
@@ -4077,7 +4081,9 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								{
 									SelectObject(hdc,(HGDIOBJ)penR);
 								}
-								LineTo(hdc,max((xclock+wclock)-(int)(recvlog[i]/one_dotr),0),y);
+
+								LineTo(hdc,max((xclock+wclock)-(int)(recvlog[i]/one_dotr), xclock),y);
+
 							}
 						}
 					}
@@ -4088,8 +4094,10 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
     // 縦方向
 		else
 		{
-			one_dotr/=(double)(yclock+hclock);
-			one_dots/=(double)(yclock+hclock);
+			//one_dotr/=(double)(yclock+hclock);
+			//one_dots/=(double)(yclock+hclock);
+			one_dotr /= (double)hclock;
+			one_dots /= (double)hclock;
 			for(x = xclock;x < (xclock + wclock);x++)
 			{
 				if (bReverseGraph)
@@ -4109,6 +4117,8 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 
 						graphSizeS = (int)((LogDigit2 - 1 + log10(sendlog[i]) - log10(NetGraphScaleSend * 1024)) * hclock / LogDigit2);
 						graphSizeR = (int)((LogDigit - 1 + log10(recvlog[i]) - log10(NetGraphScaleRecv * 1024)) * hclock / LogDigit);
+						if (graphSizeS < 0)graphSizeS = 0;
+						if (graphSizeR < 0)graphSizeR = 0;
 					}
 					else
 					{
@@ -4124,12 +4134,12 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 							if(graphSizeS > 0)
 							{
 								SelectObject(hdc,(HGDIOBJ)penSR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, 0));
+								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
 							}
 							if(graphSizeR > graphSizeS)
 							{
 								SelectObject(hdc,(HGDIOBJ)penR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, 0));
+								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
 							}
 						}
 						else
@@ -4137,12 +4147,12 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 							if(graphSizeR > 0)
 							{
 								SelectObject(hdc, (HGDIOBJ)penSR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, 0));
+								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
 							}
 							if(graphSizeR < graphSizeS)
 							{
 								SelectObject(hdc,(HGDIOBJ)penS);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, 0));
+								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
 							}
 						}
 					}
@@ -4167,6 +4177,11 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 									else SendPrev = (int)((LogDigit2 - 1 + log10(sendlog[i + 1]) - log10(NetGraphScaleSend * 1024)) * hclock / LogDigit2);
 									if (recvlog[i + 1] == 0) RecvPrev = 0;
 									else RecvPrev = (int)((LogDigit - 1 + log10(recvlog[i + 1]) - log10(NetGraphScaleRecv * 1024)) * hclock / LogDigit);
+
+									if (SendThis < 0)SendThis = 0;
+									if (RecvThis < 0)RecvThis = 0;
+									if (SendPrev < 0)SendPrev = 0;
+									if (RecvPrev < 0)RecvPrev = 0;
 								}
 								else
 								{
@@ -4175,17 +4190,23 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 									SendPrev = (int)(sendlog[i+1] / (NetGraphScaleSend * 1024) * hclock);
 									RecvPrev = (int)(recvlog[i+1] / (NetGraphScaleRecv * 1024) * hclock);
 								}
-								MoveToEx(hdc, x - d, yclock + hclock - max(SendPrev, 0), NULL);
+								MoveToEx(hdc, x - d, max(yclock + hclock - SendPrev, yclock), NULL);
 								SelectObject(hdc, (HGDIOBJ)penS);
-								LineTo(hdc, x, yclock + hclock - max(SendThis, 0));
-								MoveToEx(hdc, x - d, yclock + hclock - max(RecvPrev, 0), NULL);
+								LineTo(hdc, x, max(yclock + hclock - SendThis, yclock));
+								MoveToEx(hdc, x - d, max(yclock + hclock - RecvPrev, yclock), NULL);
 								SelectObject(hdc, (HGDIOBJ)penR);
-								LineTo(hdc, x, yclock + hclock - max(RecvThis, 0));
+								LineTo(hdc, x, max(yclock + hclock - RecvThis, yclock));
 							}
 							else if(graphMode==2)	//CPU
 							{
-								MoveToEx(hdc,x-d,max((yclock+hclock)-(int)(recvlog[i+1]/one_dotr),0),NULL);
-								if(sendlog[i]==recvlog[i])
+								if (bEnableGPUGraph) {
+									MoveToEx(hdc, x - d, max((yclock + hclock) - (int)(sendlog[i + 1] / one_dots), yclock), NULL);
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, x, max((yclock + hclock) - (int)(sendlog[i] / one_dots), yclock));
+								}
+
+								MoveToEx(hdc,x-d,max((yclock+hclock)-(int)(recvlog[i+1]/one_dotr), yclock),NULL);
+								if (recvlog[i] >= cpuHigh)
 								{
 									SelectObject(hdc,(HGDIOBJ)penSR);
 								}
@@ -4193,7 +4214,8 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								{
 									SelectObject(hdc,(HGDIOBJ)penR);
 								}
-								LineTo(hdc,x,max((yclock+hclock)-(int)(recvlog[i]/one_dotr),0));
+								LineTo(hdc,x,max((yclock+hclock)-(int)(recvlog[i]/one_dotr), yclock));
+
 							}
 						}
 					}
@@ -4233,17 +4255,20 @@ void getGraphVal()
 			sendlog[i+1]=sendlog[i];
 			recvlog[i+1]=recvlog[i];
 		}
-		cpu_u = bGetSysRes ? iCPUUsage : CpuMoni_get();
-		if (cpu_u >= cpuHigh)
-		{
-			recvlog[0]=(double)cpu_u;
-			sendlog[0]=cpuHigh;
-		}
-		else
-		{
-			recvlog[0]=(double)cpu_u;
-			sendlog[0]=(double)cpu_u;
-		}
+		recvlog[0] = (double)totalCPUUsage;
+		sendlog[0] = (double)totalGPUUsage;
+
+		//cpu_u = totalCPUUsage;
+		//if (cpu_u >= cpuHigh)
+		//{
+		//	recvlog[0]=(double)cpu_u;
+		//	sendlog[0]=cpuHigh;
+		//}
+		//else
+		//{
+		//	recvlog[0]=(double)cpu_u;
+		//	sendlog[0]=(double)cpu_u;
+		//}
 	}
 	bGraphRedraw = TRUE;
 }
@@ -4404,7 +4429,7 @@ void CalcMainClockSize(void)
 
 }
 
-void UpdateSysRes(BOOL bsysres, BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol)
+void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol, BOOL bgpu)
 {
 	int i;
 
@@ -4457,6 +4482,11 @@ void UpdateSysRes(BOOL bsysres, BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon
 		PerMoni_get();
 	}
 
+	if (bgpu)
+	{
+		totalGPUUsage = GPUMoni_get();
+	}
+
 	if(bnet)
 	{
 		Net_get();
@@ -4467,10 +4497,12 @@ void UpdateSysRes(BOOL bsysres, BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon
 		Hdd_get();
 	}
 
-	if(bsysres)
-	{
-		iCPUUsage = CpuMoni_get(); // cpu.c
-	}
+	//if(bsysres)
+	//{
+	//	iCPUUsage = CpuMoni_get(); // cpu.c
+	//}
+
+
 
 	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] UpdateSysRes finished. ", 999);
 
@@ -4836,15 +4868,15 @@ COLORREF MyColorTT_Core(int iCPU)
 COLORREF MyColorTT_CU()
 {
 	COLORREF returnvalue;
-	if (iCPUUsage > 66)
+	if (totalCPUUsage > 66)
 		{
 			returnvalue = ColorBarMeterCU_High;
 		}
-		else if (iCPUUsage > 33)
+		else if (totalCPUUsage > 33)
 		{
 			returnvalue = ColorBarMeterCU_Mid;
 		}
-		else if (iCPUUsage > 0)
+		else if (totalCPUUsage > 0)
 		{
 			returnvalue = ColorBarMeterCU_Low;
 		}

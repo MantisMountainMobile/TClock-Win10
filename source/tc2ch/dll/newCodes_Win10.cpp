@@ -15,6 +15,11 @@
 #include <endpointvolume.h>	//added by TTTT for volume
 #include <mmdeviceapi.h>	//added by TTTT for volume
 
+// GPUŽæ“¾
+#include <pdh.h>
+#include <pdhmsg.h>
+#pragma comment(lib, "pdh.lib")
+
 
 #define TIMEDIF_Win10 (ULONGLONG)324000000000
 #define ONEDAY_Win10 (ULONGLONG)864000000000
@@ -178,13 +183,128 @@ extern "C" int GetFocusAssistState(void)
 }
 
 
-
+//
+//
+//extern "C" int GetGPUUsage(void)
+//{
+//	//https://gist.github.com/fecf/2103a82afc76b5c88829c4383944a5aa
+//	//https://docs.microsoft.com/en-us/windows/win32/perfctrs/enumerating-process-objects
+//
+//	extern BOOL b_DebugLog;
+//	if (b_DebugLog)writeDebugLog_Win10("[newCodes_Win10.cpp] GetGPUUsage called.", 999);
+//	int ret = 0, count = 0;
+//	CONST PSTR COUNTER_OBJECT = "GPU Engine";
+//
+//
+//	PDH_STATUS status = ERROR_SUCCESS;
+//	LPSTR pwsCounterListBuffer = NULL;
+//	DWORD dwCounterListSize = 0;
+//	LPSTR pwsInstanceListBuffer = NULL;
+//	DWORD dwInstanceListSize = 0;
+//	LPSTR pTemp = NULL;
+//
+//	// Determine the required buffer size for the data. 
+//	status = PdhEnumObjectItemsA(
+//		NULL,                   // real-time source
+//		NULL,                   // local machine
+//		COUNTER_OBJECT,         // object to enumerate
+//		pwsCounterListBuffer,   // pass NULL and 0
+//		&dwCounterListSize,     // to get required buffer size
+//		pwsInstanceListBuffer,
+//		&dwInstanceListSize,
+//		PERF_DETAIL_WIZARD,     // counter detail level
+//		0);
+//
+//	if (status == PDH_MORE_DATA)
+//	{
+//		// Allocate the buffers and try the call again.
+//		pwsCounterListBuffer = (LPSTR)malloc(dwCounterListSize * sizeof(CHAR));
+//		pwsInstanceListBuffer = (LPSTR)malloc(dwInstanceListSize * sizeof(CHAR));
+//
+//		if (NULL != pwsCounterListBuffer && NULL != pwsInstanceListBuffer)
+//		{
+//			status = PdhEnumObjectItemsA(
+//				NULL,                   // real-time source
+//				NULL,                   // local machine
+//				COUNTER_OBJECT,         // object to enumerate
+//				pwsCounterListBuffer,
+//				&dwCounterListSize,
+//				pwsInstanceListBuffer,
+//				&dwInstanceListSize,
+//				PERF_DETAIL_WIZARD,     // counter detail level
+//				0);
+//
+//			if (status == ERROR_SUCCESS)
+//			{
+//				//wprintf(L"Counters that the Process objects defines:\n\n");
+//
+//				// Walk the counters list. The list can contain one
+//				// or more null-terminated strings. The list is terminated
+//				// using two null-terminator characters.
+//				for (pTemp = pwsCounterListBuffer; *pTemp != 0; pTemp += strlen(pTemp) + 1)
+//				{
+//					WriteDebugDLL_New(pTemp);
+//					//wprintf(L"%s\n", pTemp);
+//				}
+//
+//				//wprintf(L"\nInstances of the Process object:\n\n");
+//
+//				// Walk the instance list. The list can contain one
+//				// or more null-terminated strings. The list is terminated
+//				// using two null-terminator characters.
+//				for (pTemp = pwsInstanceListBuffer; *pTemp != 0; pTemp += strlen(pTemp) + 1)
+//				{
+//					//wprintf(L"%s\n", pTemp);
+//					if (count == 0) {
+//						WriteDebugDLL_New(pTemp);
+//					}
+//
+//					count++;
+//
+//
+//
+//
+//				}
+//			}
+//			else
+//			{
+//				//wprintf(L"Second PdhEnumObjectItems failed with %0x%x.\n", status);
+//			}
+//		}
+//		else
+//		{
+//			//wprintf(L"Unable to allocate buffers.\n");
+//			status = ERROR_OUTOFMEMORY;
+//		}
+//	}
+//	else
+//	{
+//		//wprintf(L"\nPdhEnumObjectItems failed with 0x%x.\n", status);
+//	}
+//
+//	if (pwsCounterListBuffer != NULL)
+//		free(pwsCounterListBuffer);
+//
+//	if (pwsInstanceListBuffer != NULL)
+//		free(pwsInstanceListBuffer);
+//
+//
+//
+//
+//	if (ret > 100) ret = 100;
+//
+//	if (b_DebugLog) {
+//		writeDebugLog_Win10("[newCodes_Win10.cpp][GetGPUUsage] Number of items = ", count);
+//		writeDebugLog_Win10("[newCodes_Win10.cpp][GetGPUUsage] GPU Usage = ", ret);
+//	}
+//
+//	return ret;
+//}
 
 extern "C" int GetNotificationNumber(void)
 {
 
 	extern BOOL b_DebugLog;
-
 	if (b_DebugLog)writeDebugLog_Win10("[newCodes_Win10.cpp] GetNotificationNumber called.", 999);
 
 	// note: ntdll is guaranteed to be in the process address space.
@@ -554,10 +674,7 @@ extern "C" void writeDebugLog_Win10(LPSTR s, int num)
 		}
 		WriteDebugDLL_New(tempstr_Win10);
 		tickCount_LastLog = tickCount_LastLog_temp;
-
 }
-
-
 
 
 extern "C" void newCodes_startup_Win10()

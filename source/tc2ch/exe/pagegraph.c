@@ -161,6 +161,9 @@ void OnInit(HWND hDlg)
 	CheckDlgButton(hDlg, IDC_TRAYGRAPH,
 		GetMyRegLong("Graph", "BackNet", FALSE));
 
+	CheckDlgButton(hDlg, IDC_GPUGRAPH,
+		GetMyRegLong("Graph", "EnableGPUGraph", FALSE));
+
 	OnTrayGraph(hDlg);
 
 	SetDlgItemInt(hDlg, IDC_TBGGRAPHRATE, GetMyRegLong("Graph", "NetGraphScaleRecv", 1000), FALSE);
@@ -168,10 +171,10 @@ void OnInit(HWND hDlg)
 
 
 	dw = GetMyRegLong("Graph", "CpuHigh", 70);
-	if(dw > 100) dw = 100;
-	if(dw < 1  ) dw = 1;
+	if(dw > 101) dw = 101;
+	if(dw < 0  ) dw = 0;
 	SendDlgItemMessage(hDlg,IDC_CPUHIGHSPIN,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)100, (short)1));
+		(LPARAM) MAKELONG((short)101, (short)0));
 	SendDlgItemMessage(hDlg, IDC_CPUHIGHSPIN, UDM_SETPOS, 0,
 		(int)(short)dw);
 
@@ -236,10 +239,13 @@ void OnApply(HWND hDlg)
 		IsDlgButtonChecked(hDlg, IDC_GPTATE));
 	SetMyRegLong("Graph", "ReverseGraph",
 		IsDlgButtonChecked(hDlg, IDC_RVGRAPH));
+	SetMyRegLong("Graph", "EnableGPUGraph",
+		IsDlgButtonChecked(hDlg, IDC_GPUGRAPH));
+
 
 	dw = GetDlgItemInt(hDlg, IDC_CPUHIGH, NULL, FALSE);
-	if(dw > 100) dw = 100;
-	if(dw < 1  ) dw = 1;
+	if(dw > 101) dw = 101;
+	if(dw < 0  ) dw = 0;
 	SetDlgItemInt(hDlg, IDC_CPUHIGH, dw, FALSE);
 	SetMyRegLong("Graph", "CpuHigh", dw);
 
@@ -321,25 +327,36 @@ void OnGraphMode(HWND hDlg)
 	{
 		for(i=IDC_MODE21;i<=IDC_MODE24;i++)
 			ShowDlgItem(hDlg, i, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE27, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE28, FALSE);
+
+
 		for(i=IDC_MODE11;i<=IDC_MODE17;i++)
 			ShowDlgItem(hDlg, i, TRUE);
-		ShowDlgItem(hDlg, IDC_COLSEND, TRUE);
-		ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, TRUE);
+
+		//ShowDlgItem(hDlg, IDC_COLSEND, TRUE);
+		//ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, TRUE);
 		ShowDlgItem(hDlg, IDC_CPUHIGH, FALSE);
 		ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, FALSE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE, TRUE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE2, TRUE);
 		EnableDlgItem(hDlg, IDC_LOGGRAPH, TRUE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, TRUE);
+
+		ShowDlgItem(hDlg, IDC_GPUGRAPH, FALSE);
+
 	}
 	else if (n == 2)
 	{
-		for(i=IDC_MODE21;i<=IDC_MODE24;i++)
+		for (i = IDC_MODE21; i <= IDC_MODE24; i++)
 			ShowDlgItem(hDlg, i, TRUE);
-		for(i=IDC_MODE11;i<=IDC_MODE17;i++)
+		ShowDlgItem(hDlg, IDC_MODE27, TRUE);
+
+		for (i = IDC_MODE11; i <= IDC_MODE17; i++)
 			ShowDlgItem(hDlg, i, FALSE);
-		ShowDlgItem(hDlg, IDC_COLSEND, FALSE);
-		ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, FALSE);
+
+		//ShowDlgItem(hDlg, IDC_COLSEND, FALSE);
+		//ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, FALSE);
 		ShowDlgItem(hDlg, IDC_CPUHIGH, TRUE);
 		ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, TRUE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE, FALSE);
@@ -349,6 +366,22 @@ void OnGraphMode(HWND hDlg)
 		EnableDlgItem(hDlg, IDC_LOGGRAPH, FALSE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, FALSE);
 
+		ShowDlgItem(hDlg, IDC_GPUGRAPH, TRUE);
+
+		if (CBGetCurSel(hDlg, IDC_GRAPHTYPE) == 0)	//–_ƒOƒ‰ƒt
+		{
+			ShowDlgItem(hDlg, IDC_MODE14, FALSE);
+			ShowDlgItem(hDlg, IDC_MODE22, FALSE);
+			ShowDlgItem(hDlg, IDC_MODE23, FALSE);
+			ShowDlgItem(hDlg, IDC_MODE24, FALSE);
+			ShowDlgItem(hDlg, IDC_MODE12, TRUE);
+			ShowDlgItem(hDlg, IDC_MODE28, TRUE);
+			ShowDlgItem(hDlg, IDC_CPUHIGH, FALSE);
+			ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, FALSE);
+		}
+		else {
+			ShowDlgItem(hDlg, IDC_MODE28, FALSE);
+		}
 	}
 }
 

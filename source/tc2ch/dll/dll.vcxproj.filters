@@ -18,9 +18,6 @@
     <ClCompile Include="bmp.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="cpu.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="dllmain.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -61,6 +58,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="subclock.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="gpumon.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
