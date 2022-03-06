@@ -45,7 +45,7 @@ BOOL CALLBACK PageColorAdditionalProc(HWND hDlg, UINT message,
 			OnMeasureItemColorCombo(lParam);
 			return TRUE;
 		case WM_DRAWITEM:
-			OnDrawItemColorCombo(lParam, 20);
+			OnDrawItemColorCombo(lParam, 16);
 			return TRUE;
 		case WM_COMMAND:
 		{
@@ -69,7 +69,7 @@ BOOL CALLBACK PageColorAdditionalProc(HWND hDlg, UINT message,
 			case IDC_CHOOSECOL_SUN:
 			case IDC_CHOOSECOL_HOLIDAY:
 			case IDC_CHOOSECOL_VPN:
-				OnChooseColor(hDlg, id, 20);
+				OnChooseColor(hDlg, id, 16);
 				SendPSChanged(hDlg);
 				break;
 			}
@@ -100,7 +100,7 @@ void OnInit(HWND hDlg)
 	DWORD dwVer;
 	int index;
 
-	InitComboColor(hDlg, 4, combocolor, 20, TRUE);
+	InitComboColor(hDlg, 4, combocolor, 16, TRUE);
 
 	// if color depth is 256 or less
 	hdc = CreateIC("DISPLAY", NULL, NULL, NULL);

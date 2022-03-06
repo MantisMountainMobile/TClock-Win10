@@ -65,7 +65,7 @@ BOOL CALLBACK PageTooltipProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			OnMeasureItemColorCombo(lParam);
 			return TRUE;
 		case WM_DRAWITEM:
-			OnDrawItemColorCombo(lParam, 20);
+			OnDrawItemColorCombo(lParam, 16);
 			return TRUE;
 		case WM_COMMAND:
 		{
@@ -139,7 +139,7 @@ BOOL CALLBACK PageTooltipProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			case IDC_CHOOSETFONCOL:
 			case IDC_CHOOSETBAKCOL:
 			case IDC_CHOOSETTITLECOL:
-				OnChooseColor(hDlg, id, 20);
+				OnChooseColor(hDlg, id, 16);
 				SendPSChanged(hDlg);
 				break;
 			case IDC_SANSHOTIP:
@@ -194,7 +194,7 @@ void OnInit(HWND hDlg)
 	BOOL bTip2;
 
 	// setting of "background" and "text"
-	InitComboColor(hDlg, 3, combocolor, 20, TRUE);
+	InitComboColor(hDlg, 3, combocolor, 16, TRUE);
 
 	// if color depth is 256 or less
 	hdc = CreateIC("DISPLAY", NULL, NULL, NULL);

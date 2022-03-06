@@ -59,7 +59,7 @@ BOOL CALLBACK PageColorProc(HWND hDlg, UINT message,
 			OnMeasureItemColorCombo(lParam);
 			return TRUE;
 		case WM_DRAWITEM:
-			OnDrawItemColorCombo(lParam, 20);
+			OnDrawItemColorCombo(lParam, 16);
 			return TRUE;
 		case WM_COMMAND:
 		{
@@ -104,7 +104,7 @@ BOOL CALLBACK PageColorProc(HWND hDlg, UINT message,
 			case IDC_CHOOSECOLBACK2:
 			case IDC_CHOOSECOLFORE:
 			case IDC_CHOOSECOLCLKSHADOW:
-				OnChooseColor(hDlg, id, 20);
+				OnChooseColor(hDlg, id, 16);
 				SendPSChanged(hDlg);
 				break;
 			case IDC_BOLD:
@@ -160,7 +160,7 @@ void OnInit(HWND hDlg)
 	confNo = 1;
 
 	// setting of "background" and "text"
-	InitComboColor(hDlg, 4, combocolor, 20, TRUE);
+	InitComboColor(hDlg, 4, combocolor, 16, TRUE);
 
 	// if color depth is 256 or less
 	hdc = CreateIC("DISPLAY", NULL, NULL, NULL);

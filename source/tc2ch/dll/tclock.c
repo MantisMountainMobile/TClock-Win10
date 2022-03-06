@@ -1336,29 +1336,37 @@ void ReadData()
 	//設定番号取得
 
 
-	colfore = GetMyRegLong("Color_Font", "ForeColor",
-		0x80000000 | COLOR_BTNTEXT);
+	colfore = GetMyRegLong("Color_Font", "ForeColor", 0x80000000 | COLOR_BTNTEXT);
+	if (colfore & 0x80000000) colfore = GetSysColor(colfore & 0x00ffffff);
+	SetMyRegLong("Color_Font", "ForeColor", colfore);
+
 	ColorWeekdayText = colfore;
-
-//	textcol_DoWzone = ColorWeekdayText;	//初期値設定は平日と同じにする。コメントアウトすると起動時は黒
-
 	colWin11Notify = colfore;		//通知アイコンはメインテキストと同色
 
+	colback = GetMyRegLong("Color_Font", "BackColor", 0x80000000 | COLOR_3DFACE);
+	if (colback & 0x80000000) colback = GetSysColor(colback & 0x00ffffff);
+	SetMyRegLong("Color_Font", "BackColor", colback);
 
-	colback = GetMyRegLong("Color_Font", "BackColor",
-		0x80000000 | COLOR_3DFACE);
-	if(GetMyRegLong("Color_Font", "UseBackColor2", FALSE))
-		colback2 = GetMyRegLong("Color_Font", "BackColor2", colback);
-	else colback2 = colback;
+	colback2 = GetMyRegLong("Color_Font", "BackColor2", colback);
+	if (colback2 & 0x80000000) colback2 = GetSysColor(colback2 & 0x00ffffff);
+	SetMyRegLong("Color_Font", "BackColor2", colback2);
 
+	if (!GetMyRegLong("Color_Font", "UseBackColor2", FALSE))
 	{
-		fillbackcolor = GetMyRegLong("Color_Font", "UseBackColor", TRUE);
+		colback2 = colback;
 	}
+
+
+	fillbackcolor = GetMyRegLong("Color_Font", "UseBackColor", TRUE);
 	grad = GetMyRegLong("Color_Font", "GradDir", GRADIENT_FILL_RECT_H);
 
 	bClockShadow = GetMyRegLong("Color_Font", "ForeColorShadow", FALSE);
 	bClockBorder = GetMyRegLong("Color_Font", "ForeColorBorder", FALSE);
+
 	colShadow = GetMyRegLong("Color_Font", "ShadowColor", RGB(0, 0, 0));
+	if (colShadow & 0x80000000) colShadow = GetSysColor(colShadow & 0x00ffffff);
+	SetMyRegLong("Color_Font", "ShadowColor", colShadow);
+
 	nShadowRange = (int)(short)GetMyRegLong("Color_Font", "ClockShadowRange", 1);
 
 	bRClickMenu = GetMyRegLong("Mouse", "RightClickMenu", TRUE);
@@ -1392,19 +1400,19 @@ void ReadData()
 	dlineheight = (int)(short)GetMyRegLong("Color_Font", "LineHeight", 0);
 
 	ColorSaturdayText = (COLORREF)GetMyRegLong("Color_Font", "Saturday_TextColor", 0x00C8FFC8);
-	if (ColorSaturdayText > 0x00FFFFFF)ColorSaturdayText = 0x00C8FFC8;
+	if (ColorSaturdayText & 0x80000000) ColorSaturdayText = GetSysColor(ColorSaturdayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Saturday_TextColor", ColorSaturdayText);
 
 	ColorSundayText = (COLORREF)GetMyRegLong("Color_Font", "Sunday_TextColor", 0x00C8C8FF);
-	if (ColorSundayText > 0x00FFFFFF)ColorSaturdayText = 0x00C8C8FF;
+	if (ColorSundayText & 0x80000000) ColorSundayText = GetSysColor(ColorSundayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Sunday_TextColor", ColorSundayText);
 
 	ColorHolidayText = (COLORREF)GetMyRegLong("Color_Font", "Holiday_TextColor", 0x00C8C8FF);
-	if (ColorHolidayText > 0x00FFFFFF)ColorSaturdayText = 0x00C8C8FF;
+	if (ColorHolidayText & 0x80000000) ColorHolidayText = GetSysColor(ColorHolidayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Holiday_TextColor", ColorHolidayText);
 
 	ColorVPNText = (COLORREF)GetMyRegLong("Color_Font", "VPN_TextColor", 0x00FFFF00);
-	if (ColorVPNText > 0x00FFFFFF)ColorSaturdayText = 0x00FFFF00;
+	if (ColorVPNText & 0x80000000) ColorVPNText = GetSysColor(ColorVPNText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "VPN_TextColor", ColorVPNText);
 
 	bUseAllColor = GetMyRegLong("Color_Font", "UseAllColor", FALSE);
@@ -1603,7 +1611,6 @@ void ReadData()
 
 	ColorBarMeterVL_Mute = (COLORREF)GetMyRegLong("BarMeter", "ColorBarMeterVL_Mute", RGB(255, 0, 0));
 	SetMyRegLong("BarMeter", "ColorBarMeterVL_Mute", ColorBarMeterVL_Mute);
-
 
 	BarMeterVL_Right = (int)(short)GetMyRegLong("BarMeter", "BarMeterVL_Right", 290);
 	SetMyRegLong("BarMeter", "BarMeterVL_Right", BarMeterVL_Right);
@@ -2280,13 +2287,17 @@ void OnTimer_Win10(void)
 	}
 
 
-	if (nBlink > 0)nBlink--;
+	if (nBlink > 0) {
+		nBlink--;
+		bRedraw = TRUE;
+	}
 
 
 	if (((t.wMinute * 60 + t.wSecond - intOffsetChimeSec) % 3600) == 0)
 	{
 		if (b_EnableBlinkOnChime) {
 			nBlink = BlinksOnChime * 2;
+			bRedraw = TRUE;
 		}
 
 		if (b_EnableChime) {
@@ -2984,7 +2995,13 @@ static BOOL InitAnalogClockData(HWND hWnd)
 	nAnalogClockPos = (int)(short)GetMyRegLong("AnalogClock", "AnalogClockPos", 0);
 
 	colAClockHourHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockHourHandColor", (LONG)RGB(255, 0, 0));
+	if (colAClockHourHandColor & 0x80000000) colAClockHourHandColor = GetSysColor(colAClockHourHandColor & 0x00ffffff);
+	SetMyRegLong("AnalogClock", "AClockHourHandColor", colAClockHourHandColor);
+
 	colAClockMinHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockMinHandColor", (LONG)RGB(0, 0, 255));
+	if (colAClockMinHandColor & 0x80000000) colAClockMinHandColor = GetSysColor(colAClockMinHandColor & 0x00ffffff);
+	SetMyRegLong("AnalogClock", "AClockMinHandColor", colAClockMinHandColor);
+
 
 	if (hpenHour) {
 		DeleteObject(hpenHour);
@@ -3282,15 +3299,30 @@ COLORREF TextColorFromInfoVal(int infoval)
 	}
 	else if (infoval == 0x02)	//日付
 	{
-		if (bUseDateColor)colRet = textcol_DoWzone;
+		if (bUseDateColor) {
+			colRet = textcol_DoWzone;
+		}
+		else {
+			colRet = ColorWeekdayText;
+		}
 	}
 	else if (infoval == 0x04)	//曜日
 	{
-		if (bUseDowColor)colRet = textcol_DoWzone;
+		if (bUseDowColor) {
+			colRet = textcol_DoWzone;
+		}
+		else {
+			colRet = ColorWeekdayText;
+		}
 	}
 	else if (infoval == 0x08)	//時刻
 	{
-		if (bUseTimeColor)colRet = textcol_DoWzone;
+		if (bUseTimeColor) {
+			colRet = textcol_DoWzone;
+		}
+		else {
+			colRet = ColorWeekdayText;
+		}
 	}
 	else
 	{
@@ -4299,7 +4331,7 @@ void FillClock()
 	else if (colback == colback2)
 	{
 		col = colback;
-		if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
+		//if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
 		hbr = CreateSolidBrush(col);
 		FillRect(hdcClock, &tempRect, hbr);
 		DeleteObject(hbr);
@@ -4309,9 +4341,9 @@ void FillClock()
 		COLORREF col2;
 
 		col = colback;
-		if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
+		//if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
 		col2 = colback2;
-		if(col2 & 0x80000000) col2 = GetSysColor(col2 & 0x00ffffff);
+		//if(col2 & 0x80000000) col2 = GetSysColor(col2 & 0x00ffffff);
 
 		GradientFillClock(col, col2, grad);
 	}

@@ -44,7 +44,7 @@ BOOL CALLBACK PageAnalogClockProc(HWND hDlg, UINT message,
 			OnMeasureItemColorCombo(lParam);
 			return TRUE;
 		case WM_DRAWITEM:
-			OnDrawItemColorCombo(lParam, 20);
+			OnDrawItemColorCombo(lParam, 16);
 			return TRUE;
 		case WM_COMMAND:
 		{
@@ -61,7 +61,7 @@ BOOL CALLBACK PageAnalogClockProc(HWND hDlg, UINT message,
 				break;
 			case IDC_CHOOSECOLMIN:
 			case IDC_CHOOSECOLHOUR:
-				OnChooseColor(hDlg, id, 20);
+				OnChooseColor(hDlg, id, 16);
 				SendPSChanged(hDlg);
 				break;
 			case IDC_ACLOCK_POS:
@@ -116,7 +116,7 @@ void OnInit(HWND hDlg)
 	char fname[MAX_PATH + 1];
 
 	// setting of "min hand" and "hour hand"
-	InitComboColor(hDlg, 2, combocolor, 20, TRUE);
+	InitComboColor(hDlg, 2, combocolor, 16, TRUE);
 
 	// if color depth is 256 or less
 	hdc = CreateIC("DISPLAY", NULL, NULL, NULL);

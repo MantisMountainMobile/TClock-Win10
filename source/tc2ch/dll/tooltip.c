@@ -102,8 +102,8 @@ static void TooltipApplySetting(void)
 {
 	COLORREF tcolf, tcolb;
 	tcolf = dwTooltipFonCol; tcolb = dwTooltipBakCol;
-	if(tcolf & 0x80000000) tcolf = GetSysColor(tcolf & 0x00ffffff);
-	if(tcolb & 0x80000000) tcolb = GetSysColor(tcolb & 0x00ffffff);
+	//if(tcolf & 0x80000000) tcolf = GetSysColor(tcolf & 0x00ffffff);
+	//if(tcolb & 0x80000000) tcolb = GetSysColor(tcolb & 0x00ffffff);
 	colTooltipText = tcolf;
 	colTooltipBack = tcolb;
 	switch(dwTooltipTypeCur)
@@ -749,10 +749,14 @@ void TooltipReadData(void)
 	GetMyRegStr("Tooltip", "TipTitle", tiptitle, 300, "TClock-Win10 <%VerTC%>");
 	SetMyRegStr("Tooltip", "TipTitle", tiptitle);
 
-	dwTooltipFonCol = GetMyRegLong("Tooltip", "TipFontColor",
-		0x80000000 | COLOR_INFOTEXT);
-	dwTooltipBakCol = GetMyRegLong("Tooltip", "TipBakColor",
-		0x80000000 | COLOR_INFOBK);
+	dwTooltipFonCol = GetMyRegLong("Tooltip", "TipFontColor", 0x80000000 | COLOR_INFOTEXT);
+	if (dwTooltipFonCol & 0x80000000) dwTooltipFonCol = GetSysColor(dwTooltipFonCol & 0x00ffffff);
+	SetMyRegLong("Tooltip", "TipFontColor", dwTooltipFonCol);
+
+	dwTooltipBakCol = GetMyRegLong("Tooltip", "TipBakColor", 0x80000000 | COLOR_INFOBK);
+	if (dwTooltipBakCol & 0x80000000) dwTooltipBakCol = GetSysColor(dwTooltipBakCol & 0x00ffffff);
+	SetMyRegLong("Tooltip", "TipBakColor", dwTooltipBakCol);
+
 
 	colTooltipTitle = GetMyRegLong("Tooltip", "TipTitleColor", RGB(0,0,255));
 	SetMyRegLong("Tooltip", "TipTitleColor", colTooltipTitle);
