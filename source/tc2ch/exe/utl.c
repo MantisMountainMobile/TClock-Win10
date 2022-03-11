@@ -555,45 +555,23 @@ int GetMyRegStr(char* section, char* entry, char* val, int cbData,
 	BOOL b;
 	int r = 0;
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+	if (strlen(g_inifile) == 0)return;
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
-	{
-		r = GetPrivateProfileString(key, entry, defval, val,
+
+	r = GetPrivateProfileString(key, entry, defval, val,
 			cbData, g_inifile);
-	}
-	else
-	{
-		b = FALSE;
-		if(RegOpenKey(HKEY_CURRENT_USER, key, &hkey) == 0)
-		{
-			size = cbData;
-			if(RegQueryValueEx(hkey, entry, 0, &regtype,
-				(LPBYTE)val, &size) == 0)
-			{
-				if(size == 0) *val = 0;
-				r = size;
-				b = TRUE;
-			}
-			RegCloseKey(hkey);
-		}
-		if(b == FALSE)
-		{
-			strcpy(val, defval);
-			r = strlen(defval);
-		}
-	}
+
 
 	extern BOOL b_DebugLog_RegAccess;
 	if (b_DebugLog_RegAccess)
@@ -619,38 +597,23 @@ LONG GetMyRegLong(char* section, char* entry, LONG defval)
 	BOOL b;
 	LONG r = 0;
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+	if (strlen(g_inifile) == 0)return;
+
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
-	{
-		r = GetPrivateProfileInt(key, entry, defval, g_inifile);
-	}
-	else
-	{
-		b = FALSE;
-		if(RegOpenKey(HKEY_CURRENT_USER, key, &hkey) == 0)
-		{
-			size = 4;
-			if(RegQueryValueEx(hkey, entry, 0, &regtype,
-				(LPBYTE)&r, &size) == 0)
-			{
-				if(size == 4) b = TRUE;
-			}
-			RegCloseKey(hkey);
-		}
-		if(b == FALSE) r = defval;
-	}
+
+	r = GetPrivateProfileInt(key, entry, defval, g_inifile);
+
 
 	extern BOOL b_DebugLog_RegAccess;
 	if (b_DebugLog_RegAccess)
@@ -671,62 +634,50 @@ LONG GetMyRegLong(char* section, char* entry, LONG defval)
 BOOL SetMyRegStr(char* section, char* entry, char* val)
 {
 	HKEY hkey;
-	BOOL r;
+	BOOL r = FALSE;
 	char key[80];
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+	if (strlen(g_inifile) == 0)return;
+
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
+
+	char *chk_val;
+	BOOL b_chkflg = FALSE;
+	char saveval[1024];
+
+
+	chk_val = val;
+	while (*chk_val)
 	{
-		char *chk_val;
-		BOOL b_chkflg = FALSE;
-		char saveval[1024];
+		if (*chk_val == '\"' || *chk_val == '\'' || *chk_val == ' ')
+			b_chkflg = TRUE;
+		chk_val++;
+	}
 
-		r = FALSE;
-		chk_val = val;
-		while(*chk_val)
-		{
-			if (*chk_val == '\"' || *chk_val == '\'' || *chk_val == ' '  )
-				b_chkflg = TRUE;
-			chk_val++;
-		}
-
-		if (b_chkflg)
-		{
-			strcpy(saveval,"\"");
-			strcat(saveval,val);
-			strcat(saveval,"\"");
-		}
-		else
-			strcpy(saveval,val);
-
-		if(WritePrivateProfileString(key, entry, saveval, g_inifile))
-			r = TRUE;
+	if (b_chkflg)
+	{
+		strcpy(saveval, "\"");
+		strcat(saveval, val);
+		strcat(saveval, "\"");
 	}
 	else
-	{
-		r = FALSE;
-		if(RegCreateKey(HKEY_CURRENT_USER, key, &hkey) == 0)
-		{
-			if(RegSetValueEx(hkey, entry, 0, REG_SZ,
-				(CONST BYTE*)val, strlen(val)) == 0)
-			{
-				r = TRUE;
-			}
-			RegCloseKey(hkey);
-		}
+		strcpy(saveval, val);
+
+	if (WritePrivateProfileString(key, entry, saveval, g_inifile)) {
+		r = TRUE;
 	}
+
 
 	extern BOOL b_DebugLog_RegAccess;
 	if (b_DebugLog_RegAccess)
@@ -747,42 +698,28 @@ BOOL SetMyRegStr(char* section, char* entry, char* val)
 BOOL SetMyRegLong(char* section, char* entry, DWORD val)
 {
 	HKEY hkey;
-	BOOL r;
+	BOOL r = FALSE;
 	char key[80];
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+
+	if (strlen(g_inifile) == 0)return;
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
-	{
-		char s[20];
-		wsprintf(s, "%d", val);
-		r = FALSE;
-		if(WritePrivateProfileString(key, entry, s, g_inifile))
-			r = TRUE;
-	}
-	else
-	{
-		r = FALSE;
-		if(RegCreateKey(HKEY_CURRENT_USER, key, &hkey) == 0)
-		{
-			if(RegSetValueEx(hkey, entry, 0, REG_DWORD,
-				(CONST BYTE*)&val, 4) == 0)
-			{
-				r = TRUE;
-			}
-			RegCloseKey(hkey);
-		}
+
+	char s[20];
+	wsprintf(s, "%d", val);
+	if (WritePrivateProfileString(key, entry, s, g_inifile)) {
+		r = TRUE;
 	}
 
 	extern BOOL b_DebugLog_RegAccess;
@@ -803,39 +740,28 @@ BOOL SetMyRegLong(char* section, char* entry, DWORD val)
 ---------------------------------------------*/
 BOOL DelMyReg(char* section, char* entry)
 {
-	BOOL r;
+	BOOL r = FALSE;
 	char key[80];
 	HKEY hkey;
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+	if (strlen(g_inifile) == 0)return;
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
-	{
-		r = FALSE;
-		if(WritePrivateProfileString(key, entry, NULL, g_inifile))
-			r = TRUE;
+
+	if (WritePrivateProfileString(key, entry, NULL, g_inifile)) {
+		r = TRUE;
 	}
-	else
-	{
-		r = FALSE;
-		if(RegOpenKey(HKEY_CURRENT_USER, key, &hkey) == 0)
-		{
-			if(RegDeleteValue(hkey, entry) == 0)
-				r = TRUE;
-			RegCloseKey(hkey);
-		}
-	}
+
 	return r;
 }
 
@@ -844,34 +770,26 @@ BOOL DelMyReg(char* section, char* entry)
 ---------------------------------------------*/
 BOOL DelMyRegKey(char* section)
 {
-	BOOL r;
+	BOOL r = FALSE;
 	char key[80];
 
-	if(g_bIniSetting) key[0] = 0;
-	else strcpy(key, mykey);
+	if (strlen(g_inifile) == 0)return;
+
+	key[0] = 0;
 
 	if(section && *section)
 	{
-		if(!g_bIniSetting) strcat(key, "\\");
 		strcat(key, section);
 	}
 	else
 	{
-		if(g_bIniSetting) strcpy(key, "Main");
+		strcpy(key, "Main");
 	}
 
-	if(g_bIniSetting)
-	{
-		r = FALSE;
-		if(WritePrivateProfileSection(key, NULL, g_inifile))
-			r = TRUE;
+	if (WritePrivateProfileSection(key, NULL, g_inifile)) {
+		r = TRUE;
 	}
-	else
-	{
-		r = FALSE;
-		if(RegDeleteKey(HKEY_CURRENT_USER, key) == 0)
-			r = TRUE;
-	}
+
 	return r;
 }
 
@@ -884,9 +802,6 @@ int DelRegAll(void)
 	HKEY hkey;
 	FILETIME ft;
 	int i;
-
-	if(!g_bIniSetting)
-		return 0;
 
 	strcpy(key, mykey);
 

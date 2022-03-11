@@ -14,8 +14,8 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 4,9,0,1
- PRODUCTVERSION 4,9,0,1
+ FILEVERSION 4,10,3,1
+ PRODUCTVERSION 4,10,3,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -32,11 +32,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock Main for Windows10 and Windows11"
             VALUE "FileDescription", "TClock-Win10"
-            VALUE "FileVersion", "4.9.0.1"
+            VALUE "FileVersion", "4.10.3.1"
             VALUE "InternalName", "TClock"
             VALUE "OriginalFilename", "TClock-Win10.exe"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "4.9.0.1"
+            VALUE "ProductVersion", "4.10.3.1"
         END
     END
     BLOCK "VarFileInfo"

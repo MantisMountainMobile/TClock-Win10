@@ -15,7 +15,7 @@
 
 static PDH_HCOUNTER hGPUCounter[MAX_GPU_COUNTER] = { NULL };
 int numberGPUCounter = 0;
-int numberInstancePrev = 0;
+int numPDHGPUInstance = 0;
 
 extern BOOL b_DebugLog;
 extern int totalGPUUsage;
@@ -108,8 +108,8 @@ int SetGPUUsageCounter(void)
 	//https://docs.microsoft.com/en-us/windows/win32/perfctrs/enumerating-process-objects
 
 	extern BOOL b_DebugLog;
-//	if (b_DebugLog)writeDebugLog_Win10("[newCodes_Win10.cpp] SetGPUUsageCounter called.", 999);
-	int count = 0, numberInstance = 0;;
+	if (b_DebugLog)writeDebugLog_Win10("[newCodes_Win10.cpp] SetGPUUsageCounter called.", 999);
+	int count = 0, numPDHGPUInstanceNew = 0;;
 	CONST PSTR COUNTER_OBJECT = "GPU Engine";
 
 
@@ -179,21 +179,21 @@ int SetGPUUsageCounter(void)
 				if (hQueryGPU) {
 					for (pTemp = pwsInstanceListBuffer; *pTemp != 0; pTemp += strlen(pTemp) + 1)
 					{
-						numberInstance++;
+						numPDHGPUInstanceNew++;
 					}
 
 					//if (b_DebugLog) {
-					//	writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] Number of instances (prev) = ", numberInstancePrev);
-					//	writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] Number of instances = ", numberInstance);
+					//	writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] Number of instances (prev) = ", numPDHGPUInstance);
+					//	writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] Number of instances = ", numPDHGPUInstanceNew);
 					//}
 
-					if (numberInstancePrev == numberInstance) {
+					if (numPDHGPUInstance == numPDHGPUInstanceNew) {
 						//if (b_DebugLog) {
 						//	writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] Number of instances was not changed. GPU counter is not updated ", 999);
 						//}
 					}
 					else {
-						numberInstancePrev = numberInstance;
+						numPDHGPUInstance = numPDHGPUInstanceNew;
 
 						pPdhCloseQuery(hQueryGPU);
 						if (pPdhOpenQueryW(NULL, 0, &hQueryGPU) != ERROR_SUCCESS)
@@ -233,7 +233,7 @@ int SetGPUUsageCounter(void)
 						writeDebugLog_Win10("[newCodes_Win10.cpp][SetGPUUsageCounter] hQueryGPU is not available. Try to recureate. ", 999);
 					}
 					numberGPUCounter = 0;
-					numberInstancePrev = 0;
+					numPDHGPUInstance = 0;
 					if (pPdhOpenQueryW(NULL, 0, &hQueryGPU) != ERROR_SUCCESS)
 					{
 						hQueryGPU = NULL;

@@ -17,7 +17,7 @@ static void SetColorFromBmp(HWND hDlg, int idCombo, char* fname);
 extern BOOL b_EnglishMenu;
 extern int Language_Offset;
 
-static COMBOCOLOR combocolor[4] = {
+static COMBOCOLOR combocolor[3] = {
 	{ IDC_COLSEND, "BackNetColSend", RGB(192, 192, 255) }	,
 	{ IDC_COLSR, "BackNetColSR", RGB(255, 224, 255) }		,
 	{ IDC_COLRECV, "BackNetColRecv", RGB(255, 192, 192) }
@@ -122,28 +122,29 @@ BOOL CALLBACK PageGraphProc(HWND hDlg, UINT message,
 void OnInit(HWND hDlg)
 {
 	DWORD dw;
-	int n, i;
+	int tempGraphMode, tempGraphType;
 
 	InitGraphMode(hDlg);
 	InitGraphType(hDlg);
 
-	n = GetMyRegLong("Graph", "GraphMode", 1);
-	CBSetCurSel(hDlg, IDC_GRAPHMODE, (n-1));
+	tempGraphMode = GetMyRegLong("Graph", "GraphMode", 1);
+	CBSetCurSel(hDlg, IDC_GRAPHMODE, (tempGraphMode-1));
 
-	i = GetMyRegLong("Graph", "GraphType", 1);
-	CBSetCurSel(hDlg, IDC_GRAPHTYPE, (i-1));
+	tempGraphType = GetMyRegLong("Graph", "GraphType", 1);
+	CBSetCurSel(hDlg, IDC_GRAPHTYPE, (tempGraphType-1));
 
+	CheckDlgButton(hDlg, IDC_LOGGRAPH,
+		GetMyRegLong("Graph", "LogGraph", FALSE));
 
-	if (n == 1)
+	if (tempGraphMode == 1)
 	{
-		CheckDlgButton(hDlg, IDC_LOGGRAPH,
-			GetMyRegLong("Graph", "LogGraph", FALSE));
+		ShowDlgItem(hDlg, IDC_LOGCOMMENT, TRUE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, TRUE);
 	}
 	else
 	{
-		CheckDlgButton(hDlg, IDC_LOGGRAPH, FALSE);
-		EnableDlgItem(hDlg, IDC_LOGGRAPH, FALSE);
+		//CheckDlgButton(hDlg, IDC_LOGGRAPH, FALSE);
+		ShowDlgItem(hDlg, IDC_LOGGRAPH, FALSE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, FALSE);
 	}
 
@@ -170,13 +171,13 @@ void OnInit(HWND hDlg)
 	SetDlgItemInt(hDlg, IDC_TBGGRAPHRATE2, GetMyRegLong("Graph", "NetGraphScaleSend", 1000), FALSE);
 
 
-	dw = GetMyRegLong("Graph", "CpuHigh", 70);
-	if(dw > 101) dw = 101;
-	if(dw < 0  ) dw = 0;
-	SendDlgItemMessage(hDlg,IDC_CPUHIGHSPIN,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)101, (short)0));
-	SendDlgItemMessage(hDlg, IDC_CPUHIGHSPIN, UDM_SETPOS, 0,
-		(int)(short)dw);
+	//dw = GetMyRegLong("Graph", "CpuHigh", 70);
+	//if(dw > 101) dw = 101;
+	//if(dw < 0  ) dw = 0;
+	//SendDlgItemMessage(hDlg,IDC_CPUHIGHSPIN,UDM_SETRANGE,0,
+	//	(LPARAM) MAKELONG((short)101, (short)0));
+	//SendDlgItemMessage(hDlg, IDC_CPUHIGHSPIN, UDM_SETPOS, 0,
+	//	(int)(short)dw);
 
 	dw = GetMyRegLong("Graph", "GraphLeft", 0);
 	if(dw > 1000) dw = 1000;
@@ -210,8 +211,11 @@ void OnInit(HWND hDlg)
 	SendDlgItemMessage(hDlg, IDC_SPGRAPHBOTTOM, UDM_SETPOS, 0,
 		(int)(short)dw);
 
-//	InitColor(hDlg);
-	InitComboColor(hDlg, 4, combocolor, 16, FALSE);
+	char tempStr[64];
+	wsprintf(tempStr, "Current Clock Width = %d, Clock Height = %d"
+		, (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0), (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0));
+	SendDlgItemMessage(hDlg, IDC_LABEL_HEIGHT, WM_SETTEXT, NULL, tempStr);
+
 	OnGraphMode(hDlg);
 }
 
@@ -222,14 +226,27 @@ void OnApply(HWND hDlg)
 {
 	char s[20];
 	DWORD dw;
-	int n;
+	int tempValue;
 
-	dw = CBGetItemData(hDlg, IDC_COLSEND, CBGetCurSel(hDlg, IDC_COLSEND));
-	SetMyRegLong("Graph", "BackNetColSend", dw);
-	dw = CBGetItemData(hDlg, IDC_COLSR, CBGetCurSel(hDlg, IDC_COLSR));
-	SetMyRegLong("Graph", "BackNetColSR", dw);
-	dw = CBGetItemData(hDlg, IDC_COLRECV, CBGetCurSel(hDlg, IDC_COLRECV));
-	SetMyRegLong("Graph", "BackNetColRecv", dw);
+	tempValue = CBGetCurSel(hDlg, IDC_GRAPHMODE);
+	SetMyRegLong("Graph", "GraphMode", (tempValue+1));
+
+	if (tempValue == 0) {
+		dw = CBGetItemData(hDlg, IDC_COLSEND, CBGetCurSel(hDlg, IDC_COLSEND));
+		SetMyRegLong("Graph", "BackNetColSend", dw);
+		dw = CBGetItemData(hDlg, IDC_COLSR, CBGetCurSel(hDlg, IDC_COLSR));
+		SetMyRegLong("Graph", "BackNetColSR", dw);
+		dw = CBGetItemData(hDlg, IDC_COLRECV, CBGetCurSel(hDlg, IDC_COLRECV));
+		SetMyRegLong("Graph", "BackNetColRecv", dw);
+	}
+	else {
+		dw = CBGetItemData(hDlg, IDC_COLSEND, CBGetCurSel(hDlg, IDC_COLSEND));
+		SetMyRegLong("Graph", "ColorGPUGraph", dw);
+		dw = CBGetItemData(hDlg, IDC_COLSR, CBGetCurSel(hDlg, IDC_COLSR));
+		SetMyRegLong("Graph", "ColorCPUGraph2", dw);
+		dw = CBGetItemData(hDlg, IDC_COLRECV, CBGetCurSel(hDlg, IDC_COLRECV));
+		SetMyRegLong("Graph", "ColorCPUGraph", dw);
+	}
 
 	SetMyRegLong("Graph", "BackNet",
 		IsDlgButtonChecked(hDlg, IDC_TRAYGRAPH));
@@ -243,11 +260,11 @@ void OnApply(HWND hDlg)
 		IsDlgButtonChecked(hDlg, IDC_GPUGRAPH));
 
 
-	dw = GetDlgItemInt(hDlg, IDC_CPUHIGH, NULL, FALSE);
-	if(dw > 101) dw = 101;
-	if(dw < 0  ) dw = 0;
-	SetDlgItemInt(hDlg, IDC_CPUHIGH, dw, FALSE);
-	SetMyRegLong("Graph", "CpuHigh", dw);
+	//dw = GetDlgItemInt(hDlg, IDC_CPUHIGH, NULL, FALSE);
+	//if(dw > 101) dw = 101;
+	//if(dw < 0  ) dw = 0;
+	//SetDlgItemInt(hDlg, IDC_CPUHIGH, dw, FALSE);
+	//SetMyRegLong("Graph", "CpuHigh", dw);
 
 	GetDlgItemText(hDlg, IDC_TBGGRAPHRATE, s, 20);
 	SetMyRegLong("Graph", "NetGraphScaleRecv", atoi(s));
@@ -255,11 +272,10 @@ void OnApply(HWND hDlg)
 	GetDlgItemText(hDlg, IDC_TBGGRAPHRATE2, s, 20);
 	SetMyRegLong("Graph", "NetGraphScaleSend", atoi(s));
 
-	n = CBGetCurSel(hDlg, IDC_GRAPHMODE);
-	SetMyRegLong("Graph", "GraphMode", (n+1));
 
-	n = CBGetCurSel(hDlg, IDC_GRAPHTYPE);
-	SetMyRegLong("Graph", "GraphType", (n+1));
+
+	tempValue = CBGetCurSel(hDlg, IDC_GRAPHTYPE);
+	SetMyRegLong("Graph", "GraphType", (tempValue+1));
 
 	dw = GetDlgItemInt(hDlg, IDC_GRAPHLEFT, NULL, FALSE);
 	if(dw > 1000) dw = 1000;
@@ -284,6 +300,8 @@ void OnApply(HWND hDlg)
 	if(dw < 0  ) dw = 0;
 	SetDlgItemInt(hDlg, IDC_GRAPHBOTTOM, dw, FALSE);
 	SetMyRegLong("Graph", "GraphBottom", dw);
+
+
 
 }
 
@@ -315,74 +333,110 @@ void OnTrayGraph(HWND hDlg)
 
 void OnGraphMode(HWND hDlg)
 {
-	int n, i, j;
+	int tempGraphMode, i, j;
 
-	n = CBGetCurSel(hDlg, IDC_GRAPHMODE);
-	n++;
+	tempGraphMode = CBGetCurSel(hDlg, IDC_GRAPHMODE);
+	tempGraphMode++;
 
 	j = CBGetCurSel(hDlg, IDC_GRAPHTYPE);
 	j++;
 
-	if (n == 1)
+	if (tempGraphMode == 1)		//Netグラフ
 	{
-		for(i=IDC_MODE21;i<=IDC_MODE24;i++)
-			ShowDlgItem(hDlg, i, FALSE);
-		ShowDlgItem(hDlg, IDC_MODE27, FALSE);
-		ShowDlgItem(hDlg, IDC_MODE28, FALSE);
-
-
 		for(i=IDC_MODE11;i<=IDC_MODE17;i++)
 			ShowDlgItem(hDlg, i, TRUE);
 
-		//ShowDlgItem(hDlg, IDC_COLSEND, TRUE);
-		//ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, TRUE);
+		ShowDlgItem(hDlg, IDC_MODE21, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE22, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE23, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE24, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE27, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE28, FALSE);
+
 		ShowDlgItem(hDlg, IDC_CPUHIGH, FALSE);
 		ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, FALSE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE, TRUE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE2, TRUE);
-		EnableDlgItem(hDlg, IDC_LOGGRAPH, TRUE);
+//		EnableDlgItem(hDlg, IDC_LOGGRAPH, TRUE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, TRUE);
+		ShowDlgItem(hDlg, IDC_LOGGRAPH, TRUE);
 
 		ShowDlgItem(hDlg, IDC_GPUGRAPH, FALSE);
 
+		combocolor[0].colname = "BackNetColSend";
+		combocolor[1].colname = "BackNetColSR";
+		combocolor[2].colname = "BackNetColRecv";
+	
+		//if (CBGetCurSel(hDlg, IDC_GRAPHTYPE) == 0)	//棒グラフ
+		//{
+		//	ShowDlgItem(hDlg, IDC_MODE12, TRUE);
+		//	ShowDlgItem(hDlg, IDC_COLSR, TRUE);
+		//	ShowDlgItem(hDlg, IDC_CHOOSECOLSR, TRUE);	
+		//}
+		//else 
+		//{
+		//	ShowDlgItem(hDlg, IDC_MODE12, FALSE);
+		//	ShowDlgItem(hDlg, IDC_COLSR, FALSE);
+		//	ShowDlgItem(hDlg, IDC_CHOOSECOLSR, FALSE);
+		//}
+
 	}
-	else if (n == 2)
+	else						//CPU, GPUグラフ
 	{
-		for (i = IDC_MODE21; i <= IDC_MODE24; i++)
-			ShowDlgItem(hDlg, i, TRUE);
+
+		ShowDlgItem(hDlg, IDC_MODE11, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE13, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE14, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE15, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE16, FALSE);
+		ShowDlgItem(hDlg, IDC_MODE17, FALSE);
+
+		ShowDlgItem(hDlg, IDC_MODE21, TRUE);
+
 		ShowDlgItem(hDlg, IDC_MODE27, TRUE);
+		ShowDlgItem(hDlg, IDC_MODE28, TRUE);
 
-		for (i = IDC_MODE11; i <= IDC_MODE17; i++)
-			ShowDlgItem(hDlg, i, FALSE);
-
-		//ShowDlgItem(hDlg, IDC_COLSEND, FALSE);
-		//ShowDlgItem(hDlg, IDC_CHOOSECOLSEND, FALSE);
-		ShowDlgItem(hDlg, IDC_CPUHIGH, TRUE);
-		ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, TRUE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE, FALSE);
 		ShowDlgItem(hDlg, IDC_TBGGRAPHRATE2, FALSE);
 
-		CheckDlgButton(hDlg, IDC_LOGGRAPH, FALSE);
-		EnableDlgItem(hDlg, IDC_LOGGRAPH, FALSE);
 		ShowDlgItem(hDlg, IDC_LOGCOMMENT, FALSE);
+		ShowDlgItem(hDlg, IDC_LOGGRAPH, FALSE);
 
 		ShowDlgItem(hDlg, IDC_GPUGRAPH, TRUE);
 
-		if (CBGetCurSel(hDlg, IDC_GRAPHTYPE) == 0)	//棒グラフ
-		{
-			ShowDlgItem(hDlg, IDC_MODE14, FALSE);
-			ShowDlgItem(hDlg, IDC_MODE22, FALSE);
-			ShowDlgItem(hDlg, IDC_MODE23, FALSE);
-			ShowDlgItem(hDlg, IDC_MODE24, FALSE);
-			ShowDlgItem(hDlg, IDC_MODE12, TRUE);
-			ShowDlgItem(hDlg, IDC_MODE28, TRUE);
-			ShowDlgItem(hDlg, IDC_CPUHIGH, FALSE);
-			ShowDlgItem(hDlg, IDC_CPUHIGHSPIN, FALSE);
-		}
-		else {
-			ShowDlgItem(hDlg, IDC_MODE28, FALSE);
-		}
+		combocolor[0].colname = "ColorGPUGraph";
+		combocolor[1].colname = "ColorCPUGraph2";
+		combocolor[2].colname = "ColorCPUGraph";
+
+		//if (CBGetCurSel(hDlg, IDC_GRAPHTYPE) == 0)	//棒グラフ
+		//{
+		//	ShowDlgItem(hDlg, IDC_MODE12, TRUE);
+		//	ShowDlgItem(hDlg, IDC_COLSR, TRUE);
+		//	ShowDlgItem(hDlg, IDC_CHOOSECOLSR, TRUE);
+		//}
+		//else {
+		//	ShowDlgItem(hDlg, IDC_MODE12, FALSE);
+		//	ShowDlgItem(hDlg, IDC_COLSR, FALSE);
+		//	ShowDlgItem(hDlg, IDC_CHOOSECOLSR, FALSE);
+		//}
 	}
+
+	InitComboColor(hDlg, 3, combocolor, 16, FALSE);
+
+	if (CBGetCurSel(hDlg, IDC_GRAPHTYPE) == 0)	//棒グラフ
+	{
+		ShowDlgItem(hDlg, IDC_MODE12, TRUE);
+		ShowDlgItem(hDlg, IDC_COLSR, TRUE);
+		ShowDlgItem(hDlg, IDC_CHOOSECOLSR, TRUE);
+	}
+	else
+	{
+		ShowDlgItem(hDlg, IDC_MODE12, FALSE);
+		ShowDlgItem(hDlg, IDC_COLSR, FALSE);
+		ShowDlgItem(hDlg, IDC_CHOOSECOLSR, FALSE);
+	}
+
+
 }
 
 /*------------------------------------------------
@@ -492,3 +546,4 @@ void InitGraphType(HWND hDlg)
 	//リスト項目の表示数を指定
 	AdjustDlgConboBoxDropDown(hDlg, IDC_GRAPHTYPE, 2);
 }
+

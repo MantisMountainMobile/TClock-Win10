@@ -35,7 +35,7 @@ static pfnGetIfEntry pGetIfEntry;
 
 extern LONG GetMyRegLong(char* section, char* entry, LONG defval);
 
-extern BOOL b_UseDataPlanFunction;
+//extern BOOL b_UseDataPlanFunction;
 
 BOOL flag_Ether, flag_WiFi, flag_LTE, flag_VPNCheck;
 BOOL flag_SoftEther = FALSE;

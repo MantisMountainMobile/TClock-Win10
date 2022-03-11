@@ -8,7 +8,6 @@
 
 static void OnInit(HWND hDlg);
 static void OnApply(HWND hDlg);
-//////void DefineDaysRange_Win10(HWND hDlg);
 
 __inline void SendPSChanged(HWND hDlg)
 {
@@ -48,34 +47,6 @@ INT_PTR CALLBACK PageDataPlanProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 			id = LOWORD(wParam); code = HIWORD(wParam);
 			switch (id)
 			{
-			//case IDC_SPGDATAPLANMONTH:
-			//case IDC_DATAPLANMONTH:
-			//	month = SendDlgItemMessage(hDlg, IDC_SPGDATAPLANMONTH, UDM_GETPOS, 0, 0);
-			//	//////DefineDaysRange_Win10(hDlg);
-			//	break;
-			//case IDC_DATAPLANFIXEDDAY:
-			//	b_FixedDayInMonth = IsDlgButtonChecked(hDlg, IDC_DATAPLANFIXEDDAY);
-			//	break;
-			//case IDC_DATAPLANGB1024MB:
-			//	b_1024MBinGB = IsDlgButtonChecked(hDlg, IDC_DATAPLANGB1024MB);
-			//	break;
-			//case IDC_DATAPLANGB1000MB:
-			//	b_1024MBinGB = !IsDlgButtonChecked(hDlg, IDC_DATAPLANGB1000MB);
-			//	break;
-			//case IDC_DATAPLANAUTOFIND:
-			//	DataPlanUsageRetrieveMode = 0;
-			//	break;
-			//case IDC_DATAPLANALWAYSACTIVE:
-			//	DataPlanUsageRetrieveMode = 1;
-			//	break;
-			//case IDC_DATAPLANSUGGESTPROF:
-			//	DataPlanUsageRetrieveMode = 2;
-			//	break;
-			//case IDC_PROFILELIST:
-			//	{
-			//		PostMessage(g_hwndClock, CLOCKM_SHOWPROFILELIST, 0, 0);
-			//	}
-			//	break;
 			}
 			SendPSChanged(hDlg);
 			return TRUE;

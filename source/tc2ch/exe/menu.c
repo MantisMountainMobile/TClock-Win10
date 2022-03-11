@@ -16,11 +16,10 @@ static HMENU hPopupMenu = NULL;
 
 //Added by TTTT
 BOOL b_CompactMode_menu;
-//////BOOL b_EnableStopCloudApp_menu;
 BOOL b_SafeMode_menu;
-BOOL b_UseDataPlanFunc;
+//BOOL b_UseDataPlanFunc;
 extern BOOL b_DebugLog;
-BOOL b_AutomaticFindWLTEProfile;
+//BOOL b_AutomaticFindWLTEProfile;
 BOOL b_UseBarMeterVL;
 BOOL b_UseBarMeterBL;
 BOOL b_UseBarMeterCU;
@@ -72,7 +71,7 @@ void OnContextMenu(HWND hwnd, HWND hwndClicked, int xPos, int yPos)
 
 	b_CompactMode_menu = GetMyRegLong(NULL, "CompactMode", FALSE);
 	b_SafeMode_menu = GetMyRegLong("Status_DoNotEdit", "SafeMode", FALSE);
-	b_UseDataPlanFunc = GetMyRegLong("DataPlan", "UseDataPlanFunction", FALSE);
+	//b_UseDataPlanFunc = GetMyRegLong("DataPlan", "UseDataPlanFunction", FALSE);
 	MENUITEMINFO menuiteminfo_temp;
 	menuiteminfo_temp.cbSize = sizeof(MENUITEMINFO);
 	menuiteminfo_temp.fMask = MIIM_STATE;
@@ -81,7 +80,7 @@ void OnContextMenu(HWND hwnd, HWND hwndClicked, int xPos, int yPos)
 	BOOL b_ExistMeteredProfile;
 	b_ExistLTEProfile = GetMyRegLong("Status_DoNotEdit", "ExistLTEProfile", FALSE);
 	b_ExistMeteredProfile = GetMyRegLong("Status_DoNotEdit", "ExistMeteredProfile", FALSE);
-	b_AutomaticFindWLTEProfile = GetMyRegLong("DataPlan", "AutomaticFindLTEProfile", FALSE);
+	//b_AutomaticFindWLTEProfile = GetMyRegLong("DataPlan", "AutomaticFindLTEProfile", FALSE);
 
 
 	b_UseBarMeterVL = GetMyRegLong("BarMeter", "UseBarMeterVL", 0);
@@ -91,51 +90,6 @@ void OnContextMenu(HWND hwnd, HWND hwndClicked, int xPos, int yPos)
 
 	extern BOOL b_EnglishMenu;
 
-
-	int	DataPlanUsageRetrieveMode = 0;
-	DataPlanUsageRetrieveMode = (int)GetMyRegLong("DataPlan", "DataPlanUsageRetrieveMode", 0);
-
-
-	//wsprintf(s, "%s・従量課金WiFiでアプリ停止", stringLTE);
-	//if (b_AcceptRisk)
-	//{
-	//	if (b_CompactMode_menu || b_SafeMode_menu || (!b_ExistLTEProfile && !b_ExistMeteredProfile))
-	//	{
-	//		EnableMenuItem(hPopupMenu, IDC_TOGGLE_CLOUD_APP, MF_BYCOMMAND | MF_GRAYED);
-	//		menuiteminfo_temp.fState = MFS_UNCHECKED | MFS_GRAYED;
-	//	}
-	//	else
-	//	{
-	//		///////*if (b_EnableStopCloudApp_menu)
-	//		//////{
-	//		//////	menuiteminfo_temp.fState = MFS_CHECKED;
-	//		//////}
-	//		//////else
-	//		//////{
-	//		//////	menuiteminfo_temp.fState = MFS_UNCHECKED;
-	//		//////}*/
-	//	}
-	//}
-	//SetMenuItemInfo(hPopupMenu, IDC_TOGGLE_CLOUD_APP, FALSE, &menuiteminfo_temp);
-
-
-	//wsprintf(s, "%sデータ利用状況取得", stringLTE);
-	//if (b_CompactMode_menu || b_SafeMode_menu || (!b_ExistLTEProfile && DataPlanUsageRetrieveMode == 0))
-	//{
-	//	menuiteminfo_temp.fState = MFS_UNCHECKED | MFS_GRAYED;
-	//}
-	//else
-	//{
-	//	if (b_UseDataPlanFunc)
-	//	{
-	//		menuiteminfo_temp.fState = MFS_CHECKED;
-	//	}
-	//	else
-	//	{
-	//		menuiteminfo_temp.fState = MFS_UNCHECKED;
-	//	}
-	//}
-	//SetMenuItemInfo(hPopupMenu, IDC_TOGGLE_DATAPLANFUNC, FALSE, &menuiteminfo_temp);
 
 
 	if (b_EnglishMenu)

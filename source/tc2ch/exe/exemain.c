@@ -17,7 +17,7 @@ HWND      g_hwndPropDlg;     // property sheet window
 HICON     g_hIconTClock;
 char      g_mydir[MAX_PATH]; // path to tclock.exe
 char      g_langdllname[MAX_PATH];  // language dll name
-BOOL      g_bIniSetting = TRUE;
+//BOOL      g_bIniSetting = TRUE;
 
 char      g_inifile[MAX_PATH];		//フルパスつき*.iniファイル名
 
@@ -1179,14 +1179,13 @@ void CreateDefaultIniFile_Win10(char *fname)
 
 		CloseHandle(hCreate);
 
-		g_bIniSetting = TRUE;
+		//g_bIniSetting = TRUE;
 		strcpy(g_inifile, fname);
 
 		SetMyRegLong(NULL, "DebugLog", 0);
 		SetMyRegLong(NULL, "NormalLog", 1);
 		SetMyRegLong(NULL, "AutoClearLogFile", 1);
 		SetMyRegLong(NULL, "AutoClearLogLines", 1000);
-		//////SetMyRegLong(NULL, "WarnDelayedUsageRetrieval", TRUE);
 		SetMyRegLong(NULL, "AutoRestart", 1);
 		SetMyRegLong(NULL, "CompactMode", 0);
 
@@ -1266,8 +1265,8 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegStr("Format", "PMsymbol", "PM");
 		SetMyRegLong("Format", "Custom", 1);
 
-		SetMyRegStr("Format", "Format", "[ICP] WiFi LTE \"U\"NSSK___x\"KB/s\" Vol \"CPU\"CU__x\"%\" mm/dd ddd\\nVPNS NMX1 \"D\"NRSK___x\"KB/s\" VL__xVMCC___x\"MHz\" hh:nn:ss\" \"");
-		SetMyRegStr("Format", "CustomFormat", "[ICP] WiFi LTE \"U\"NSSK___x\"KB/s\" Vol \"CPU\"CU__x\"%\" mm/dd ddd\\nVPNS NMX1 \"D\"NRSK___x\"KB/s\" VL__xVMCC___x\"MHz\" hh:nn:ss\" \"");
+		SetMyRegStr("Format", "Format", "[ICP] WiFi LTE \"U\"NSSK___x\"KB/s\" Vol \"CPU\"CU__x\"%\" mm/dd ddd\\nVPNS NMX1 \"D\"NRSK___x\"KB/s\" VL__xVM\"GPU\"GU__x\"%\" hh:nn:ss\" \"");
+		SetMyRegStr("Format", "CustomFormat", "[ICP] WiFi LTE \"U\"NSSK___x\"KB/s\" Vol \"CPU\"CU__x\"%\" mm/dd ddd\\nVPNS NMX1 \"D\"NRSK___x\"KB/s\" VL__xVM\"GPU\"GU__x\"%\" hh:nn:ss\" \"");
 
 
 		SetMyRegLong("Mouse", "DropFiles", 0);
@@ -1280,16 +1279,16 @@ void CreateDefaultIniFile_Win10(char *fname)
 		//SetMyRegLong("Mouse", "04", 0);
 
 
-		SetMyRegLong("Graph", "BackNetColSend", 255);
-		SetMyRegLong("Graph", "BackNetColSR", 16769279);
-		SetMyRegLong("Graph", "BackNetColRecv", 65280);
+		SetMyRegLong("Graph", "BackNetColSend", (long)RGB(255, 0, 0));
+		SetMyRegLong("Graph", "BackNetColSR", (long)RGB(255, 255, 0));
+		SetMyRegLong("Graph", "BackNetColRecv", (long)RGB(0, 255, 0));
 		SetMyRegLong("Graph", "BackNet", 1);
 		SetMyRegLong("Graph", "LogGraph", 1);
 
 		SetMyRegLong("Graph", "GraphTate", 0);
 		SetMyRegLong("Graph", "ReverseGraph", 0);
 
-		SetMyRegLong("Graph", "CpuHigh", 70);
+		//SetMyRegLong("Graph", "CpuHigh", 70);
 		SetMyRegLong("Graph", "NetGraphScaleRecv", 1000);
 		SetMyRegLong("Graph", "NetGraphScaleSend", 1000);
 		SetMyRegLong("Graph", "GraphMode", 1);
@@ -1298,8 +1297,6 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("Graph", "GraphTop", 0);
 		SetMyRegLong("Graph", "GraphRight", 230);
 		SetMyRegLong("Graph", "GraphBottom", 1);
-
-
 
 
 		SetMyRegLong("AnalogClock", "UseAnalogClock", 0);
@@ -1340,10 +1337,6 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("Tooltip", "TipFontColor", (long)RGB(0, 0, 0));
 		SetMyRegLong("Tooltip", "TipTitleColor", (long)RGB(0, 0, 255));
 		SetMyRegLong("Tooltip", "TipBakColor", (long)RGB(255, 255, 255));
-		//SetMyRegLong("Tooltip", "TipIcon", 0);
-		//SetMyRegLong("Tooltip", "AlphaTip", 0);
-		//SetMyRegLong("Tooltip", "TipDisableCustomDraw", 0);
-		//SetMyRegLong("Tooltip", "TipEnableDoubleBuffering", 0);
 
 
 
@@ -1354,7 +1347,7 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("BarMeter", "BarMeterVL_Right", 150);
 		SetMyRegLong("BarMeter", "BarMeterVL_Width", 5);
 		SetMyRegLong("BarMeter", "BarMeterVL_Bottom", 0);
-		SetMyRegLong("BarMeter", "BarMeterVL_Height", -1);
+		SetMyRegLong("BarMeter", "BarMeterVL_Top", 0);
 
 		SetMyRegLong("BarMeter", "UseBarMeterBL",0);
 		SetMyRegLong("BarMeter", "BarMeterBL_Horizontal", 0);
@@ -1365,7 +1358,7 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("BarMeter", "BarMeterBL_Right", 130);
 		SetMyRegLong("BarMeter", "BarMeterBL_Width", 5);
 		SetMyRegLong("BarMeter", "BarMeterBL_Bottom", 0);
-		SetMyRegLong("BarMeter", "BarMeterBL_Height", -1);
+		SetMyRegLong("BarMeter", "BarMeterBL_Top", 0);
 
 		SetMyRegLong("BarMeter", "UseBarMeterCU", 0);
 		SetMyRegLong("BarMeter", "BarMeterCU_Horizontal", 0);
@@ -1375,7 +1368,7 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("BarMeter", "BarMeterCU_Right", 110);
 		SetMyRegLong("BarMeter", "BarMeterCU_Width", 5);
 		SetMyRegLong("BarMeter", "BarMeterCU_Bottom", 0);
-		SetMyRegLong("BarMeter", "BarMeterCU_Height", -1);
+		SetMyRegLong("BarMeter", "BarMeterCU_Top", 0);
 
 		SetMyRegLong("BarMeter", "UseBarMeterCore", 0);
 		SetMyRegLong("BarMeter", "NumberBarMeterCore", 8);
@@ -1389,13 +1382,15 @@ void CreateDefaultIniFile_Win10(char *fname)
 		SetMyRegLong("BarMeter", "UseBarMeterNet", 0);
 		SetMyRegLong("BarMeter", "BarMeterNet_LogGraph", 0);
 		//SetMyRegLong("BarMeter", "BarMeterNet_Float", 0);
-		SetMyRegLong("BarMeter", "ColorBarMeterNet_Recv", (long)RGB(255, 0, 0));
-		SetMyRegLong("BarMeter", "ColorBarMeterNet_Send", (long)RGB(0, 255, 0));
+		SetMyRegLong("BarMeter", "ColorBarMeterNet_Recv", (long)RGB(0, 255, 0));
+		SetMyRegLong("BarMeter", "ColorBarMeterNet_Send", (long)RGB(255, 0, 0));
 		SetMyRegLong("BarMeter", "BarMeterNet_Width", 5);
-		SetMyRegLong("BarMeter", "BarMeterNet_Height", -1);
 
+
+		SetMyRegLong("BarMeter", "BarMeterNetRecv_Top", 0);
 		SetMyRegLong("BarMeter", "BarMeterNetRecv_Right", 160);
 		SetMyRegLong("BarMeter", "BarMeterNetRecv_Bottom", 0);
+		SetMyRegLong("BarMeter", "BarMeterNetSend_Top", 0);
 		SetMyRegLong("BarMeter", "BarMeterNetSend_Right", 170);
 		SetMyRegLong("BarMeter", "BarMeterNetSend_Bottom", 0);
 
@@ -1477,7 +1472,7 @@ BOOL CheckRegistry_Win10(void)
 	if (hfind != INVALID_HANDLE_VALUE)
 	{
 		FindClose(hfind);
-		g_bIniSetting = TRUE;
+		//g_bIniSetting = TRUE;
 		strcpy(g_inifile, fname);
 
 		br = TRUE;

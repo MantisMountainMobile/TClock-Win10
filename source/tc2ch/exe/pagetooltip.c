@@ -257,7 +257,6 @@ void OnInit(HWND hDlg)
 	CheckDlgButton(hDlg, IDC_UPDATETIP1, GetMyRegLong("Tooltip", "Tip1Update", FALSE));
 	CheckDlgButton(hDlg, IDC_UPDATETIP2, GetMyRegLong("Tooltip", "Tip2Update", FALSE));
 	CheckDlgButton(hDlg, IDC_UPDATETIP3, GetMyRegLong("Tooltip", "Tip3Update", FALSE));
-	//CheckDlgButton(hDlg, IDC_DISABLETIPCUSTOMDRAW, GetMyRegLong("Tooltip", "TipDisableCustomDraw", TRUE));
 	//CheckDlgButton(hDlg, IDC_ENABLEDOUBLEBUFFERING, GetMyRegLong("Tooltip", "TipEnableDoubleBuffering", FALSE));
 
 
@@ -343,7 +342,6 @@ void OnApply(HWND hDlg)
 	SetMyRegLong("Tooltip", "Tip1Update", IsDlgButtonChecked(hDlg, IDC_UPDATETIP1));
 	SetMyRegLong("Tooltip", "Tip2Update", IsDlgButtonChecked(hDlg, IDC_UPDATETIP2));
 	SetMyRegLong("Tooltip", "Tip3Update", IsDlgButtonChecked(hDlg, IDC_UPDATETIP3));
-	//SetMyRegLong("Tooltip", "TipDisableCustomDraw", IsDlgButtonChecked(hDlg, IDC_DISABLETIPCUSTOMDRAW));
 	//SetMyRegLong("Tooltip", "TipEnableDoubleBuffering", IsDlgButtonChecked(hDlg, IDC_ENABLEDOUBLEBUFFERING));
 
 	//ƒtƒHƒ“ƒg–¼‚Ì•Û‘¶

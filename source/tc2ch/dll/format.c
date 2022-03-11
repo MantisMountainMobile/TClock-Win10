@@ -118,7 +118,7 @@ extern BOOL b_DebugLog;
 extern int nLogicalProcessors;
 extern BOOL b_EnableClock2;
 
-
+extern int numPDHGPUInstance;
 
 
 /*------------------------------------------------
@@ -865,17 +865,18 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 						sp++;
 					}
 				}
-				else if(*sp == 'R') // System Resources
-				{
-					int i, per, len, slen;
-					BOOL bComma = FALSE;
-					i = 3;
-					if(*(sp + 1) == 'S') i = 0;
-					else if(*(sp + 1) == 'G') i = 1;
-					else if(*(sp + 1) == 'U') i = 2;
+				//else if(*sp == 'R') // System Resources
+				//{
+				//	int i, per, len, slen;
+				//	BOOL bComma = FALSE;
+				//	i = 3;
+				//	if(*(sp + 1) == 'S') i = 0;
+				//	else if(*(sp + 1) == 'G') i = 1;
+				//	else if(*(sp + 1) == 'U') i = 2;
 
-					*dp++ = *sp++; *infop++ = 0x01;
-				}
+				//	*dp++ = *sp++;
+				//	*infop++ = 0x01;
+				//}
 
 				// CPU Usage
 				else if(*sp == 'C') 
@@ -1003,7 +1004,8 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 					}
 
 					else {
-						*dp++ = *sp++; *infop++ = 0x01;
+						*dp++ = *sp++;
+						*infop++ = 0x01;
 					}
 				}
 
@@ -1011,7 +1013,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 				// GPU Usage
 				else if (*sp == 'G')
 				{
-					if (totalCPUUsage >= 0 && *(sp + 1) == 'U')
+					if (*(sp + 1) == 'U')
 					{
 						int len, slen;
 						BOOL bComma = FALSE;
@@ -1031,7 +1033,34 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 							*dp++ = (char)((totalGPUUsage % 10) + '0'); *infop++ = 0x01;
 						}
 					}
+					else if (*(sp + 1) == 'I')
+					{
+						int len, slen;
+						BOOL bComma = FALSE;
+						sp += 2;
 
+						if (GetNumFormat(&sp, 'x', ',', &len, &slen, &bComma) == TRUE)
+						{
+							len_ret = SetNumFormat(&dp, numPDHGPUInstance, len, slen, bComma);
+							for (int i = 0; i < len_ret; i++)*infop++ = 0x01;
+						}
+						else
+						{
+							if (numPDHGPUInstance > 999) {
+								*dp++ = (char)((numPDHGPUInstance % 10000) / 1000 + '0'); *infop++ = 0x01;
+							}
+							else if (numPDHGPUInstance > 99) 
+							{
+								*dp++ = (char)((numPDHGPUInstance % 1000) / 100 + '0'); *infop++ = 0x01;
+							}
+							*dp++ = (char)((numPDHGPUInstance % 100) / 10 + '0'); *infop++ = 0x01;
+							*dp++ = (char)((numPDHGPUInstance % 10) + '0'); *infop++ = 0x01;
+						}			
+					}
+					else {
+						*dp++ = *sp++;
+						*infop++ = 0x01;
+					}
 				}
 
 				// Battery mode

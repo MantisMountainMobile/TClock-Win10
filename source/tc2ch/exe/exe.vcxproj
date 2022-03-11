@@ -428,6 +428,7 @@
     <ClCompile Include="pagechime.c" />
     <ClCompile Include="pagecolor.c" />
     <ClCompile Include="pagecolor_additional.c" />
+    <ClCompile Include="pagebarmeter_color.c" />
     <ClCompile Include="page_etc.c" />
     <ClCompile Include="pageformat.c" />
     <ClCompile Include="pageformat2.c" />

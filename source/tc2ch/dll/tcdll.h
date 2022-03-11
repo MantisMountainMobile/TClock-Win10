@@ -114,10 +114,13 @@ int ext_cmp(char *fname, char *ext);
 //void add_title(char *path, char *title);
 void del_title(char *path);
 
-
-
 void parse(char *dst, char *src, int n);
 char* MyString(UINT id);
+
+BOOL DelMyReg_DLL(char* section, char* entry);
+BOOL DelMyRegKey_DLL(char* section, char* entry);
+void UpdateSettingFile(void);
+void CleanSettingFile(void);
 
 
 
@@ -337,7 +340,6 @@ extern "C" {
 	int GetNotificationNumber(void);
 
 	int GetFocusAssistState(void);
-
 
 
 #ifdef __cplusplus

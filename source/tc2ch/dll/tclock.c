@@ -73,7 +73,8 @@ void GetMainClock(void);
 void SetMainClockOnTasktray(void);
 LRESULT CALLBACK SubclassTrayProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 BOOL IsVertTaskbar(HWND hwndTaskBarMain);
-void DrawBarMeter(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left, int value, COLORREF color);
+void DrawBarMeter(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left,
+	int bar_bottom, int bar_top, int value, COLORREF color, BOOL b_Horizontal, BOOL b_ToLeft);
 void DrawBarMeter2(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left,
 	int bar_bottom, int bar_top, int value, COLORREF color, BOOL b_Horizontal);
 void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval);
@@ -276,10 +277,11 @@ int GraphB=0;
 int GraphType=1;
 double sendlog[MAXGRAPHLOG+1] = { 0 };
 double recvlog[MAXGRAPHLOG+1] = { 0 };
-int ColSend,ColRecv,ColSR;
+COLORREF ColSend,ColRecv,ColSR;
+COLORREF ColorCPUGraph, ColorCPUGraph2, ColorGPUGraph;
 int graphInterval = 1;
 int graphMode = 1;
-int cpuHigh;
+//int cpuHigh;
 
 extern HWND hwndStart;
 extern HWND hwndStartMenu;
@@ -386,12 +388,23 @@ COLORREF ColorBarMeterBL_Low = RGB(255, 0, 0);
 int BarMeterBL_Left = 230;
 int BarMeterBL_Right = 220;
 int BarMeterBL_Bottom = 0;
-int BarMeterBL_Top = -1; 
+int BarMeterBL_Top = 0; 
+
+int BarMeterBL_Threshold_High = 50;
+int BarMeterBL_Threshold_Mid = 25;
+
+int BarMeterCU_Threshold_High = 70;
+int BarMeterCU_Threshold_Mid = 50;
 
 BOOL b_BarMeterVL_Horizontal = FALSE;
 BOOL b_BarMeterBL_Horizontal = FALSE;
 BOOL b_BarMeterCU_Horizontal = FALSE;
 BOOL b_BarMeterNet_Horizontal = FALSE;
+
+BOOL b_BarMeterVL_HorizontalToLeft = FALSE;
+BOOL b_BarMeterBL_HorizontalToLeft = FALSE;
+BOOL b_BarMeterCU_HorizontalToLeft = FALSE;
+BOOL b_BarMeterNet_HorizontalToLeft = FALSE;
 
 BOOL b_UseBarMeterCU = FALSE;
 COLORREF ColorBarMeterCU_High = RGB(255, 0, 0);
@@ -400,7 +413,14 @@ COLORREF ColorBarMeterCU_Low = RGB(0, 255, 0);
 int BarMeterCU_Left = 210;
 int BarMeterCU_Right = 200;
 int BarMeterCU_Bottom = 0;
-int BarMeterCU_Top = -1;
+int BarMeterCU_Top = 0;
+
+BOOL b_UseBarMeterGU = FALSE;
+COLORREF ColorBarMeterGPU = RGB(0, 255, 255);
+int BarMeterGU_Left = 190;
+int BarMeterGU_Right = 180;
+int BarMeterGU_Bottom = 0;
+int BarMeterGU_Top = 0;
 
 BOOL b_UseBarMeterCore = FALSE;
 int NumberBarMeterCore = 10;
@@ -410,20 +430,20 @@ COLORREF ColorBarMeterCore_Low = RGB(0, 255, 0);
 int BarMeterCore_Left = 200;
 int BarMeterCore_Right = 190;
 int BarMeterCore_Bottom = 0;
-int BarMeterCore_Top = -1;
+int BarMeterCore_Top = 0;
 int BarMeterCore_Pitch = 5;
 
 BOOL b_UseBarMeterVL = FALSE;
-int ColorBarMeterVL = RGB(0, 255, 0);
-int ColorBarMeterVL_Mute = RGB(255, 0, 0);
+COLORREF ColorBarMeterVL = RGB(0, 255, 0);
+COLORREF ColorBarMeterVL_Mute = RGB(255, 0, 0);
 int BarMeterVL_Left = 260; 
 int BarMeterVL_Right = 250;
 int BarMeterVL_Bottom = 0;
-int BarMeterVL_Top = -1;
+int BarMeterVL_Top = 0;
 
 BOOL b_UseBarMeterNet = FALSE;
-int ColorBarMeterNetRecv = RGB(0, 255, 0);
-int ColorBarMeterNetSend = RGB(255, 0, 0);
+COLORREF ColorBarMeterNet_Recv = RGB(0, 255, 0);
+COLORREF ColorBarMeterNet_Send = RGB(255, 0, 0);
 int BarMeterNetRecv_Left = 305;
 int BarMeterNetRecv_Right = 300;
 int BarMeterNetRecv_Bottom = 0;
@@ -431,15 +451,16 @@ int BarMeterNetRecv_Top = -1;
 int BarMeterNetSend_Left = 315;
 int BarMeterNetSend_Right = 310;
 int BarMeterNetSend_Bottom = 0;
-int BarMeterNetSend_Top = -1;
+int BarMeterNetSend_Top = 0;
 BOOL b_BarMeterNet_LogGraph = FALSE;
 
 extern BOOL b_Charging;
 
 COLORREF MyColorTT[MAX_MYCOLORS];
-COLORREF MyColorTT_CU();
-COLORREF MyColorTT_VL();
-COLORREF MyColorTT_BL();
+COLORREF MyColorTT_CU(void);
+COLORREF MyColorTT_VL(void);
+COLORREF MyColorTT_BL(void);
+COLORREF MyColorTT_GU(void);
 
 COLORREF MyColorTT_Core(int iCPU);
 
@@ -1269,19 +1290,20 @@ void ReadData()
 	extern BOOL b_exist_DOWzone;
 	b_exist_DOWzone = FALSE;
 
-
-
-	SetMyRegLong("Status_DoNotEdit", "Win11TClockMain", bWin11Main);
-
-	//Added by TTTT
-
 	b_DebugLog = GetMyRegLong(NULL, "DebugLog", FALSE);
 	SetMyRegLong(NULL, "DebugLog", b_DebugLog);
+
+	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] ReadData called.", 999);
+
+
+
+	UpdateSettingFile();
+
+	SetMyRegLong("Status_DoNotEdit", "Win11TClockMain", bWin11Main);
 
 	GetModuleFileName(hmod, g_mydir_dll, MAX_PATH);		//iniファイル経由でなくディレクトリ取得するように by TTTT
 	del_title(g_mydir_dll);
 
-	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] ReadData called.", 999);
 
 
 
@@ -1442,13 +1464,23 @@ void ReadData()
 	bGraphTate = GetMyRegLong("Graph", "GraphTate", FALSE);
 	NetGraphScaleRecv = GetMyRegLong("Graph", "NetGraphScaleRecv", 100);
 	NetGraphScaleSend = GetMyRegLong("Graph", "NetGraphScaleSend", 100);
-	ColSend = GetMyRegLong("Graph", "BackNetColSend", 0x000000ff);
-	ColRecv = GetMyRegLong("Graph", "BackNetColRecv", 0x00ff0000);
+	ColSend = GetMyRegLong("Graph", "BackNetColSend", RGB(255, 0, 0));
+	ColRecv = GetMyRegLong("Graph", "BackNetColRecv", RGB(0, 255, 0));
 	ColSR = GetMyRegLong("Graph", "BackNetColSR", 0x00800080);
+
+	ColorCPUGraph = GetMyRegLong("Graph", "ColorCPUGraph", RGB(0, 255, 0));
+	SetMyRegLong("Graph", "ColorCPUGraph", ColorCPUGraph);
+
+	ColorCPUGraph2 = GetMyRegLong("Graph", "ColorCPUGraph2", RGB(255, 0, 0));
+	SetMyRegLong("Graph", "ColorCPUGraph2", ColorCPUGraph2);
+
+	ColorGPUGraph = GetMyRegLong("Graph", "ColorGPUGraph", RGB(255, 0, 255));
+	SetMyRegLong("Graph", "ColorGPUGraph", ColorGPUGraph);
+
 
 	graphInterval = 1;
 	graphMode = GetMyRegLong("Graph", "GraphMode", 1);
-	cpuHigh = GetMyRegLong("Graph", "CpuHigh", 70);
+	//cpuHigh = GetMyRegLong("Graph", "CpuHigh", 70);
 	GraphL = GetMyRegLong("Graph", "GraphLeft", 0);
 	GraphT = GetMyRegLong("Graph", "GraphTop", 0);
 	GraphR = GetMyRegLong("Graph", "GraphRight", 1);
@@ -1468,9 +1500,9 @@ void ReadData()
 	GetMyRegStr("Status_DoNotEdit", "PreviousLTEProfName", previousLTEProfName, 256, "");
 	SetMyRegStr("Status_DoNotEdit", "PreviousLTEProfName", previousLTEProfName);
 
-	megabytesInGigaByte = GetMyRegLong("DataPlan", "MegabytesInGigaByte", 1000);
+	megabytesInGigaByte = GetMyRegLong("ETC", "MegabytesInGigaByte", 1000);
 	if (megabytesInGigaByte != 1024) megabytesInGigaByte = 1000;
-	SetMyRegLong("DataPlan", "MegabytesInGigaByte", megabytesInGigaByte);
+	SetMyRegLong("ETC", "MegabytesInGigaByte", megabytesInGigaByte);
 
 
 
@@ -1600,6 +1632,19 @@ void ReadData()
 	b_BarMeterNet_Horizontal = GetMyRegLong("BarMeter", "BarMeterNet_Horizontal", FALSE);
 	SetMyRegLong("BarMeter", "BarMeterNet_Horizontal", b_BarMeterNet_Horizontal);
 
+	
+	b_BarMeterVL_HorizontalToLeft = GetMyRegLong("BarMeter", "BarMeterVL_HorizontalToLeft", FALSE);
+	SetMyRegLong("BarMeter", "BarMeterVL_HorizontalToLeft", b_BarMeterVL_HorizontalToLeft);
+
+	b_BarMeterBL_HorizontalToLeft = GetMyRegLong("BarMeter", "BarMeterBL_HorizontalToLeft", FALSE);
+	SetMyRegLong("BarMeter", "BarMeterBL_HorizontalToLeft", b_BarMeterBL_HorizontalToLeft);
+
+	b_BarMeterCU_HorizontalToLeft = GetMyRegLong("BarMeter", "BarMeterCU_HorizontalToLeft", FALSE);
+	SetMyRegLong("BarMeter", "BarMeterCU_HorizontalToLeft", b_BarMeterCU_HorizontalToLeft);
+
+	b_BarMeterNet_HorizontalToLeft = GetMyRegLong("BarMeter", "BarMeterNet_HorizontalToLeft", FALSE);
+	SetMyRegLong("BarMeter", "BarMeterNet_HorizontalToLeft", b_BarMeterNet_HorizontalToLeft);
+
 
 
 	b_UseBarMeterVL = GetMyRegLong("BarMeter", "UseBarMeterVL", 0);
@@ -1624,15 +1669,9 @@ void ReadData()
 	if (BarMeterVL_Bottom < 0) BarMeterVL_Bottom = 0;
 	SetMyRegLong("BarMeter", "BarMeterVL_Bottom", BarMeterVL_Bottom);
 
-	BarMeterHeight = (int)(short)GetMyRegLong("BarMeter", "BarMeterVL_Height", -1);
-	if (BarMeterHeight <= 0) BarMeterHeight = -1;
-	if (BarMeterHeight == -1)
-		BarMeterVL_Top = -1;
-	else
-		BarMeterVL_Top = BarMeterVL_Bottom + BarMeterHeight;
-	SetMyRegLong("BarMeter", "BarMeterVL_Height", BarMeterHeight);
-
-
+	BarMeterVL_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterVL_Top", 0);
+	if (BarMeterVL_Top < 0) BarMeterVL_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterVL_Top", BarMeterVL_Top);
 
 
 
@@ -1665,13 +1704,21 @@ void ReadData()
 	if (BarMeterBL_Bottom < 0) BarMeterBL_Bottom = 0;
 	SetMyRegLong("BarMeter", "BarMeterBL_Bottom", BarMeterBL_Bottom);
 
-	BarMeterHeight = (int)(short)GetMyRegLong("BarMeter", "BarMeterBL_Height", -1);
-	if (BarMeterHeight <= 0) BarMeterHeight = -1;
-	if (BarMeterHeight == -1)
-		BarMeterBL_Top = -1 ;
-	else
-		BarMeterBL_Top = BarMeterBL_Bottom + BarMeterHeight;
-	SetMyRegLong("BarMeter", "BarMeterBL_Height", BarMeterHeight);
+	BarMeterBL_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterBL_Top", 0);
+	if (BarMeterBL_Top < 0) BarMeterBL_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterBL_Top", BarMeterBL_Top);
+
+
+	BarMeterBL_Threshold_High = (int)(short)GetMyRegLong("BarMeter", "BarMeterBL_Threshold_High", 50);
+	if (BarMeterBL_Threshold_High < 0) BarMeterBL_Threshold_High = 0;
+	if (BarMeterBL_Threshold_High > 101) BarMeterBL_Threshold_High = 101;
+	SetMyRegLong("BarMeter", "BarMeterBL_Threshold_High", BarMeterBL_Threshold_High);
+
+	BarMeterBL_Threshold_Mid = (int)(short)GetMyRegLong("BarMeter", "BarMeterBL_Threshold_Mid", 20);
+	if (BarMeterBL_Threshold_Mid < 0) BarMeterBL_Threshold_Mid = 0;
+	if (BarMeterBL_Threshold_Mid > 101) BarMeterBL_Threshold_Mid = 101;
+	SetMyRegLong("BarMeter", "BarMeterBL_Threshold_Mid", BarMeterBL_Threshold_Mid);
+
 
 
 	b_UseBarMeterCU = GetMyRegLong("BarMeter", "UseBarMeterCU", 0);
@@ -1695,18 +1742,51 @@ void ReadData()
 	BarMeterCU_Left = BarMeterCU_Right + BarMeterWidth;
 	SetMyRegLong("BarMeter", "BarMeterCU_Width", BarMeterWidth);
 
-
 	BarMeterCU_Bottom = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Bottom", 0);
 	if (BarMeterCU_Bottom < 0) BarMeterCU_Bottom = 0;
 	SetMyRegLong("BarMeter", "BarMeterCU_Bottom", BarMeterCU_Bottom);
 
-	BarMeterHeight = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Height", -1);
-	if (BarMeterHeight <= 0) BarMeterHeight = -1;
-	if (BarMeterHeight == -1)
-		BarMeterCU_Top = -1;
-	else
-		BarMeterCU_Top = BarMeterCU_Bottom + BarMeterHeight;
-	SetMyRegLong("BarMeter", "BarMeterCU_Height", BarMeterHeight);
+	BarMeterCU_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Top", 0);
+	if (BarMeterCU_Top < 0) BarMeterCU_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterCU_Top", BarMeterCU_Top);
+
+
+	BarMeterCU_Threshold_High = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Threshold_High", 70);
+	if (BarMeterCU_Threshold_High < 0) BarMeterCU_Threshold_High = 0;
+	if (BarMeterCU_Threshold_High > 101) BarMeterCU_Threshold_High = 101;
+	SetMyRegLong("BarMeter", "BarMeterCU_Threshold_High", BarMeterCU_Threshold_High);
+
+	BarMeterCU_Threshold_Mid = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Threshold_Mid", 50);
+	if (BarMeterCU_Threshold_Mid < 0) BarMeterCU_Threshold_Mid = 0;
+	if (BarMeterCU_Threshold_Mid > 101) BarMeterCU_Threshold_Mid = 101;
+	SetMyRegLong("BarMeter", "BarMeterCU_Threshold_Mid", BarMeterCU_Threshold_Mid);
+
+
+
+
+	b_UseBarMeterGU = GetMyRegLong("BarMeter", "UseBarMeterGU", 0);
+	SetMyRegLong("BarMeter", "UseBarMeterGU", b_UseBarMeterGU);
+
+	BarMeterGU_Right = (int)(short)GetMyRegLong("BarMeter", "BarMeterGU_Right", 175);
+	SetMyRegLong("BarMeter", "BarMeterGU_Right", BarMeterGU_Right);
+
+	BarMeterWidth = (int)(short)GetMyRegLong("BarMeter", "BarMeterCU_Width", 5);
+	BarMeterGU_Left = BarMeterGU_Right + BarMeterWidth;
+
+	BarMeterGU_Bottom = (int)(short)GetMyRegLong("BarMeter", "BarMeterGU_Bottom", 0);
+	if (BarMeterGU_Bottom < 0) BarMeterGU_Bottom = 0;
+	SetMyRegLong("BarMeter", "BarMeterGU_Bottom", BarMeterGU_Bottom);
+
+	BarMeterGU_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterGU_Top", 0);
+	if (BarMeterGU_Top < 0) BarMeterGU_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterGU_Top", BarMeterGU_Top);
+
+
+	ColorBarMeterGPU = (COLORREF)GetMyRegLong("BarMeter", "ColorBarMeterGPU", ColorGPUGraph);
+	SetMyRegLong("BarMeter", "ColorBarMeterGPU", ColorBarMeterGPU);
+
+
+
 
 
 
@@ -1768,10 +1848,12 @@ void ReadData()
 	b_BarMeterNet_LogGraph = GetMyRegLong("BarMeter", "BarMeterNet_LogGraph", 0);
 	SetMyRegLong("BarMeter", "BarMeterNet_LogGraph", b_BarMeterNet_LogGraph);
 
+	ColorBarMeterNet_Send = (COLORREF)GetMyRegLong("BarMeter", "ColorBarMeterNet_Send", ColSend);
+	SetMyRegLong("BarMeter", "ColorBarMeterNet_Send", ColorBarMeterNet_Send);
 
-	ColorBarMeterNetSend = ColSend;
-	ColorBarMeterNetRecv = ColRecv;
 
+	ColorBarMeterNet_Recv = (COLORREF)GetMyRegLong("BarMeter", "ColorBarMeterNet_Recv", ColRecv);
+	SetMyRegLong("BarMeter", "ColorBarMeterNet_Recv", ColorBarMeterNet_Recv);
 
 	BarMeterNetRecv_Right = (int)(short)GetMyRegLong("BarMeter", "BarMeterNetRecv_Right", 300);
 	SetMyRegLong("BarMeter", "BarMeterNetRecv_Right", BarMeterNetRecv_Right);
@@ -1795,22 +1877,14 @@ void ReadData()
 	BarMeterNetSend_Left = BarMeterNetSend_Right + BarMeterWidth;
 	SetMyRegLong("BarMeter", "BarMeterNet_Width", BarMeterWidth);
 
-
-	BarMeterHeight = (int)(short)GetMyRegLong("BarMeter", "BarMeterNet_Height", -1);
-	if (BarMeterHeight <= 0) BarMeterHeight = -1;
-	if (BarMeterHeight == -1)
-	{
-		BarMeterNetRecv_Top = -1;
-		BarMeterNetSend_Top = -1;
-	}
-	else
-	{
-		BarMeterNetRecv_Top = BarMeterNetRecv_Bottom + BarMeterHeight;
-		BarMeterNetSend_Top = BarMeterNetSend_Bottom + BarMeterHeight;
-	}
-	SetMyRegLong("BarMeter", "BarMeterNet_Height", BarMeterHeight);
+	BarMeterNetRecv_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterNetRecv_Top", 0);
+	if (BarMeterNetRecv_Top < 0) BarMeterNetRecv_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterNetRecv_Top", BarMeterNetRecv_Top);
 
 
+	BarMeterNetSend_Top = (int)(short)GetMyRegLong("BarMeter", "BarMeterNetSend_Top", 0);
+	if (BarMeterNetSend_Top < 0) BarMeterNetSend_Top = 0;
+	SetMyRegLong("BarMeter", "BarMeterNetSend_Top", BarMeterNetSend_Top);
 
 	SetMyRegLong("Status_DoNotEdit", "BatteryLifeAvailable", 1);
 
@@ -1958,7 +2032,7 @@ void ReadData()
 	bTimerCheckNetStat = TRUE;
 	bTimerAdjust_NetStat = TRUE;
 
-
+	CleanSettingFile();
 
 }
 
@@ -2003,13 +2077,15 @@ void InitSysInfo()
 	bGetCpu = ((dwInfoFormat | dwInfoTip) & FORMAT_CPU)? TRUE:FALSE;
 	if(dwInfoFormat & FORMAT_CPU) bDispSysInfo = TRUE;
 	if (b_UseBarMeterCU) bGetCpu = TRUE;	//Added by TTTT 2011028
+	if (bGraph && (graphMode == 2)) bGetCpu = TRUE;
 
 	bGetVol = ((dwInfoFormat | dwInfoTip) & FORMAT_VOL)? TRUE:FALSE;
 	if(dwInfoFormat & FORMAT_VOL) bDispSysInfo = TRUE;
 
 	bGetGpu = ((dwInfoFormat | dwInfoTip) & FORMAT_GPU) ? TRUE : FALSE;
 	if (dwInfoFormat & FORMAT_GPU) bDispSysInfo = TRUE;
-	if (bEnableGPUGraph && (graphMode == 2)) bGetGpu = TRUE;
+	if (b_UseBarMeterGU) bGetGpu = TRUE;	//Added by TTTT 2011028
+	if (bGraph && bEnableGPUGraph && (graphMode == 2)) bGetGpu = TRUE;
 
 	if(bGetBattery || bGetMem || bGetMb || bGetPm || bGetNet || bGetHdd || bGetCpu || bGetVol || bGetGpu)
 	{
@@ -2342,8 +2418,6 @@ void OnTimer_Win10(void)
 	//Ver4.0.4現在、exemainにおけるOnTimerZombieCheck2と二重チェックになっているのでいずれ整理が必要
 	//しかもこちらの仕組みは停止動作等は実装されていない。
 	SendStatusDLL2Main();	
-
-
 
 
 	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] OnTimer_Win10 finished.", 999);
@@ -3331,7 +3405,7 @@ COLORREF TextColorFromInfoVal(int infoval)
 
 	if ((nBlink % 2) != 0)
 	{
-		colRet = (~colRet & 0xFFFFF) + 0xFF000000;
+		colRet = (~colRet & 0xFFFFFF) + 0xFF000000;
 	}
 
 	return colRet;
@@ -3503,22 +3577,28 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	//グラフ類の描画 on hdcClock
 	if (b_UseBarMeterBL && b_BatteryLifeAvailable)
 	{
-		DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterBL_Right, BarMeterBL_Left,
-			BarMeterBL_Bottom, BarMeterBL_Top, iBatteryLife, MyColorTT_BL(), b_BarMeterBL_Horizontal);
+		DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterBL_Right, BarMeterBL_Left,
+			BarMeterBL_Bottom, BarMeterBL_Top, iBatteryLife, MyColorTT_BL(), b_BarMeterBL_Horizontal, b_BarMeterBL_HorizontalToLeft);
 	}
 
 
 	if (b_UseBarMeterCU)
 	{
-		DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterCU_Right, BarMeterCU_Left,
-			BarMeterCU_Bottom, BarMeterCU_Top, totalCPUUsage, MyColorTT_CU(), b_BarMeterCU_Horizontal);
+		DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterCU_Right, BarMeterCU_Left,
+			BarMeterCU_Bottom, BarMeterCU_Top, totalCPUUsage, MyColorTT_CU(), b_BarMeterCU_Horizontal, b_BarMeterCU_HorizontalToLeft);
+	}
+
+	if (b_UseBarMeterGU)
+	{
+		DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterGU_Right, BarMeterGU_Left,
+			BarMeterGU_Bottom, BarMeterGU_Top, totalGPUUsage, MyColorTT_GU(), b_BarMeterCU_Horizontal, b_BarMeterCU_HorizontalToLeft);
 	}
 
 	if (!b_BarMeterCU_Horizontal && b_UseBarMeterCore)
 	{
 		for (int i = 0; i < NumberBarMeterCore; i++)
-			DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, (BarMeterCore_Right - i * BarMeterCore_Pitch), (BarMeterCore_Left - i * BarMeterCore_Pitch),
-				BarMeterCore_Bottom, BarMeterCore_Top, CPUUsage[i], MyColorTT_Core(CPUUsage[i]), b_BarMeterCU_Horizontal);
+			DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, (BarMeterCore_Right - i * BarMeterCore_Pitch), (BarMeterCore_Left - i * BarMeterCore_Pitch),
+				BarMeterCore_Bottom, BarMeterCore_Top, CPUUsage[i], MyColorTT_Core(CPUUsage[i]), b_BarMeterCU_Horizontal, b_BarMeterCU_HorizontalToLeft);
 
 	}
 
@@ -3526,8 +3606,8 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 	if (b_UseBarMeterVL)
 	{
-		DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterVL_Right, BarMeterVL_Left,
-			BarMeterVL_Bottom, BarMeterVL_Top, iVolume, MyColorTT_VL(), b_BarMeterVL_Horizontal);
+		DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterVL_Right, BarMeterVL_Left,
+			BarMeterVL_Bottom, BarMeterVL_Top, iVolume, MyColorTT_VL(), b_BarMeterVL_Horizontal, b_BarMeterVL_HorizontalToLeft);
 	}
 
 
@@ -3561,10 +3641,10 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 
 		{
-			DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterNetSend_Right, BarMeterNetSend_Left,
-				BarMeterNetSend_Bottom, BarMeterNetSend_Top, NetBarMeterSend, ColorBarMeterNetSend, b_BarMeterNet_Horizontal);
-			DrawBarMeter2(hwndClockMain, hdcClock, wclock, hclock, BarMeterNetRecv_Right, BarMeterNetRecv_Left,
-				BarMeterNetRecv_Bottom, BarMeterNetRecv_Top, NetBarMeterRecv, ColorBarMeterNetRecv, b_BarMeterNet_Horizontal);
+			DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterNetSend_Right, BarMeterNetSend_Left,
+				BarMeterNetSend_Bottom, BarMeterNetSend_Top, NetBarMeterSend, ColorBarMeterNet_Send, b_BarMeterNet_Horizontal, b_BarMeterNet_HorizontalToLeft);
+			DrawBarMeter(hwndClockMain, hdcClock, wclock, hclock, BarMeterNetRecv_Right, BarMeterNetRecv_Left,
+				BarMeterNetRecv_Bottom, BarMeterNetRecv_Top, NetBarMeterRecv, ColorBarMeterNet_Recv, b_BarMeterNet_Horizontal, b_BarMeterNet_HorizontalToLeft);
 		}
 	}
 
@@ -3883,23 +3963,49 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 /*------------------------------------------------
 paint graph, added by TTTT
 --------------------------------------------------*/
-void DrawBarMeter(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left, int value, COLORREF color)
+void DrawBarMeter(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, int bar_left, int bar_bottom, int bar_top, int value, COLORREF color, BOOL b_Horizontal, BOOL b_ToLeft)
 {
 	//hwndは使われていない。
+
 	RECT barRect;
 	HBRUSH hbr;
+	int scale;
 
-	if (bar_left > wclock || bar_right > wclock || bar_left <= bar_right || value < 0) return;
+	if (bar_left > wclock || bar_right > wclock || bar_left <= bar_right) return;
+	//if (bar_top >= 0 && bar_top < bar_bottom) return;
+	if (bar_top >= hclock - bar_bottom) return;
+
+	if (value < 0) return;
+
 	if (value > 100) value = 100;
-	barRect.bottom = hclock;
-	barRect.top = (hclock * (100 - value)) / 100;
+
+	barRect.bottom = hclock - bar_bottom - offsetBottomOfMeter;
+
+	barRect.top = bar_top;
+
 	barRect.left = wclock - bar_left;
 	barRect.right = wclock - bar_right;
+
+	if (b_Horizontal)
+	{
+		scale = barRect.left - barRect.right;
+		if (b_ToLeft) {
+			barRect.left = barRect.right + (scale * value / 100);
+		}else{
+			barRect.right = barRect.left - (scale * value / 100);
+		}
+	}
+	else
+	{
+		scale = barRect.bottom - barRect.top;
+		barRect.top = barRect.bottom - (scale * value / 100);
+	}
 
 	hbr = CreateSolidBrush(color);
 	FillRect(hdc, &barRect, hbr);
 	DeleteObject(hbr);
 }
+
 
 /*------------------------------------------------
 paint graph, added by TTTT
@@ -3913,21 +4019,26 @@ void DrawBarMeter2(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, in
 	int scale;
 
 	if (bar_left > wclock || bar_right > wclock || bar_left <= bar_right) return;
-	if (bar_top >= 0 && bar_top < bar_bottom) return;
+	//if (bar_top >= 0 && bar_top < bar_bottom) return;
+	if (bar_top >= hclock - bar_bottom) return;
+
 	if (value < 0) return;
 
 	if (value > 100) value = 100;
 
 	barRect.bottom = hclock - bar_bottom - offsetBottomOfMeter;
 
-	if (bar_top < 0)
-	{
-		barRect.top = 0;
-	}
-	else
-	{
-		barRect.top = hclock - bar_top;
-	}
+	//if (bar_top < 0)
+	//{
+	//	barRect.top = 0;
+	//}
+	//else
+	//{
+	//	barRect.top = hclock - bar_top;
+	//}
+
+	barRect.top = bar_top;
+
 	barRect.left = wclock - bar_left;
 	barRect.right = wclock - bar_right;
 
@@ -3956,6 +4067,7 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 	double one_dots = 0, one_dotr = 0;
 	int graphSizeS;
 	int graphSizeR;
+	HPEN penSR, penR, penS;
 
 	getGraphVal();
 
@@ -3968,10 +4080,19 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 	hclock-=GraphT + GraphB + offsetBottomOfMeter;
 	if(wclock > 0 && hclock > 0)
 	{
-		HPEN penSR = CreatePen(PS_SOLID,1,ColSR);
-		HPEN penR = CreatePen(PS_SOLID,1,ColRecv);
-		HPEN penS = CreatePen(PS_SOLID,1,ColSend);
-		HGDIOBJ oldPen=SelectObject(hdc,(HGDIOBJ)penSR);
+		if (graphMode == 1)	//NET
+		{
+			penSR = CreatePen(PS_SOLID, 1, ColSR);
+			penR = CreatePen(PS_SOLID, 1, ColRecv);
+			penS = CreatePen(PS_SOLID, 1, ColSend);
+		}
+		else 
+		{
+			penSR = CreatePen(PS_SOLID, 1, ColorCPUGraph2);
+			penR = CreatePen(PS_SOLID, 1, ColorCPUGraph);
+			penS = CreatePen(PS_SOLID, 1, ColorGPUGraph);
+		}
+		HGDIOBJ oldPen = SelectObject(hdc, (HGDIOBJ)penSR);
 
 		// Network
 		if (graphMode == 1)
@@ -4105,14 +4226,14 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								}
 
 								MoveToEx(hdc,max((xclock+wclock)-(int)(recvlog[i+1]/one_dotr), xclock),y-d,NULL);
-								if (recvlog[i] >= cpuHigh)
-								{
-									SelectObject(hdc,(HGDIOBJ)penSR);
-								}
-								else
-								{
+								//if (recvlog[i] >= cpuHigh)
+								//{
+								//	SelectObject(hdc,(HGDIOBJ)penSR);
+								//}
+								//else
+								//{
 									SelectObject(hdc,(HGDIOBJ)penR);
-								}
+								//}
 
 								LineTo(hdc,max((xclock+wclock)-(int)(recvlog[i]/one_dotr), xclock),y);
 
@@ -4238,14 +4359,14 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								}
 
 								MoveToEx(hdc,x-d,max((yclock+hclock)-(int)(recvlog[i+1]/one_dotr), yclock),NULL);
-								if (recvlog[i] >= cpuHigh)
-								{
-									SelectObject(hdc,(HGDIOBJ)penSR);
-								}
-								else
-								{
+								//if (recvlog[i] >= cpuHigh)
+								//{
+								//	SelectObject(hdc,(HGDIOBJ)penSR);
+								//}
+								//else
+								//{
 									SelectObject(hdc,(HGDIOBJ)penR);
-								}
+								//}
 								LineTo(hdc,x,max((yclock+hclock)-(int)(recvlog[i]/one_dotr), yclock));
 
 							}
@@ -4453,6 +4574,9 @@ void CalcMainClockSize(void)
 		widthMainClockFrame = widthMainClockContent;
 		heightMainClockFrame = tempRect.bottom - tempRect.top;
 	}
+
+	SetMyRegLong("Status_DoNotEdit", "ClockWidth", widthMainClockFrame);
+	SetMyRegLong("Status_DoNotEdit", "ClockHeight", heightMainClockFrame);
 
 	if (b_DebugLog) {
 		writeDebugLog_Win10("[tclock.c][CalcMainClockContentSize] Clock Frame Width = ", widthMainClockFrame);
@@ -4897,25 +5021,30 @@ COLORREF MyColorTT_Core(int iCPU)
 	return returnvalue;
 }
 
-COLORREF MyColorTT_CU()
+COLORREF MyColorTT_GU(void)
+{
+	return ColorBarMeterGPU;
+}
+
+COLORREF MyColorTT_CU(void)
 {
 	COLORREF returnvalue;
-	if (totalCPUUsage > 66)
-		{
-			returnvalue = ColorBarMeterCU_High;
-		}
-		else if (totalCPUUsage > 33)
-		{
-			returnvalue = ColorBarMeterCU_Mid;
-		}
-		else if (totalCPUUsage > 0)
-		{
-			returnvalue = ColorBarMeterCU_Low;
-		}
+	if (totalCPUUsage >= BarMeterCU_Threshold_High)
+	{
+		returnvalue = ColorBarMeterCU_High;
+	}
+	else if (totalCPUUsage >= BarMeterCU_Threshold_Mid)
+	{
+		returnvalue = ColorBarMeterCU_Mid;
+	}
+	else if (totalCPUUsage > 0)
+	{
+		returnvalue = ColorBarMeterCU_Low;
+	}
 	return returnvalue;
 }
 
-COLORREF MyColorTT_VL()
+COLORREF MyColorTT_VL(void)
 {
 	COLORREF returnvalue;
 		if (muteStatus)
@@ -4929,7 +5058,7 @@ COLORREF MyColorTT_VL()
 		return returnvalue;
 }
 
-COLORREF MyColorTT_BL()
+COLORREF MyColorTT_BL(void)
 {
 	COLORREF returnvalue;
 
@@ -4937,11 +5066,11 @@ COLORREF MyColorTT_BL()
 	{
 		returnvalue = ColorBarMeterBL_Charge;
 	}
-	else if (iBatteryLife > 49)
+	else if (iBatteryLife >= BarMeterBL_Threshold_High)
 	{
 		returnvalue = ColorBarMeterBL_High;
 	}
-	else if (iBatteryLife > 19)
+	else if (iBatteryLife >= BarMeterBL_Threshold_Mid)
 	{
 			returnvalue = ColorBarMeterBL_Mid;
 	}

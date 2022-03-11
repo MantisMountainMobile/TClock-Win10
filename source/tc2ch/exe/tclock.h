@@ -284,6 +284,7 @@ typedef struct {
 	COLORREF defcol;
 } COMBOCOLOR;
 
+void ClearComboColor(HWND hDlg, WORD id);
 void InitComboColor(HWND hDlg, int numcol, COMBOCOLOR *pCombocolor, int maxcol, BOOL ex_flg);
 void OnMeasureItemColorCombo(LPARAM lParam);
 void OnDrawItemColorCombo(LPARAM lParam, int maxcol);

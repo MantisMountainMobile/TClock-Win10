@@ -6,7 +6,7 @@
 //#define NONAMELESSUNION
 #include "tclock.h"
 
-#define MAX_PAGE  16
+#define MAX_PAGE  20
 
 INT_PTR CALLBACK PropertyDialog(HWND, UINT, WPARAM, LPARAM);
 
@@ -29,6 +29,7 @@ INT_PTR CALLBACK PageAppControlProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageEtc1Proc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageWin11Proc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageColorAdditionalProc(HWND, UINT, WPARAM, LPARAM);
+
 
 
 
@@ -153,6 +154,10 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 			tv.item.pszText = MyString(IDS_TOOLTIP);
 			hParent[1] = TreeView_InsertItem(hTree, &tv);
 
+			tv.item.lParam = 6;
+			tv.item.pszText = MyString(IDS_PROP_MOUSE);
+			hParent[6] = TreeView_InsertItem(hTree, &tv);
+
 			tv.item.lParam = 2;
 			tv.item.pszText = MyString(IDS_PROP_ETC);
 			hParent[2] = TreeView_InsertItem(hTree, &tv);
@@ -174,38 +179,42 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 			tv.hParent = hParent[0];
 			tv.item.mask = TVIF_TEXT | TVIF_PARAM;
 
-			tv.item.pszText = MyString(IDS_PROP_COLOR);
 			tv.item.lParam = 100;
+			tv.item.pszText = MyString(IDS_PROP_COLOR);
 			hChild[0] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_COLOR_ADDITIONAL);
 			tv.item.lParam = 106;
+			tv.item.pszText = MyString(IDS_PROP_COLOR_ADDITIONAL);
 			hChild[6] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_FORMAT);
 			tv.item.lParam = 101;
+			tv.item.pszText = MyString(IDS_PROP_FORMAT);
 			hChild[1] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_MOUSE);
-			tv.item.lParam = 102;
-			hChild[2] = TreeView_InsertItem(hTree, &tv);
+			tv.item.lParam = 107;
+			tv.item.pszText = MyString(IDS_PROP_CHIME);
+			hChild[7] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_GRAPH);
 			tv.item.lParam = 103;
+			tv.item.pszText = MyString(IDS_PROP_GRAPH);
 			hChild[3] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_ANALOG);
-			tv.item.lParam = 104;
-			hChild[4] = TreeView_InsertItem(hTree, &tv);
-
 			//	BarMeterê›íË	20181103
-			tv.item.pszText = MyString(IDS_BARMETER);
 			tv.item.lParam = 105;
+			tv.item.pszText = MyString(IDS_BARMETER);
 			hChild[5] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.pszText = MyString(IDS_PROP_CHIME);
-			tv.item.lParam = 107;
-			hChild[7] = TreeView_InsertItem(hTree, &tv);
+
+			//tv.item.lParam = 102;
+			//tv.item.pszText = MyString(IDS_PROP_MOUSE);
+			//hChild[2] = TreeView_InsertItem(hTree, &tv);
+
+
+			tv.item.lParam = 104;
+			tv.item.pszText = MyString(IDS_PROP_ANALOG);
+			hChild[4] = TreeView_InsertItem(hTree, &tv);
+
+
 
 			CreatePageDialog(hDwnd, hDlg, bDlgFlg, 0, Language_Offset + IDD_PAGECOLOR, PageColorProc);
 			nowDlg = startpage;
@@ -267,6 +276,11 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGE_WIN11, PageWin11Proc);
 							break;
 
+						case 6:
+							nowDlg = 16;
+							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGEMOUSE, PageMouseProc);
+							break;
+
 						case 100:
 							//nowDlg -= 10;
 							nowDlg = 0;		//PAGECOLORÇÃêeÇ∆ìØÇ∂
@@ -278,11 +292,11 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGEFORMAT, PageFormatProc);
 							break;
 
-						case 102:
-							//nowDlg -= 10;
-							nowDlg = 2;
-							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGEMOUSE, PageMouseProc);
-							break;
+						//case 102:
+						//	//nowDlg -= 10;
+						//	nowDlg = 2;
+						//	CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGEMOUSE, PageMouseProc);
+						//	break;
 						case 103:
 							//nowDlg -= 10;
 							nowDlg = 3;

@@ -4,6 +4,17 @@
 static int MaxCol = 16;
 extern int confNo;
 
+
+void ClearComboColor(HWND hDlg, WORD id)
+{
+	int numItem, i;
+	numItem = CBGetCount(hDlg, id);
+	for (i = 0; i < numItem; i++) {
+		CBDeleteString(hDlg, id, 0);
+	}
+}
+
+
 /*------------------------------------------------
 　「色」コンボボックスの初期化
 --------------------------------------------------*/
@@ -15,10 +26,15 @@ void InitComboColor(HWND hDlg, int numcol, COMBOCOLOR *pCombocolor, int maxcol, 
 	char section[256];
 
 	if (strcmp(pCombocolor[0].colname, "BackNetColSend") == 0) strcpy(section, "Graph");
+	else if (strcmp(pCombocolor[0].colname, "ColorGPUGraph") == 0) strcpy(section, "Graph");
 	else if (strcmp(pCombocolor[0].colname, "BackColor") == 0) strcpy(section, "Color_Font");
 	else if (strcmp(pCombocolor[0].colname, "Saturday_TextColor") == 0) strcpy(section, "Color_Font");
 	else if (strcmp(pCombocolor[0].colname, "AClockHourHandColor") == 0) strcpy(section, "AnalogClock");
 	else if (strcmp(pCombocolor[0].colname, "TipFontColor") == 0) strcpy(section, "Tooltip");
+	else if (strcmp(pCombocolor[0].colname, "ColorBarMeterBL_High") == 0) strcpy(section, "BarMeter");
+	else if (strcmp(pCombocolor[0].colname, "ColorBarMeterVL") == 0) strcpy(section, "BarMeter");
+	else if (strcmp(pCombocolor[0].colname, "ColorBarMeterCU_High") == 0) strcpy(section, "BarMeter");
+	else if (strcmp(pCombocolor[0].colname, "ColorBarMeterNet_Recv") == 0) strcpy(section, "BarMeter");
 	else strcpy(section, "");
 
 
@@ -52,25 +68,29 @@ void InitComboColor(HWND hDlg, int numcol, COMBOCOLOR *pCombocolor, int maxcol, 
 	{
 		id = pCombocolor[i].id;
 
+		ClearComboColor(hDlg, id);
+
 		// WinXPのバグへの対処(VisualStyle使用時は0を追加できない)
-		CBSetItemData(hDlg, id, CBAddString(hDlg, id, -1), rgb[0]);
-		for(j = 1; j < maxcol; j++) //黒以外の残りの基本16色+ボタンの色
+//		CBSetItemData(hDlg, id, CBAddString(hDlg, id, -1), rgb[0]);
+		for (j = 0; j < maxcol; j++) //黒以外の残りの基本16色+ボタンの色
+		{
 			CBAddString(hDlg, id, rgb[j]);
+		}
 
 		//コンボボックスの色を選択
 		if (ex_flg)
 		{
 			if (pCombocolor[i].defcol == 0xFFFFFFFF)
-				col = GetMyRegLong(section, pCombocolor[i].colname, col);
+				col = (COLORREF)GetMyRegLong(section, pCombocolor[i].colname, col);
 			else
-				col = GetMyRegLong(section, pCombocolor[i].colname, pCombocolor[i].defcol);
+				col = (COLORREF)GetMyRegLong(section, pCombocolor[i].colname, pCombocolor[i].defcol);
 		}
 		else
 		{
 			if (pCombocolor[i].defcol == 0xFFFFFFFF)
-				col = GetMyRegLong(section, pCombocolor[i].colname, col);
+				col = (COLORREF)GetMyRegLong(section, pCombocolor[i].colname, col);
 			else
-				col = GetMyRegLong(section, pCombocolor[i].colname, pCombocolor[i].defcol);
+				col = (COLORREF)GetMyRegLong(section, pCombocolor[i].colname, pCombocolor[i].defcol);
 		}
 
 		for(j = 0; j < maxcol; j++)

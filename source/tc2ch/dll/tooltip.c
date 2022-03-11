@@ -37,10 +37,7 @@ extern void GetDisplayTime(SYSTEMTIME* pt, int* beat100);
 
 /* ツールチップの許容量 */
 #define LEN_TOOLTIP   10240
-/* HTMLツールチップの表示までの時間 */
-#define TOOLTIPHTMLDISPTIME 3
-/* HTMLツールチップの消去までの時間 */
-#define TOOLTIPHTMLERASETIME iTooltipDispTime
+
 enum
 {
 	TOOLTIPTYPE_NORMAL = 0,
@@ -50,13 +47,12 @@ enum
 static DWORD dwTooltipType = 0;
 static DWORD dwTooltipTypeCur = 0;
 //static int alphaTooltip = 255;
-static int iTooltipDispTime = 1;
 static int nTooltipIcon = 0;
 static HWND hwndTooltip = NULL;
 static int iTooltipSelected = 0;
 static BOOL bTooltipCustomDrawDisable = FALSE;
 static BOOL bTooltipUpdateEnable[3] = {FALSE, FALSE, FALSE};
-static BOOL bTooltipEnableDoubleBuffering = FALSE;
+//static BOOL bTooltipEnableDoubleBuffering = FALSE;
 static BOOL bTooltipUpdated = FALSE;
 static BOOL bTooltipShow = FALSE;
 static BOOL bTooltipBalloon = FALSE;
@@ -114,12 +110,11 @@ static void TooltipApplySetting(void)
 		{
 			LONG_PTR exstyle;
 			exstyle = GetWindowLongPtr(hwndTooltip, GWL_EXSTYLE) & ~WS_EX_COMPOSITED;
-			SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle | (bTooltipEnableDoubleBuffering ? WS_EX_COMPOSITED : 0));
+//			SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle | (bTooltipEnableDoubleBuffering ? WS_EX_COMPOSITED : 0));
+			SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle);
 			if (hFonTooltip) SendMessage(hwndTooltip, WM_SETFONT, (WPARAM)hFonTooltip, TRUE);
 			SendMessage(hwndTooltip, TTM_SETTIPBKCOLOR, tcolb, 0);
 			SendMessage(hwndTooltip, TTM_SETTIPTEXTCOLOR, tcolf, 0);
-			//SendMessage(hwndTooltip, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAKELONG(iTooltipDispTime*1000,0));
-			//SetLayeredWindow(hwndTooltip, (INT)(25500 - 255 * alphaTooltip) / 100, colTooltipBack);
 		}
 		break;
 	}
@@ -725,10 +720,7 @@ void TooltipReadData(void)
 	hFonTooltipTitle = CreateMyFont("Yu Gothic UI", 12, FW_REGULAR, 0);
 
 	dwTooltipType = GetMyRegLong("Tooltip", "BalloonFlg", 1);
-	//alphaTooltip = (int)(short)GetMyRegLong("Tooltip", "AlphaTip", 0);
-	//iTooltipDispTime = (int)(short)GetMyRegLong("Tooltip", "TipDispTime", 1);
 
-	//bTooltipCustomDrawDisable = GetMyRegLong("Tooltip", "TipDisableCustomDraw", FALSE);
 	bTooltipCustomDrawDisable = FALSE;
 
 	bTooltipUpdateEnable[0] = GetMyRegLong("Tooltip", "Tip1Update", 0);
@@ -762,7 +754,7 @@ void TooltipReadData(void)
 	SetMyRegLong("Tooltip", "TipTitleColor", colTooltipTitle);
 
 	//bTooltipEnableDoubleBuffering = GetMyRegLong("Tooltip", "TipEnableDoubleBuffering", FALSE);
-	bTooltipEnableDoubleBuffering = FALSE;
+	//bTooltipEnableDoubleBuffering = FALSE;
 
 	//nTooltipIcon = GetMyRegLong("Tooltip", "TipIcon", 0);
 

@@ -26,6 +26,8 @@ static PDH_HCOUNTER hCPUCounter[MAX_PROCESSOR] = { NULL };
 
 int CPUClock2[MAX_PROCESSOR] = { 0 };						//20201230, TTTT
 static PDH_HCOUNTER hCPUClock2[MAX_PROCESSOR] = { NULL };	//20201230, TTTT
+
+static PDH_HCOUNTER hTotalCPUClock2 = NULL;
 int CPUClock2Ave = 0;										//20201230, TTTT
 
 int MaxCPUClock[MAX_PROCESSOR] = { 0 };						//20201230, TTTT
@@ -34,6 +36,7 @@ BOOL b_EnableClock2 = FALSE;
 // cpu total usage
 extern int totalCPUUsage;
 static PDH_HCOUNTER hTotalCPUCounter = NULL;
+
 
 int nLogicalProcessors = 0;
 int nCores = 0;
@@ -138,16 +141,19 @@ void PerMoni_start(void)
 			}
 		}
 
-		wsprintfW(counterName, L"\\Processor Information(0,%d)\\%% of Maximum Frequency", i);	//shoud be "%%" because of using wsprintfW
-		if (pPdhAddCounterW(hQuery, counterName, 0, &hCPUClock2[i]) != ERROR_SUCCESS)
-		{
-			b_EnableClock2 = FALSE;
-			if (b_DebugLog && i == 0) writeDebugLog_Win10("[permon.c][PerMoni_start] Performance Counter for Core Clocks registoration failed. iClock[](sysres.c) is used.", 999);
-		}
-		else
+
+
+//		wsprintfW(counterName, L"\\Processor Information(0,%d)\\%% of Maximum Frequency", i);	//shoud be "%%" because of using wsprintfW, 短時間のオーバークロックが反映されないので機種によっては低くなる(タスクマネージャーのクロック表記と一致しない)
+		wsprintfW(counterName, L"\\Processor Information(0,%d)\\%% Processor Performance", i);	//shoud be "%%" because of using wsprintfW, 短時間のオーバークロックが反映されて100%を超えることがある。タスクマネージャの表記と概ね一致する。
+		if (pPdhAddCounterW(hQuery, counterName, 0, &hCPUClock2[i]) == ERROR_SUCCESS)
 		{
 			b_EnableClock2 = TRUE;
 			if (b_DebugLog && i == 0) writeDebugLog_Win10("[permon.c][PerMoni_start] Performance Counter for Core Clocks successfully registered. Clock2[](permon.c) is used.", 999);
+		}
+		else
+		{
+			b_EnableClock2 = FALSE;
+			if (b_DebugLog && i == 0) writeDebugLog_Win10("[permon.c][PerMoni_start] Performance Counter for Core Clocks registoration failed. iClock[](sysres.c) is used.", 999);
 		}
 	}
 
@@ -160,6 +166,19 @@ void PerMoni_start(void)
 			goto FAILURE_PDH_COUNTER_INITIALIZATION;
 		}
 	}
+
+
+
+
+	// create total cpu clock counter
+	if (pPdhAddCounterW(hQuery, L"\\Processor Information(_Total)\\% Processor Performance", 0, &hTotalCPUClock2) != ERROR_SUCCESS)	//should be "%" because of not using wsprintfW
+	{
+		if (b_DebugLog) writeDebugLog_Win10("[permon.c][PerMoni_start] Performance Counter for Total Clocks registoration failed.", 999);
+	}
+
+
+	
+
 
 	if(pPdhCollectQueryData(hQuery) != ERROR_SUCCESS)
 	{
@@ -201,7 +220,7 @@ int PerMoni_get(void)
 		//}
 
 
-		CPUClock2Ave = 0;
+		//CPUClock2Ave = 0;
 
 		// get cpu counter
 		for(i=0; i<nLogicalProcessors; i++)
@@ -219,7 +238,7 @@ int PerMoni_get(void)
 				if (pPdhGetFormattedCounterValue(hCPUClock2[i], PDH_FMT_DOUBLE, NULL, &FmtValue) == ERROR_SUCCESS)
 				{
 					CPUClock2[i] = (int)(FmtValue.doubleValue * MaxCPUClock[i] / 100);
-					CPUClock2Ave += CPUClock2[i];
+					//CPUClock2Ave += CPUClock2[i];
 				}
 				else
 				{
@@ -228,7 +247,7 @@ int PerMoni_get(void)
 			}
 		}
 
-		CPUClock2Ave /= nLogicalProcessors;
+		//CPUClock2Ave /= nLogicalProcessors;
 
 		// get total cpu usage
 		if(pPdhGetFormattedCounterValue(hTotalCPUCounter, PDH_FMT_DOUBLE, NULL, &FmtValue) == ERROR_SUCCESS)
@@ -240,6 +259,18 @@ int PerMoni_get(void)
 		{
 			totalCPUUsage = 0;
 		}
+
+		// get total cpu clock
+		if (pPdhGetFormattedCounterValue(hTotalCPUClock2, PDH_FMT_DOUBLE, NULL, &FmtValue) == ERROR_SUCCESS)
+		{
+			CPUClock2Ave = (int)(FmtValue.doubleValue * MaxCPUClock[0] / 100);
+		}
+		else
+		{
+			CPUClock2Ave = 0;
+		}
+
+
 	}
 	return -1;
 }
