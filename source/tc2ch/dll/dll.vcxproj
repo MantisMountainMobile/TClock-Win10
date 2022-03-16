@@ -416,6 +416,7 @@
     <ClCompile Include="subclock.c" />
     <ClCompile Include="sysres.c" />
     <ClCompile Include="tclock.c" />
+    <ClCompile Include="tempmon.c" />
     <ClCompile Include="tooltip.c" />
     <ClCompile Include="utl.c" />
   </ItemGroup>

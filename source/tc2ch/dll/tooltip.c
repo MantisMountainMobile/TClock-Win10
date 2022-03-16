@@ -51,6 +51,7 @@ static int nTooltipIcon = 0;
 static HWND hwndTooltip = NULL;
 static int iTooltipSelected = 0;
 static BOOL bTooltipCustomDrawDisable = FALSE;
+
 static BOOL bTooltipUpdateEnable[3] = {FALSE, FALSE, FALSE};
 //static BOOL bTooltipEnableDoubleBuffering = FALSE;
 static BOOL bTooltipUpdated = FALSE;
@@ -66,9 +67,7 @@ static int iTooltipDispIntervalCount = 0;
 static int iTooltipDispInterval = 1;
 static int iTooltipSizeX;
 static int iTooltipSizeY;
-static DWORD dwTooltipFonCol;
-static DWORD dwTooltipTitleCol;
-static DWORD dwTooltipBakCol;
+
 static COLORREF colTooltipText, colTooltipBack, colTooltipTitle;
 
 static char formatTooltip[LEN_TOOLTIP];
@@ -92,71 +91,29 @@ BOOL bEnableTooltip = TRUE;
 BOOL bTooltip2, bTooltip3, bTooltipTate;
 char tiptitle[300];
 
+extern BOOL bWin11Main;
 
 
 static void TooltipApplySetting(void)
 {
-	COLORREF tcolf, tcolb;
-	tcolf = dwTooltipFonCol; tcolb = dwTooltipBakCol;
-	//if(tcolf & 0x80000000) tcolf = GetSysColor(tcolf & 0x00ffffff);
-	//if(tcolb & 0x80000000) tcolb = GetSysColor(tcolb & 0x00ffffff);
-	colTooltipText = tcolf;
-	colTooltipBack = tcolb;
-	switch(dwTooltipTypeCur)
+
+	if (hwndTooltip)
 	{
-	case TOOLTIPTYPE_NORMAL:
-	case TOOLTIPTYPE_BALLOON:
-		if(hwndTooltip)
-		{
-			LONG_PTR exstyle;
-			exstyle = GetWindowLongPtr(hwndTooltip, GWL_EXSTYLE) & ~WS_EX_COMPOSITED;
-//			SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle | (bTooltipEnableDoubleBuffering ? WS_EX_COMPOSITED : 0));
-			SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle);
-			if (hFonTooltip) SendMessage(hwndTooltip, WM_SETFONT, (WPARAM)hFonTooltip, TRUE);
-			SendMessage(hwndTooltip, TTM_SETTIPBKCOLOR, tcolb, 0);
-			SendMessage(hwndTooltip, TTM_SETTIPTEXTCOLOR, tcolf, 0);
-		}
-		break;
+		//LONG_PTR exstyle;
+		//exstyle = GetWindowLongPtr(hwndTooltip, GWL_EXSTYLE) & ~WS_EX_COMPOSITED;
+		//SetWindowLongPtr(hwndTooltip, GWL_EXSTYLE, exstyle);
+		if (hFonTooltip) SendMessage(hwndTooltip, WM_SETFONT, (WPARAM)hFonTooltip, TRUE);
+
+		//以下の行(TTM_SETTIPBKCOLOR等は実際には効いていない…
+		SendMessage(hwndTooltip, TTM_SETTIPBKCOLOR, colTooltipBack, 0);
+		//SendMessage(hwndTooltip, TTM_SETTIPTEXTCOLOR, colTooltipText, 0);
+		SendMessage(hwndTooltip, TTM_SETTIPTEXTCOLOR, colTooltipBack, 0);	//ここの設定は一瞬のシステムによる表示用なので、あえて背景と同じにして見えなくする。
 	}
 }
 
 static void TooltipUpdateText(void);
 static void TooltipUpdate2(HDC hdc, LPRECT lprcDraw, LPRECT lprect, UINT uDrawFlags);
 
-static const CHAR cszWindowClassName[] = "__tclock html tooltip parent__";
-static LRESULT CALLBACK MyWindowWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-	switch (message)
-	{
-		case WM_ACTIVATE:
-			break;
-		default:
-			return DefWindowProcA(hwnd, message, wParam, lParam);
-	}
-	return DefWindowProcA(hwnd, message, wParam, lParam);
-}
-static ATOM MyWindowRegisterClass(void)
-{
-	WNDCLASS wndcls;
-	wndcls.style         = 0;
-	wndcls.lpfnWndProc   = MyWindowWndProc;
-	wndcls.cbClsExtra    = 0;
-	wndcls.cbWndExtra    = 0;
-	wndcls.hInstance     = GetModuleHandleA(NULL);
-#pragma warning(push)
-#pragma warning(disable: 4305)	// '型キャスト' : 'LPSTR' から 'WORD' へ切り詰めます。
-	wndcls.hIcon         = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
-	wndcls.hCursor       = LoadCursor(NULL, MAKEINTRESOURCE(IDC_ARROW));
-#pragma warning(pop)
-	wndcls.hbrBackground = NULL;
-	wndcls.lpszMenuName  = NULL;
-	wndcls.lpszClassName = cszWindowClassName;
-	return RegisterClass(&wndcls);
-}
-static void MyWindowUnregisterClass(void)
-{
-	UnregisterClass(cszWindowClassName, GetModuleHandleA(NULL));
-}
 
 /*------------------------------------------------
 　ツールチップウィンドウの作成
@@ -165,88 +122,82 @@ void TooltipInit(HWND hwnd)
 {
 	TOOLINFO ti;
 	extern int widthMainClockFrame, heightMainClockFrame;
-	extern BOOL bWin11Main;
+
 
 	dwTooltipTypeCur = dwTooltipType;
-	switch(dwTooltipTypeCur)
-	{
-	case TOOLTIPTYPE_NORMAL:
-	case TOOLTIPTYPE_BALLOON:
-		//hwndTooltip = CreateWindowEx(WS_EX_LAYERED, TOOLTIPS_CLASS, (LPSTR)NULL,
-		//	TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
-		//	CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		//	NULL, NULL, hmod, NULL);
-		hwndTooltip = CreateWindowEx(0, TOOLTIPS_CLASS, (LPSTR)NULL,
-			TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
-			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-			NULL, NULL, hmod, NULL);
-		if(!hwndTooltip) return;
 
-		SetWindowPos(hwndTooltip, HWND_TOPMOST, 0, 0, 0, 0,
-			SWP_NOSIZE|SWP_NOMOVE|SWP_NOACTIVATE);
+	//hwndTooltip = CreateWindowEx(WS_EX_LAYERED, TOOLTIPS_CLASS, (LPSTR)NULL,
+	//	TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
+	//	CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	//	NULL, NULL, hmod, NULL);
+	hwndTooltip = CreateWindowEx(0, TOOLTIPS_CLASS, (LPSTR)NULL,
+		TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
+		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, hmod, NULL);
+	if (!hwndTooltip) return;
 
-		bTooltipBalloon = (GetWindowLongPtr(hwndTooltip, GWL_STYLE) & TTS_BALLOON) != 0;
+	SetWindowPos(hwndTooltip, HWND_TOPMOST, 0, 0, 0, 0,
+		SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
 
-		ti.cbSize = sizeof(TOOLINFO);
-//		ti.hwnd = hwnd;		//以下の行と同内容
-		ti.hwnd = hwndClockMain;
-		ti.uId = 1;
+	bTooltipBalloon = (GetWindowLongPtr(hwndTooltip, GWL_STYLE) & TTS_BALLOON) != 0;
 
-		if (bWin11Main) {
-			ti.uFlags = 0;	//Win11ではTTF_SUBCLASSを入れると終了時にクラッシュする。マウスが入った際の1回消える問題は出ない模様？
-		}
-		else {
-			ti.uFlags = TTF_SUBCLASS;	//TTF_SUBCLASSを入れないと、マウスが入った際の座標が左に移動した際に1回消える(点滅する)。Ver4.1以降
-		}
+	ti.cbSize = sizeof(TOOLINFO);
+	//		ti.hwnd = hwnd;		//以下の行と同内容
+	ti.hwnd = hwndClockMain;
+	ti.uId = 1;
 
-		ti.hinst = NULL;
-		ti.lpszText = LPSTR_TEXTCALLBACK;
-		ti.rect.left = 0;
-		ti.rect.top = 0;
-		//ti.rect.right = 480;
-		//ti.rect.bottom = 480;
-
-		//これを呼ばれる時点でメインクロックサイズが確定しているはずなので：
-		ti.rect.right = widthMainClockFrame;
-		ti.rect.bottom = heightMainClockFrame;
-
-
-		TooltipApplySetting();
-		TooltipUpdateText();
-
-		SendMessage(hwndTooltip, TTM_SETMAXTIPWIDTH, 0, (LPARAM) LEN_TOOLTIP);
-		SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM) (LPTOOLINFO)&ti);
-		SendMessage(hwndTooltip, TTM_ACTIVATE, TRUE, 0);
-		break;
+	if (bWin11Main) {
+		ti.uFlags = 0;	//Win11ではTTF_SUBCLASSを入れると終了時にクラッシュする。マウスが入った際の1回消える問題は出ない模様？
 	}
+	else {
+		ti.uFlags = TTF_SUBCLASS;	//TTF_SUBCLASSを入れないと、マウスが入った際の座標が左に移動した際に1回消える(点滅する)。Ver4.1以降
+	}
+
+	ti.hinst = NULL;
+	ti.lpszText = LPSTR_TEXTCALLBACK;
+	ti.rect.left = 0;
+	ti.rect.top = 0;
+	//ti.rect.right = 480;
+	//ti.rect.bottom = 480;
+
+	//これを呼ばれる時点でメインクロックサイズが確定しているはずなので：
+	ti.rect.right = widthMainClockFrame;
+	ti.rect.bottom = heightMainClockFrame;
+
+
+	TooltipApplySetting();
+	TooltipUpdateText();
+
+	SendMessage(hwndTooltip, TTM_SETMAXTIPWIDTH, 0, (LPARAM)LEN_TOOLTIP);
+	SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM)(LPTOOLINFO)&ti);
+	SendMessage(hwndTooltip, TTM_ACTIVATE, TRUE, 0);
+
 }
 
 void TooltipDeleteRes(void)
 {
-	if(hFonTooltip) DeleteObject(hFonTooltip); hFonTooltip = NULL;	//635@p5
-	if (hFonTooltipTitle) DeleteObject(hFonTooltipTitle); hFonTooltipTitle = NULL;
+	if(hFonTooltip) DeleteObject(hFonTooltip);
+	hFonTooltip = NULL;
+	if (hFonTooltipTitle) DeleteObject(hFonTooltipTitle);
+	hFonTooltipTitle = NULL;
 }
 
 void TooltipEnd(HWND hwnd)
 {
 	if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipEnd called.", 999);
-	switch(dwTooltipTypeCur)
+
+	if (hwndTooltip)
 	{
-	case TOOLTIPTYPE_NORMAL:
-	case TOOLTIPTYPE_BALLOON:
-		if(hwndTooltip)
-		{
-			TOOLINFO ti;
-			ti.cbSize = sizeof(TOOLINFO);
-			ti.hwnd = hwnd;
-			ti.uId = 1;
-			SendMessage(hwndTooltip, TTM_ACTIVATE, FALSE, 0);
-			SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM) (LPTOOLINFO)&ti);
-			DestroyWindow(hwndTooltip);
-			hwndTooltip = NULL;
-		}
-		break;
+		TOOLINFO ti;
+		ti.cbSize = sizeof(TOOLINFO);
+		ti.hwnd = hwnd;
+		ti.uId = 1;
+		SendMessage(hwndTooltip, TTM_ACTIVATE, FALSE, 0);
+		SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM)(LPTOOLINFO)&ti);
+		DestroyWindow(hwndTooltip);
+		hwndTooltip = NULL;
 	}
+
 }
 
 void TooltipOnRefresh(HWND hwnd)
@@ -402,7 +353,7 @@ static void TooltipUpdate2(HDC hdc, LPRECT lprcDraw, LPRECT lprect, UINT uDrawFl
 
 
 
-	SelectObject(hdc, hFonTooltip);
+//	SelectObject(hdc, hFonTooltip);		//これは効いていないのでコメントアウト(Ver 4.11)
 
 	rc = rcall;
 	top = rcall.top;		//topが次の出力のY位置(上)
@@ -441,7 +392,6 @@ static void TooltipUpdate2(HDC hdc, LPRECT lprcDraw, LPRECT lprect, UINT uDrawFl
 					height = DrawText(hdcTemp, " ", 1, &rc, uDrawFlags | DT_CALCRECT);
 				}
 
-//				HBITMAP hbmpTemp;
 				hbmpTemp = NULL;
 				hbmpTemp = CreateCompatibleBitmap(hdc, rcall.right - rcall.left, height);
 				if (hbmpTemp)
@@ -567,6 +517,10 @@ static void TooltipUpdateText(void)
 	int clLen, mPos;
 
 
+	if (hFonTooltip) {
+		SendMessage(hwndTooltip, WM_SETFONT, (WPARAM)hFonTooltip, TRUE);	//アップデートのたびにフォントを設定しなおす。(2022/3/14 5ch指摘対応)
+	}
+
 	bTooltipUpdated = TRUE;
 	if (bTooltip2)
 	{
@@ -650,7 +604,7 @@ static void TooltipUpdateText(void)
 /*------------------------------------------------
 　ツールチップの表示更新
 --------------------------------------------------*/
-void TooltipOnTimer(HWND hwnd)
+void TooltipOnTimer(HWND hwnd, BOOL bForce)
 {
 
 	//Ver 4.1以降はOnTimer_Win10から行うこととする。
@@ -660,32 +614,28 @@ void TooltipOnTimer(HWND hwnd)
 
 	if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipOnTimer called, bTooltipShow =", bTooltipShow);
 
-	if (!bTooltipShow) return;
-
-	if (!bTooltipUpdateEnable[iTooltipSelected]) return;
-
-	switch(dwTooltipTypeCur)
-	{
-	case TOOLTIPTYPE_NORMAL:
-	case TOOLTIPTYPE_BALLOON:
-		if (hwndTooltip)
-		{
-			TooltipUpdateText();
-
-
-			TOOLINFO ti;
-
-			ti.cbSize = sizeof(TOOLINFO);
-			ti.hwnd = hwnd;
-			ti.uId = 1;
-			SendMessage(hwndTooltip, TTM_GETTOOLINFO, 0, (LPARAM)(LPTOOLINFO)&ti);
-//			ti.uFlags = 0;
-//			ti.hinst = NULL;
-//			ti.lpszText = LPSTR_TEXTCALLBACK;
-			SendMessage(hwndTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)(LPTOOLINFO)&ti);
-		}
-		break;
+	if (!bForce) {
+		if (!bTooltipShow) return;
+		if (!bTooltipUpdateEnable[iTooltipSelected]) return;
 	}
+
+	if (hwndTooltip)
+	{
+		TooltipUpdateText();
+
+		TOOLINFO ti;
+
+		ti.cbSize = sizeof(TOOLINFO);
+		ti.hwnd = hwnd;
+		ti.uId = 1;
+		SendMessage(hwndTooltip, TTM_GETTOOLINFO, 0, (LPARAM)(LPTOOLINFO)&ti);
+		//			ti.uFlags = 0;
+		//			ti.hinst = NULL;
+		//			ti.lpszText = LPSTR_TEXTCALLBACK;
+		SendMessage(hwndTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)(LPTOOLINFO)&ti);
+
+	}
+
 }
 
 void TooltipReadData(void)
@@ -721,7 +671,7 @@ void TooltipReadData(void)
 
 	dwTooltipType = GetMyRegLong("Tooltip", "BalloonFlg", 1);
 
-	bTooltipCustomDrawDisable = FALSE;
+	//bTooltipCustomDrawDisable = FALSE;
 
 	bTooltipUpdateEnable[0] = GetMyRegLong("Tooltip", "Tip1Update", 0);
 	bTooltipUpdateEnable[1] = GetMyRegLong("Tooltip", "Tip2Update", 0);
@@ -741,13 +691,20 @@ void TooltipReadData(void)
 	GetMyRegStr("Tooltip", "TipTitle", tiptitle, 300, "TClock-Win10 <%VerTC%>");
 	SetMyRegStr("Tooltip", "TipTitle", tiptitle);
 
-	dwTooltipFonCol = GetMyRegLong("Tooltip", "TipFontColor", 0x80000000 | COLOR_INFOTEXT);
-	if (dwTooltipFonCol & 0x80000000) dwTooltipFonCol = GetSysColor(dwTooltipFonCol & 0x00ffffff);
-	SetMyRegLong("Tooltip", "TipFontColor", dwTooltipFonCol);
 
-	dwTooltipBakCol = GetMyRegLong("Tooltip", "TipBakColor", 0x80000000 | COLOR_INFOBK);
-	if (dwTooltipBakCol & 0x80000000) dwTooltipBakCol = GetSysColor(dwTooltipBakCol & 0x00ffffff);
-	SetMyRegLong("Tooltip", "TipBakColor", dwTooltipBakCol);
+	colTooltipText = GetMyRegLong("Tooltip", "TipFontColor", RGB(0, 0, 0));
+	SetMyRegLong("Tooltip", "TipFontColor", colTooltipText);
+
+	colTooltipBack = GetMyRegLong("Tooltip", "TipBakColor", RGB(255,255,255));
+	SetMyRegLong("Tooltip", "TipBakColor", colTooltipBack);
+
+	//dwTooltipFonCol = GetMyRegLong("Tooltip", "TipFontColor", 0x80000000 | COLOR_INFOTEXT);
+	//if (dwTooltipFonCol & 0x80000000) dwTooltipFonCol = GetSysColor(dwTooltipFonCol & 0x00ffffff);
+	//SetMyRegLong("Tooltip", "TipFontColor", dwTooltipFonCol);
+
+	//dwTooltipBakCol = GetMyRegLong("Tooltip", "TipBakColor", 0x80000000 | COLOR_INFOBK);
+	//if (dwTooltipBakCol & 0x80000000) dwTooltipBakCol = GetSysColor(dwTooltipBakCol & 0x00ffffff);
+	//SetMyRegLong("Tooltip", "TipBakColor", dwTooltipBakCol);
 
 
 	colTooltipTitle = GetMyRegLong("Tooltip", "TipTitleColor", RGB(0,0,255));
@@ -1038,36 +995,32 @@ void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int tempInt;
 	extern posXMainClock;
 
-	switch(dwTooltipTypeCur)
+
+	msg.hwnd = hwnd;
+	msg.message = message;
+	msg.wParam = wParam;
+	msg.lParam = lParam;		//相対座標
+	msg.time = GetMessageTime();
+	msg.pt.x = GET_X_LPARAM(GetMessagePos());		//絶対座標
+	msg.pt.y = GET_Y_LPARAM(GetMessagePos());		//絶対座標
+
+	//
+	//if (b_DebugLog) {
+	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] time =", msg.time);
+	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.HIWORD =", HIWORD(msg.lParam));
+	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.LOWORD =", LOWORD(msg.lParam));
+	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Xpos =", msg.pt.x);
+	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Ypos =", msg.pt.y);
+	//}
+
+	//マウスがTClock内部で左に移動する場合、どうやってもツールチップが最初に一回消えるため、点滅してしまう。
+	//ここで座標を細工しても実際には新たにマウス座標を取得して処理するため解決できない。
+	//結局は、ツール登録の際にti.uFlagsにTTF_SUBCLASSを入れたら解決した。
+
+
+	if (hwndTooltip)		//Win10(!bWin11Main)の場合はuFlag = TTF_SUBCLASSにしているので送らなくていい
 	{
-	case TOOLTIPTYPE_NORMAL:
-	case TOOLTIPTYPE_BALLOON:
-		msg.hwnd = hwnd;
-		msg.message = message;
-		msg.wParam = wParam;
-		msg.lParam = lParam;		//相対座標
-		msg.time = GetMessageTime();
-		msg.pt.x = GET_X_LPARAM(GetMessagePos());		//絶対座標
-		msg.pt.y = GET_Y_LPARAM(GetMessagePos());		//絶対座標
-
-
-		//if (b_DebugLog) {
-		//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] time =", msg.time);
-		//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.HIWORD =", HIWORD(msg.lParam));
-		//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.LOWORD =", LOWORD(msg.lParam));
-		//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Xpos =", msg.pt.x);
-		//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Ypos =", msg.pt.y);
-		//}
-
-		//マウスがTClock内部で左に移動する場合、どうやってもツールチップが最初に一回消えるため、点滅してしまう。
-		//ここで座標を細工しても実際には新たにマウス座標を取得して処理するため解決できない。
-		//結局は、ツール登録の際にti.uFlagsにTTF_SUBCLASSを入れたら解決した。
-
-
-		if(hwndTooltip)
-		{
-			SendMessage(hwndTooltip, TTM_RELAYEVENT, 0, (LPARAM)&msg);
-		}
-		break;
+		SendMessage(hwndTooltip, TTM_RELAYEVENT, 0, (LPARAM)&msg);
 	}
+
 }

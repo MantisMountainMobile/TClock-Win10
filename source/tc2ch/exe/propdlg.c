@@ -24,7 +24,8 @@ INT_PTR CALLBACK PageAboutProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageChimeProc(HWND, UINT, WPARAM, LPARAM);
 
 INT_PTR CALLBACK PageBarmeterProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK PageDataPlanProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK PageEtcProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK PageKeywordProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageAppControlProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageEtc1Proc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK PageWin11Proc(HWND, UINT, WPARAM, LPARAM);
@@ -158,8 +159,12 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 			tv.item.pszText = MyString(IDS_PROP_MOUSE);
 			hParent[6] = TreeView_InsertItem(hTree, &tv);
 
-			tv.item.lParam = 2;
+			tv.item.lParam = 7;
 			tv.item.pszText = MyString(IDS_PROP_ETC);
+			hParent[7] = TreeView_InsertItem(hTree, &tv);
+
+			tv.item.lParam = 2;
+			tv.item.pszText = MyString(IDS_PROP_KEYWORDS);
 			hParent[2] = TreeView_InsertItem(hTree, &tv);
 
 			tv.item.lParam = 5;
@@ -254,11 +259,9 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGETOOLTIP, PageTooltipProc);
 							break;
 
-
-
 						case 2:
 							nowDlg = 12;
-							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGE_ETC, PageDataPlanProc);
+							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGE_KEYWORDS, PageKeywordProc);
 							break;
 
 						case 3:
@@ -279,6 +282,11 @@ INT_PTR CALLBACK PropertyDialog(HWND hDwnd, UINT message, WPARAM wParam, LPARAM 
 						case 6:
 							nowDlg = 16;
 							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGEMOUSE, PageMouseProc);
+							break;
+
+						case 7:
+							nowDlg = 17;
+							CreatePageDialog(hDwnd, hDlg, bDlgFlg, nowDlg, Language_Offset + IDD_PAGE_ETC, PageEtcProc);
 							break;
 
 						case 100:

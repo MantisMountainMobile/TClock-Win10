@@ -110,7 +110,7 @@ BOOL b_AutoRestart = TRUE;
 BOOL b_UnplugDriveAvailable = FALSE;
 void CheckUnplugDrive(void);
 
-int Language_Offset = 0;
+int Language_Offset = LANGUAGE_OFFSET_JAPANESE;
 
 
 //BOOL b_AcceptRisk;
@@ -379,7 +379,7 @@ static UINT WINAPI TclockExeMain(void)
 	}
 	else
 	{
-		Language_Offset = 0;
+		Language_Offset = LANGUAGE_OFFSET_JAPANESE;
 	}
 
 

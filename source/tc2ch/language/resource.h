@@ -175,6 +175,7 @@
 #define IDS_BMCOLOR_TITLE_NET           252
 #define IDS_STRING8                     253
 #define IDS_BM_THRESHOLD                253
+#define IDS_PROP_KEYWORDS               254
 #define IDC_DATETIME_Win10              406
 #define IDC_DATETIME                    408
 #define IDC_TASKBARPROP                 413
@@ -321,11 +322,15 @@
 #define IDC_VPN_KEYWORD4                1071
 #define IDS_TEXTRIGHT2                  1072
 #define IDC_VPN_KEYWORD5                1072
+#define IDC_THERMALZONE                 1072
+#define IDC_LABEL_CURRENT_TEMP          1074
+#define IDC_GET_TEMP                    1075
 #define IDC_VPN_EXCLUDE1                1078
 #define IDC_VPN_EXCLUDE2                1079
 #define IDC_VPN_EXCLUDE3                1080
 #define IDC_VPN_EXCLUDE4                1081
 #define IDC_VPN_EXCLUDE5                1082
+#define IDC_SPIN_THERMALZONE            1083
 #define IDS_FILELIST2                   1089
 #define IDS_TICONNO2                    1090
 #define IDS_TICONINFO2                  1091
@@ -462,6 +467,7 @@
 #define IDC_TITLE_BARMETERCOL_3         1183
 #define IDC_BARMETERCOL_3               1184
 #define IDC_CHOOSEBARMETERCOL_3         1185
+#define IDC_BARMETERCOL_CPU2            1186
 #define IDC_LOCALE                      1200
 #define IDC_YEAR4                       1201
 #define IDC_YEAR                        1202
@@ -527,6 +533,7 @@
 #define IDS_BMCOLOR_TITLE_NET_ENG       1252
 #define IDC_ZERO                        1253
 #define IDS_BM_THRESHOLD_ENG            1253
+#define IDS_PROP_KEYWORDS_ENG           1254
 #define IDC_DROPFILES                   1401
 #define IDC_LABDROPFILESAPP             1402
 #define IDC_DROPFILESAPP                1403
@@ -628,6 +635,7 @@
 #define IDC_LABG2                       1566
 #define IDC_GPUGRAPH                    1566
 #define IDC_LABG3                       1567
+#define IDC_GPUGRAPH2                   1567
 #define IDC_GINTERVAL                   1568
 #define IDC_GINTERVALSPIN               1569
 #define IDC_MODE11                      1570
@@ -675,6 +683,9 @@
 #define IDC_FNAMEICON                   1901
 #define IDC_LISTICON                    1902
 #define IDC_SANSHOICON                  1903
+#define IDC_CPUGRAPH_USEMETERBARCOL     1905
+#define IDC_LABEL_USE_METERBARCOL1      1906
+#define IDC_LABEL_USE_METERBARCOL2      1907
 #define IDC_STARTMENULIST               2101
 #define IDC_STARTMENUTEXT               2102
 #define IDC_STARTMENUHIDE               2103
@@ -694,10 +705,12 @@
 #define ID_APPLY                        2802
 #define ID_HELP                         2803
 #define IDD_PAGEBARMETER                10001
-#define IDD_PAGE_ETC                    10002
+#define IDD_PAGE_KEYWORDS               10002
 #define IDD_PAGE_WIN11                  10003
 #define IDD_PAGECOLOR_ADDITIONAL        10004
 #define IDD_PAGECHIME                   10005
+#define IDD_BARMETER_COLOR              10006
+#define IDD_PAGE_ETC                    10007
 #define IDC_USEBARVOL                   10201
 #define IDC_USEBARCPU                   10202
 #define IDC_USEBARBAT                   10203
@@ -765,11 +778,11 @@
 #define IDC_BARNETHEIGHT2               10260
 #define IDC_SPGBARNETHEIGHT2            10261
 #define IDD_PAGEBARMETER_ENG            11001
-#define IDD_PAGE_ETC_ENG                11002
+#define IDD_PAGE_KEYWORDS_ENG           11002
 #define IDD_PAGE_WIN11_ENG              11003
 #define IDD_PAGECOLOR_ADDITIONAL_ENG    11004
 #define IDD_PAGECHIME_ENG               11005
-#define IDD_BARMETER_COLOR              11006
+#define IDD_PAGE_ETC_ENG                11007
 #define IDC_REMOVE_DRIVE_SEPARATOR      40001
 #define IDC_TOGGLE_BARMETER_VOLUME      40002
 #define IDC_TOGGLE_BARMETER_CPU         40003
@@ -801,7 +814,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        107
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1069
+#define _APS_NEXT_CONTROL_VALUE         1076
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

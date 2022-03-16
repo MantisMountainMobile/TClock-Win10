@@ -77,6 +77,8 @@
 #define CLOCKM_SLEEP_IN  (WM_USER+220)	//Added by TTTT
 #define CLOCKM_SLEEP_AWAKE  (WM_USER+221)	//Added by TTTT
 
+#define CLOCKM_REQUEST_TEMPCOUNTERINFO	(WM_USER + 230)
+
 #define IDC_EXIT					102
 #define IDC_RESTART					40007
 
@@ -129,18 +131,19 @@ void InitFormat(SYSTEMTIME* lt);
 void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt);
 //void MakeFormat_Colored(char* s, COLORREF* s_col,  SYSTEMTIME* pt, int beat100, char* fmt);
 #define FORMAT_SECOND    0x0001
-#define FORMAT_SYSINFO   0x0002
+//#define FORMAT_SYSINFO   0x0002
 #define FORMAT_BEAT1     0x0004
 #define FORMAT_BEAT2     0x0008
 #define FORMAT_BATTERY   0x0010
 #define FORMAT_MEMORY    0x0020
-#define FORMAT_MOTHERBRD 0x0040
-#define FORMAT_PERMON    0x0080
+//#define FORMAT_MOTHERBRD 0x0040
+//#define FORMAT_PERMON    0x0080
 #define FORMAT_NET       0x0100
 #define FORMAT_HDD       0x0200
 #define FORMAT_CPU       0x0400
 #define FORMAT_VOL       0x0800
 #define FORMAT_GPU     0x1000
+#define FORMAT_TEMP		0x2000
 DWORD FindFormat(char* fmt);
 
 SYSTEMTIME CalcTimeDifference_Win10(SYSTEMTIME*, int, int, BOOL);
@@ -243,6 +246,12 @@ int SetGPUUsageCounter(void);
 void GPUMoni_start(void);
 void GPUMoni_end(void);
 
+//tempmon.c
+void TempMoni_start(void);
+int TempMoni_get(int zone);
+void TempMoni_end(void);
+int SetThemalZoneCounter(void);
+
 // net.c
 void Net_start(void);
 //void Net_restart(void);
@@ -263,7 +272,7 @@ void TooltipReadData(void);
 void TooltipDeleteRes(void);
 void TooltipEnd(HWND hwnd);
 DWORD TooltipFindFormat(void);
-void TooltipOnTimer(HWND hwnd);
+void TooltipOnTimer(HWND hwnd, BOOL bForce);
 void TooltipOnRefresh(HWND hwnd);
 BOOL TooltipOnNotify(LRESULT *plRes, LPARAM lParam);
 void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);

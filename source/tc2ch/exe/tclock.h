@@ -13,7 +13,8 @@
 
 #define _CRT_SECURE_NO_DEPRECATE
 
-#define LANGUAGE_OFFSET_ENGLISH 1000;	//Added by TTTT
+#define LANGUAGE_OFFSET_JAPANESE 0	//Added by TTTT
+#define LANGUAGE_OFFSET_ENGLISH 1000	//Added by TTTT
 
 #pragma warning(push, 0)
 # include <windows.h>
@@ -99,6 +100,8 @@ int r_stricmp(const char* d, const char* s);
 
 #define IDTIMER_ZOMBIECHECK	5
 
+#define IDTIMER_UPDATE_TEMP	6
+
 // messages to send the clock
 #define CLOCKM_REFRESHCLOCK   (WM_USER+1)
 #define CLOCKM_REFRESHTASKBAR (WM_USER+2)
@@ -126,6 +129,7 @@ int r_stricmp(const char* d, const char* s);
 #define CLOCKM_SLEEP_IN  (WM_USER+220)	//Added by TTTT
 #define CLOCKM_SLEEP_AWAKE  (WM_USER+221)	//Added by TTTT
 
+#define CLOCKM_REQUEST_TEMPCOUNTERINFO	(WM_USER + 230)
 
 // for mouse.c and pagemouce.c
 #define MOUSEFUNC_NONE       -1
@@ -188,6 +192,10 @@ void My2chHelp(HWND hDlg);  // show 2ch help
 // alarm.c -> exemain.c
 void GetFileAndOption(const char* command, char* fname, char* opt);
 BOOL ExecFile(HWND hwnd, char* command);
+
+
+// pagebarmeter.c
+void CreateBarMeterColorDialog(int index);
 
 
 // propsheet.c

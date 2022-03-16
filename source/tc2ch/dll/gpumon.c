@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
-  permon.c
+  gpumon.c
   get performance monitor counter
-  Kazubon 2001
+  Kazubon 2001 (permon.c) -> MantisMountainMobile 2022
 ---------------------------------------------------------------------------*/
 
 #include <windows.h>
@@ -29,7 +29,6 @@ typedef PDH_STATUS(WINAPI *pfnPdhCollectQueryData)(PDH_HQUERY);
 typedef PDH_STATUS(WINAPI *pfnPdhGetFormattedCounterValue)(PDH_HCOUNTER, DWORD, LPDWORD, PPDH_FMT_COUNTERVALUE);
 typedef PDH_STATUS(WINAPI *pfnPdhCloseQuery)(PDH_HQUERY);
 typedef PDH_STATUS(WINAPI *pfnPdhRemoveCounter)(PDH_HCOUNTER);
-
 typedef PDH_STATUS(WINAPI *pfnPdhAddCounterA)(PDH_HQUERY, LPCSTR, DWORD_PTR, PDH_HCOUNTER*);
 
 static pfnPdhOpenQueryW pPdhOpenQueryW;
@@ -38,7 +37,6 @@ static pfnPdhCollectQueryData pPdhCollectQueryData;
 static pfnPdhGetFormattedCounterValue pPdhGetFormattedCounterValue;
 static pfnPdhCloseQuery pPdhCloseQuery;
 static pfnPdhRemoveCounter pPdhRemoveCounter;
-
 static pfnPdhAddCounterA pPdhAddCounterA;
 
 void GPUMoni_start(void)
@@ -109,7 +107,7 @@ int SetGPUUsageCounter(void)
 
 	extern BOOL b_DebugLog;
 	if (b_DebugLog)writeDebugLog_Win10("[newCodes_Win10.cpp] SetGPUUsageCounter called.", 999);
-	int count = 0, numPDHGPUInstanceNew = 0;;
+	int count = 0, numPDHGPUInstanceNew = 0;
 	CONST PSTR COUNTER_OBJECT = "GPU Engine";
 
 
@@ -203,11 +201,11 @@ int SetGPUUsageCounter(void)
 							return 0;
 						}
 
+						char counterName[PDH_MAX_COUNTER_PATH];
 						for (pTemp = pwsInstanceListBuffer; *pTemp != 0; pTemp += strlen(pTemp) + 1)
 						{
 //							if (strstr(pTemp, "_0_eng_0_engtype_3D") || strstr(pTemp, "_0_eng_0_engtype_VideoDecode"))	//Currently use limited instances
 							{
-								char counterName[PDH_MAX_COUNTER_PATH];
 								snprintf(counterName, PDH_MAX_COUNTER_PATH, "\\GPU Engine(%s)\\Utilization Percentage", pTemp);	//shoud be "%%" because of using wsprintfW
 								if (pPdhAddCounterA(hQueryGPU, counterName, 0, &hGPUCounter[count]) == ERROR_SUCCESS)
 								{
@@ -284,11 +282,11 @@ int GPUMoni_get(void)
 		if (totalGPUUsage > 100)totalGPUUsage = 100;
 	}
 	else {
-		if (b_DebugLog) writeDebugLog_Win10("[gpumon.c][GPUMoni_get] hQueryGPU does not exist!", 999);
+//		if (b_DebugLog) writeDebugLog_Win10("[gpumon.c][GPUMoni_get] hQueryGPU does not exist!", 999);
 	}
 
 
-	if (b_DebugLog) writeDebugLog_Win10("[gpumon.c][GPUMoni_get] GPU usage = ", totalGPUUsage);
+//	if (b_DebugLog) writeDebugLog_Win10("[gpumon.c][GPUMoni_get] GPU usage = ", totalGPUUsage);
 
 	if (hmodPDH)SetGPUUsageCounter();
 

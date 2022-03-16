@@ -56,7 +56,7 @@ void OnTimerUpperTaskbar(void);
 static void DrawClockFocusRect(HDC hdc);
 void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100);
 void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock);
-void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol, BOOL bgpu);
+void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bnet, BOOL bhdd, BOOL bcpu, BOOL bvol, BOOL bgpu, BOOL btemp);
 void GetTimeZoneBias_Win10(void);
 void getGraphVal();
 void OntimerCheckNetStat_Win10(HWND hwnd); //added by TTTT
@@ -80,6 +80,7 @@ void DrawBarMeter2(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, in
 void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval);
 
 COLORREF TextColorFromInfoVal(int infoval);
+void ClearGraphData(void);
 
 
 //tcdll.hに移動
@@ -240,9 +241,8 @@ int nBlink = 0;		//Integer for TEST, This should be Zero
 int BlinksOnChime = 3;
 int dwidth = 0, dheight = 0, dvpos = 0, dlineheight = 0, dclkvpos = 0;
 BOOL bDispSysInfo = FALSE, bTimerSysInfo = FALSE;
-//BOOL bGetSysRes = FALSE,
 BOOL bGetBattery = FALSE, bGetMem = FALSE,
-     bGetMb = FALSE, bGetPm = FALSE, bGetNet = FALSE, bGetHdd = FALSE, bGetCpu = FALSE, bGetVol = FALSE, bGetGpu = FALSE;
+bGetPm = FALSE, bGetNet = FALSE, bGetHdd = FALSE, bGetCpu = FALSE, bGetVol = FALSE, bGetGpu = FALSE, bGetTemp = FALSE;
 int iFreeRes[3] = {0,0,0}, totalCPUUsage = 0, iBatteryLife = 0, iVolume = 0, totalGPUUsage = 0;
 extern int CPUUsage[];
 BOOL b_SoundCapability = TRUE;
@@ -268,6 +268,7 @@ BOOL bGraphTate = FALSE;
 BOOL bReverseGraph = FALSE;
 BOOL bGraphRedraw = FALSE;
 BOOL bEnableGPUGraph = TRUE;
+BOOL bUseBarMeterColForGraph = FALSE;
 int NetGraphScaleRecv = 100;
 int NetGraphScaleSend = 100;
 int GraphL=0;
@@ -607,6 +608,9 @@ int intOffsetChimeSec = 0;
 int chimeHourStart = 0;
 int chimeHourEnd = 24;
 
+extern int numThermalZone;
+extern int indexSelectedThermalZone;
+extern int pdhTemperature;
 
 
 void GetMainClock(void)
@@ -681,6 +685,7 @@ void InitClock()
 //	CpuMoni_start(); // cpu.c
 	PerMoni_start(); // permon.c
 	GPUMoni_start(); // gpumon.c
+	TempMoni_start(); //tempmon.c
 	Net_start();     // net.c
 
 	CheckBatteryAvailability();
@@ -893,6 +898,7 @@ void EndClock()
 //	CpuMoni_end(); // cpu.c
 	PerMoni_end(); // permon.c
 	GPUMoni_end(); // gpumon.c
+	TempMoni_end();
 	Net_end();     // net.c
 
 	if(hwndClockMain && IsWindow(hwndClockMain))
@@ -1048,7 +1054,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else if (wParam == IDTIMERDLL_SYSINFO)
 				{
-					UpdateSysRes(bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu);
+					UpdateSysRes(bGetBattery, bGetMem, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu, bGetTemp);
 				}
 				else if (wParam == IDTIMERDLL_CHECKNETSTAT)
 				{
@@ -1147,9 +1153,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc()] WM_COMMAND with IDC_RESTART received", 999);
 				RestartTClockFromDLL();	// Added by TTTT
 			}
-			else if (LOWORD(wParam) == CLOCKM_BGCOLOR_UPDATE)
+			else if (LOWORD(wParam) == CLOCKM_REQUEST_TEMPCOUNTERINFO)
 			{
-
+				return (numThermalZone * 200 + TempMoni_get((int)lParam));
 			}
 			else if (LOWORD(wParam) == CLOCKM_ZOMBIECHECK_CALL)
 			{
@@ -1213,7 +1219,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return 0;
 		case WM_WINDOWPOSCHANGING:  // サイズ調整
 			break;
-
 	}
 	return CallWindowProc(oldWndProc, tempHwnd, message, wParam, lParam);
 }
@@ -1262,6 +1267,9 @@ void RestartOnRefresh(void)
 			bSuppressUpdateSubClk[i] = TRUE;
 		}
 	}
+
+	//グラフデータクリア
+	ClearGraphData();
 
 	RedrawMainTaskbar();
 
@@ -1358,19 +1366,19 @@ void ReadData()
 	//設定番号取得
 
 
-	colfore = GetMyRegLong("Color_Font", "ForeColor", 0x80000000 | COLOR_BTNTEXT);
-	if (colfore & 0x80000000) colfore = GetSysColor(colfore & 0x00ffffff);
+	colfore = (COLORREF)GetMyRegLong("Color_Font", "ForeColor", GetSysColor(COLOR_BTNTEXT));
+//	if (colfore & 0x80000000) colfore = GetSysColor(colfore & 0x00ffffff);
 	SetMyRegLong("Color_Font", "ForeColor", colfore);
 
 	ColorWeekdayText = colfore;
 	colWin11Notify = colfore;		//通知アイコンはメインテキストと同色
 
-	colback = GetMyRegLong("Color_Font", "BackColor", 0x80000000 | COLOR_3DFACE);
-	if (colback & 0x80000000) colback = GetSysColor(colback & 0x00ffffff);
+	colback = (COLORREF)GetMyRegLong("Color_Font", "BackColor", GetSysColor(COLOR_3DFACE));
+//	if (colback & 0x80000000) colback = GetSysColor(colback & 0x00ffffff);
 	SetMyRegLong("Color_Font", "BackColor", colback);
 
-	colback2 = GetMyRegLong("Color_Font", "BackColor2", colback);
-	if (colback2 & 0x80000000) colback2 = GetSysColor(colback2 & 0x00ffffff);
+	colback2 = (COLORREF)GetMyRegLong("Color_Font", "BackColor2", colback);
+//	if (colback2 & 0x80000000) colback2 = GetSysColor(colback2 & 0x00ffffff);
 	SetMyRegLong("Color_Font", "BackColor2", colback2);
 
 	if (!GetMyRegLong("Color_Font", "UseBackColor2", FALSE))
@@ -1385,8 +1393,8 @@ void ReadData()
 	bClockShadow = GetMyRegLong("Color_Font", "ForeColorShadow", FALSE);
 	bClockBorder = GetMyRegLong("Color_Font", "ForeColorBorder", FALSE);
 
-	colShadow = GetMyRegLong("Color_Font", "ShadowColor", RGB(0, 0, 0));
-	if (colShadow & 0x80000000) colShadow = GetSysColor(colShadow & 0x00ffffff);
+	colShadow = (COLORREF)GetMyRegLong("Color_Font", "ShadowColor", RGB(0, 0, 0));
+	//if (colShadow & 0x80000000) colShadow = GetSysColor(colShadow & 0x00ffffff);
 	SetMyRegLong("Color_Font", "ShadowColor", colShadow);
 
 	nShadowRange = (int)(short)GetMyRegLong("Color_Font", "ClockShadowRange", 1);
@@ -1422,19 +1430,19 @@ void ReadData()
 	dlineheight = (int)(short)GetMyRegLong("Color_Font", "LineHeight", 0);
 
 	ColorSaturdayText = (COLORREF)GetMyRegLong("Color_Font", "Saturday_TextColor", 0x00C8FFC8);
-	if (ColorSaturdayText & 0x80000000) ColorSaturdayText = GetSysColor(ColorSaturdayText & 0x00ffffff);
+	//if (ColorSaturdayText & 0x80000000) ColorSaturdayText = GetSysColor(ColorSaturdayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Saturday_TextColor", ColorSaturdayText);
 
 	ColorSundayText = (COLORREF)GetMyRegLong("Color_Font", "Sunday_TextColor", 0x00C8C8FF);
-	if (ColorSundayText & 0x80000000) ColorSundayText = GetSysColor(ColorSundayText & 0x00ffffff);
+	//if (ColorSundayText & 0x80000000) ColorSundayText = GetSysColor(ColorSundayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Sunday_TextColor", ColorSundayText);
 
 	ColorHolidayText = (COLORREF)GetMyRegLong("Color_Font", "Holiday_TextColor", 0x00C8C8FF);
-	if (ColorHolidayText & 0x80000000) ColorHolidayText = GetSysColor(ColorHolidayText & 0x00ffffff);
+	//if (ColorHolidayText & 0x80000000) ColorHolidayText = GetSysColor(ColorHolidayText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "Holiday_TextColor", ColorHolidayText);
 
 	ColorVPNText = (COLORREF)GetMyRegLong("Color_Font", "VPN_TextColor", 0x00FFFF00);
-	if (ColorVPNText & 0x80000000) ColorVPNText = GetSysColor(ColorVPNText & 0x00ffffff);
+	//if (ColorVPNText & 0x80000000) ColorVPNText = GetSysColor(ColorVPNText & 0x00ffffff);
 	SetMyRegLong("Color_Font", "VPN_TextColor", ColorVPNText);
 
 	bUseAllColor = GetMyRegLong("Color_Font", "UseAllColor", FALSE);
@@ -1458,6 +1466,9 @@ void ReadData()
 
 	bEnableGPUGraph = GetMyRegLong("Graph", "EnableGPUGraph", TRUE);
 	SetMyRegLong("Graph", "EnableGPUGraph", bEnableGPUGraph);
+
+	bUseBarMeterColForGraph = GetMyRegLong("Graph", "UseBarMeterColForGraph", FALSE);
+	SetMyRegLong("Graph", "UseBarMeterColForGraph", bUseBarMeterColForGraph);
 
 	bLogGraph = GetMyRegLong("Graph", "LogGraph", FALSE);
 	bReverseGraph = GetMyRegLong("Graph", "ReverseGraph", FALSE);
@@ -1982,6 +1993,10 @@ void ReadData()
 	SetMyRegLong("Chime", "BlinksOnChime", BlinksOnChime);
 
 
+	indexSelectedThermalZone = GetMyRegLong("ETC", "SelectedThermalZone", 0);
+	SetMyRegLong("ETC", "SelectedThermalZone", indexSelectedThermalZone);
+
+
 	if(bGraphTimerStart) KillTimer(hwndClockMain, IDTIMERDLL_GRAPH); bGraphTimerStart = FALSE;
 	if(bGraph)
 		bGraphTimerStart = SetTimer(hwndClockMain, IDTIMERDLL_GRAPH, graphInterval*1000, NULL) != 0;
@@ -2042,16 +2057,12 @@ void InitSysInfo()
 
 	//if(bTimerSysInfo) KillTimer(hwndClockMain, IDTIMERDLL_SYSINFO);	// deactivated by TTTT
 	bDispSysInfo = bTimerSysInfo = FALSE;
-	//bGetSysRes = 
+
 	bGetBattery = bGetMem = FALSE;
 	memset(&msMemory, 0, sizeof(msMemory));
 
 	dwInfoFormat = FindFormat(format);
 	dwInfoTip = TooltipFindFormat();
-
-	//bGetSysRes = (((dwInfoFormat | dwInfoTip) & FORMAT_SYSINFO))? TRUE:FALSE;
-	//if(dwInfoFormat & FORMAT_SYSINFO) bDispSysInfo = TRUE;
-
 
 	//bGetBattery = ((dwInfoFormat | dwInfoTip) & FORMAT_BATTERY) ? TRUE : FALSE;
 	//if (dwInfoFormat & FORMAT_BATTERY) bDispSysInfo = TRUE;
@@ -2061,12 +2072,6 @@ void InitSysInfo()
 
 	bGetMem = ((dwInfoFormat | dwInfoTip) & FORMAT_MEMORY)? TRUE:FALSE;
 	if(dwInfoFormat & FORMAT_MEMORY) bDispSysInfo = TRUE;
-
-	bGetMb = ((dwInfoFormat | dwInfoTip) & FORMAT_MOTHERBRD)? TRUE:FALSE;
-	if(dwInfoFormat & FORMAT_MOTHERBRD) bDispSysInfo = TRUE;
-
-	bGetPm = ((dwInfoFormat | dwInfoTip) & FORMAT_PERMON)? TRUE:FALSE;
-	if(dwInfoFormat & FORMAT_PERMON) bDispSysInfo = TRUE;
 
 	bGetNet = (((dwInfoFormat | dwInfoTip) & FORMAT_NET)||(bGraph&&graphMode==1))? TRUE:FALSE;
 	if(dwInfoFormat & FORMAT_NET) bDispSysInfo = TRUE;
@@ -2087,9 +2092,12 @@ void InitSysInfo()
 	if (b_UseBarMeterGU) bGetGpu = TRUE;	//Added by TTTT 2011028
 	if (bGraph && bEnableGPUGraph && (graphMode == 2)) bGetGpu = TRUE;
 
-	if(bGetBattery || bGetMem || bGetMb || bGetPm || bGetNet || bGetHdd || bGetCpu || bGetVol || bGetGpu)
+	bGetTemp = ((dwInfoFormat | dwInfoTip) & FORMAT_TEMP) ? TRUE : FALSE;
+	if (dwInfoFormat & FORMAT_TEMP) bDispSysInfo = TRUE;
+
+	if(bGetBattery || bGetMem || bGetNet || bGetHdd || bGetCpu || bGetVol || bGetGpu||bGetTemp)
 	{
-		UpdateSysRes(bGetBattery, bGetMem, bGetMb, bGetPm, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu);
+		UpdateSysRes(bGetBattery, bGetMem, bGetNet, bGetHdd, bGetCpu, bGetVol, bGetGpu, bGetTemp);
 	}
 
 }
@@ -2359,7 +2367,6 @@ void OnTimer_Win10(void)
 		}else {
 			textcol_DoWzone = ColorWeekdayText;
 		}
-		b_DayChange = FALSE;
 	}
 
 
@@ -2413,11 +2420,13 @@ void OnTimer_Win10(void)
 	}
 
 	//Ver 4.1以降はOnTimer_Win10から行うこととする。
-	if (bEnableTooltip) TooltipOnTimer(hwndClockMain);
+	if (bEnableTooltip) TooltipOnTimer(hwndClockMain, b_DayChange);
 
 	//Ver4.0.4現在、exemainにおけるOnTimerZombieCheck2と二重チェックになっているのでいずれ整理が必要
 	//しかもこちらの仕組みは停止動作等は実装されていない。
 	SendStatusDLL2Main();	
+
+	b_DayChange = FALSE;	//日付更新処理は1回だけ
 
 
 	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] OnTimer_Win10 finished.", 999);
@@ -3068,12 +3077,12 @@ static BOOL InitAnalogClockData(HWND hWnd)
 	nAnalogClockVPos = (int)(short)GetMyRegLong("AnalogClock", "AnalogClockVPos", 0);
 	nAnalogClockPos = (int)(short)GetMyRegLong("AnalogClock", "AnalogClockPos", 0);
 
-	colAClockHourHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockHourHandColor", (LONG)RGB(255, 0, 0));
-	if (colAClockHourHandColor & 0x80000000) colAClockHourHandColor = GetSysColor(colAClockHourHandColor & 0x00ffffff);
+	colAClockHourHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockHourHandColor", RGB(255, 0, 0));
+	//if (colAClockHourHandColor & 0x80000000) colAClockHourHandColor = GetSysColor(colAClockHourHandColor & 0x00ffffff);
 	SetMyRegLong("AnalogClock", "AClockHourHandColor", colAClockHourHandColor);
 
-	colAClockMinHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockMinHandColor", (LONG)RGB(0, 0, 255));
-	if (colAClockMinHandColor & 0x80000000) colAClockMinHandColor = GetSysColor(colAClockMinHandColor & 0x00ffffff);
+	colAClockMinHandColor = (COLORREF)GetMyRegLong("AnalogClock", "AClockMinHandColor", RGB(0, 0, 255));
+	//if (colAClockMinHandColor & 0x80000000) colAClockMinHandColor = GetSysColor(colAClockMinHandColor & 0x00ffffff);
 	SetMyRegLong("AnalogClock", "AClockMinHandColor", colAClockMinHandColor);
 
 
@@ -4058,6 +4067,18 @@ void DrawBarMeter2(HWND hwnd, HDC hdc, int wclock, int hclock, int bar_right, in
 	DeleteObject(hbr);
 }
 
+
+void ClearGraphData(void) 
+{
+	for (int i = 0; i < MAXGRAPHLOG; i++)
+	{
+		recvlog[i] = 0;
+		sendlog[i] = 0;
+	}
+}
+
+
+
 /*------------------------------------------------
   paint graph
 --------------------------------------------------*/
@@ -4068,6 +4089,8 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 	int graphSizeS;
 	int graphSizeR;
 	HPEN penSR, penR, penS;
+	HPEN penCU_M,penCU_H;
+
 
 	getGraphVal();
 
@@ -4089,8 +4112,17 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 		else 
 		{
 			penSR = CreatePen(PS_SOLID, 1, ColorCPUGraph2);
-			penR = CreatePen(PS_SOLID, 1, ColorCPUGraph);
-			penS = CreatePen(PS_SOLID, 1, ColorGPUGraph);
+			if (bUseBarMeterColForGraph) 
+			{
+				penR = CreatePen(PS_SOLID, 1, ColorBarMeterCU_Low);
+				penCU_M = CreatePen(PS_SOLID, 1, ColorBarMeterCU_Mid);
+				penCU_H = CreatePen(PS_SOLID, 1, ColorBarMeterCU_High);
+				penS = CreatePen(PS_SOLID, 1, ColorBarMeterGPU);
+			}
+			else {
+				penR = CreatePen(PS_SOLID, 1, ColorCPUGraph);
+				penS = CreatePen(PS_SOLID, 1, ColorGPUGraph);
+			}
 		}
 		HGDIOBJ oldPen = SelectObject(hdc, (HGDIOBJ)penSR);
 
@@ -4135,44 +4167,133 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 					{
 						graphSizeS = (int)((LogDigit2 - 1 + log10(sendlog[i]) - log10(NetGraphScaleSend * 1024)) * wclock / LogDigit2);
 						graphSizeR = (int)((LogDigit - 1 + log10(recvlog[i]) - log10(NetGraphScaleRecv * 1024)) * wclock / LogDigit);
-						if (graphSizeS < 0)graphSizeS = 0;
-						if (graphSizeR < 0)graphSizeR = 0;
+						//if (graphSizeS < 0)graphSizeS = 0;
+						//if (graphSizeR < 0)graphSizeR = 0;
 					}
 					else
 					{
 						graphSizeS = (int)(sendlog[i] / one_dots);
 						graphSizeR = (int)(recvlog[i] / one_dotr);
 					}
+					if (graphSizeS < 0)graphSizeS = 0;
+					if (graphSizeR < 0)graphSizeR = 0;
 
 					if(GraphType == 1)	//棒グラフ
 					{
-						MoveToEx(hdc, (xclock + wclock) - 1, y, NULL);
-						if(graphSizeR > graphSizeS)
-						{
-							if(graphSizeS > 0)
+//						MoveToEx(hdc, (xclock + wclock) - 1, y, NULL);
+						MoveToEx(hdc, (xclock + wclock) , y, NULL);
+
+						if (graphMode == 1) {			//Net
+
+							if (graphSizeR > graphSizeS)
 							{
-								SelectObject(hdc, (HGDIOBJ)penSR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
+								if (graphSizeS >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
+								}
+								if (graphSizeR > graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+									LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
+								}
 							}
-							if(graphSizeR > graphSizeS)
+							else
 							{
+								if (graphSizeR >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+									LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
+								}
+								if (graphSizeR < graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
+								}
+							}
+						}
+						else if (bEnableGPUGraph)	//CPU + GPU
+						{
+							if (graphSizeR > graphSizeS)
+							{
+								if (graphSizeS >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
+								}
+								if (graphSizeR > graphSizeS)
+								{
+									if (bUseBarMeterColForGraph) {
+										if (recvlog[i] >= BarMeterCU_Threshold_High)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_H);
+										}
+										else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_M);
+										}
+										else
+										{
+											SelectObject(hdc, (HGDIOBJ)penR);
+										}
+									}
+									else {
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+									LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
+								}
+							}
+							else
+							{
+								if (graphSizeR >= 0)
+								{
+									if (bUseBarMeterColForGraph) {
+										if (recvlog[i] >= BarMeterCU_Threshold_High)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_H);
+										}
+										else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_M);
+										}
+										else
+										{
+											SelectObject(hdc, (HGDIOBJ)penR);
+										}
+									}
+									else {
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+									LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
+								}
+								if (graphSizeR < graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
+								}
+							}
+						}
+						else {			//Only CPU
+							if (bUseBarMeterColForGraph) {
+								if (totalCPUUsage >= BarMeterCU_Threshold_High)
+								{
+									SelectObject(hdc, (HGDIOBJ)penCU_H);
+								}
+								else if (totalCPUUsage >= BarMeterCU_Threshold_Mid)
+								{
+									SelectObject(hdc, (HGDIOBJ)penCU_M);
+								}
+								else
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+								}
+							}
+							else {
 								SelectObject(hdc, (HGDIOBJ)penR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
 							}
+							LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
 						}
-						else
-						{
-							if(graphSizeR > 0)
-							{
-								SelectObject(hdc,(HGDIOBJ)penSR);
-								LineTo(hdc, max((xclock + wclock) - graphSizeR, xclock), y);
-							}
-							if(graphSizeR < graphSizeS)
-							{
-								SelectObject(hdc,(HGDIOBJ)penS);
-								LineTo(hdc, max((xclock + wclock) - graphSizeS, xclock), y);
-							}
-						}
+
 					}
 					else if(GraphType==2)	//折れ線
 					{
@@ -4226,15 +4347,23 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								}
 
 								MoveToEx(hdc,max((xclock+wclock)-(int)(recvlog[i+1]/one_dotr), xclock),y-d,NULL);
-								//if (recvlog[i] >= cpuHigh)
-								//{
-								//	SelectObject(hdc,(HGDIOBJ)penSR);
-								//}
-								//else
-								//{
-									SelectObject(hdc,(HGDIOBJ)penR);
-								//}
-
+								if (bUseBarMeterColForGraph) {
+									if (recvlog[i] >= BarMeterCU_Threshold_High)
+									{
+										SelectObject(hdc, (HGDIOBJ)penCU_H);
+									}
+									else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+									{
+										SelectObject(hdc, (HGDIOBJ)penCU_M);
+									}
+									else
+									{
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+								}
+								else {
+									SelectObject(hdc, (HGDIOBJ)penR);
+								}
 								LineTo(hdc,max((xclock+wclock)-(int)(recvlog[i]/one_dotr), xclock),y);
 
 							}
@@ -4270,43 +4399,131 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 
 						graphSizeS = (int)((LogDigit2 - 1 + log10(sendlog[i]) - log10(NetGraphScaleSend * 1024)) * hclock / LogDigit2);
 						graphSizeR = (int)((LogDigit - 1 + log10(recvlog[i]) - log10(NetGraphScaleRecv * 1024)) * hclock / LogDigit);
-						if (graphSizeS < 0)graphSizeS = 0;
-						if (graphSizeR < 0)graphSizeR = 0;
+						//if (graphSizeS < 0)graphSizeS = 0;
+						//if (graphSizeR < 0)graphSizeR = 0;
 					}
 					else
 					{
 						graphSizeS = (int)(sendlog[i] / one_dots);
 						graphSizeR = (int)(recvlog[i] / one_dotr);
 					}
+					if (graphSizeS < 0)graphSizeS = 0;
+					if (graphSizeR < 0)graphSizeR = 0;
 
 					if(GraphType==1)	//棒グラフ
 					{
-						MoveToEx(hdc, x, (yclock + hclock) - 1,NULL);
-						if(recvlog[i]>sendlog[i])
-						{
-							if(graphSizeS > 0)
+//						MoveToEx(hdc, x, (yclock + hclock) - 1,NULL);
+						MoveToEx(hdc, x, (yclock + hclock) , NULL);
+
+						if (graphMode == 1) {		//Net
+							if (graphSizeR > graphSizeS)
 							{
-								SelectObject(hdc,(HGDIOBJ)penSR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								if (graphSizeS >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								}
+								if (graphSizeR > graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								}
 							}
-							if(graphSizeR > graphSizeS)
+							else
 							{
-								SelectObject(hdc,(HGDIOBJ)penR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								if (graphSizeR >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								}
+								if (graphSizeR < graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								}
 							}
 						}
-						else
+						else if (bEnableGPUGraph)	//CPU + GPU
 						{
-							if(graphSizeR > 0)
+							if (graphSizeR > graphSizeS)
 							{
-								SelectObject(hdc, (HGDIOBJ)penSR);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								if (graphSizeS >= 0)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								}
+								if (graphSizeR > graphSizeS)
+								{
+									if (bUseBarMeterColForGraph) {
+										if (recvlog[i] >= BarMeterCU_Threshold_High)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_H);
+										}
+										else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_M);
+										}
+										else
+										{
+											SelectObject(hdc, (HGDIOBJ)penR);
+										}
+									}
+									else {
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								}
 							}
-							if(graphSizeR < graphSizeS)
+							else
 							{
-								SelectObject(hdc,(HGDIOBJ)penS);
-								LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								if (graphSizeR >= 0)
+								{
+									if (bUseBarMeterColForGraph) {
+										if (recvlog[i] >= BarMeterCU_Threshold_High)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_H);
+										}
+										else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+										{
+											SelectObject(hdc, (HGDIOBJ)penCU_M);
+										}
+										else
+										{
+											SelectObject(hdc, (HGDIOBJ)penR);
+										}
+									}
+									else {
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
+								}
+								if (graphSizeR < graphSizeS)
+								{
+									SelectObject(hdc, (HGDIOBJ)penS);
+									LineTo(hdc, x, max((yclock + hclock) - graphSizeS, yclock));
+								}
 							}
+						}
+						else 			//Only CPU
+						{
+							if (bUseBarMeterColForGraph) {
+								if (recvlog[i] >= BarMeterCU_Threshold_High)
+								{
+									SelectObject(hdc, (HGDIOBJ)penCU_H);
+								}
+								else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+								{
+									SelectObject(hdc, (HGDIOBJ)penCU_M);
+								}
+								else
+								{
+									SelectObject(hdc, (HGDIOBJ)penR);
+								}
+							}
+							else {
+								SelectObject(hdc, (HGDIOBJ)penR);
+							}
+							LineTo(hdc, x, max((yclock + hclock) - graphSizeR, yclock));
 						}
 					}
 					else if(GraphType==2)	//折れ線
@@ -4359,14 +4576,23 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 								}
 
 								MoveToEx(hdc,x-d,max((yclock+hclock)-(int)(recvlog[i+1]/one_dotr), yclock),NULL);
-								//if (recvlog[i] >= cpuHigh)
-								//{
-								//	SelectObject(hdc,(HGDIOBJ)penSR);
-								//}
-								//else
-								//{
+								if (bUseBarMeterColForGraph) {
+									if (recvlog[i] >= BarMeterCU_Threshold_High)
+									{
+										SelectObject(hdc, (HGDIOBJ)penCU_H);
+									}
+									else if (recvlog[i] >= BarMeterCU_Threshold_Mid)
+									{
+										SelectObject(hdc, (HGDIOBJ)penCU_M);
+									}
+									else
+									{
+										SelectObject(hdc, (HGDIOBJ)penR);
+									}
+								}
+								else {
 									SelectObject(hdc,(HGDIOBJ)penR);
-								//}
+								}
 								LineTo(hdc,x,max((yclock+hclock)-(int)(recvlog[i]/one_dotr), yclock));
 
 							}
@@ -4379,6 +4605,10 @@ void DrawGraph(HDC hdc, int xclock, int yclock, int wclock, int hclock)
 		DeleteObject(penSR);
 		DeleteObject(penR);
 		DeleteObject(penS);
+		if ((graphMode == 2) && (bUseBarMeterColForGraph)) {
+			DeleteObject(penCU_M);
+			DeleteObject(penCU_H);
+		}
 	}
 }
 
@@ -4585,7 +4815,7 @@ void CalcMainClockSize(void)
 
 }
 
-void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, BOOL bhdd, BOOL bcpuc, BOOL bvol, BOOL bgpu)
+void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bnet, BOOL bhdd, BOOL bcpu, BOOL bvol, BOOL bgpu, BOOL btemp)
 {
 	int i;
 
@@ -4616,10 +4846,7 @@ void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, B
 		}
 	}
 
-	if(bcpuc)
-	{
-		UpdateCpuClock();
-	}
+
 
 	if(bmem)
 	{
@@ -4633,14 +4860,19 @@ void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, B
 	}
 
 
-	if(bpermon)
+	//if(bpermon || bcpu)
+	//{
+	//	PerMoni_get();
+	//}
+	if (bcpu)
 	{
+		UpdateCpuClock();
 		PerMoni_get();
 	}
 
 	if (bgpu)
 	{
-		totalGPUUsage = GPUMoni_get();
+		GPUMoni_get();
 	}
 
 	if(bnet)
@@ -4653,12 +4885,10 @@ void UpdateSysRes(BOOL bbattery, BOOL bmem, BOOL bmb, BOOL bpermon, BOOL bnet, B
 		Hdd_get();
 	}
 
-	//if(bsysres)
-	//{
-	//	iCPUUsage = CpuMoni_get(); // cpu.c
-	//}
-
-
+	if (btemp)
+	{
+		pdhTemperature = TempMoni_get(indexSelectedThermalZone);
+	}
 
 	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] UpdateSysRes finished. ", 999);
 
@@ -5037,7 +5267,7 @@ COLORREF MyColorTT_CU(void)
 	{
 		returnvalue = ColorBarMeterCU_Mid;
 	}
-	else if (totalCPUUsage > 0)
+	else
 	{
 		returnvalue = ColorBarMeterCU_Low;
 	}

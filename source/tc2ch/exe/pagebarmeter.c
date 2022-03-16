@@ -11,7 +11,7 @@ static void OnApply(HWND hDlg);
 static void ArrangeItems(HWND hDlg);
 
 INT_PTR CALLBACK DlgProcBarmeterColor(HWND, UINT, WPARAM, LPARAM);
-void CreateBarMeterColorDialog(int index);
+//void CreateBarMeterColorDialog(int index);
 
 
 __inline void SendPSChanged(HWND hDlg)
@@ -27,6 +27,8 @@ extern int Language_Offset;
 
 static HWND hDlgBarmeterColor;
 int BarMeterColorDlgIndex = 0;
+
+static HFONT hfontb;
 
 void CreateBarMeterColorDialog(int index)
 {
@@ -89,6 +91,9 @@ INT_PTR CALLBACK PageBarmeterProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 				break;
 			}
 			return TRUE;
+		case WM_DESTROY:
+			DeleteObject(hfontb);
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -99,14 +104,30 @@ INT_PTR CALLBACK PageBarmeterProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 static void OnInit(HWND hDlg)
 {
 
-	char tempStr[64];
 	int tempWidth = 1000, tempHeight = 100;;
 
 	tempWidth = (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0);
 	tempHeight = (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0);
-	wsprintf(tempStr, "Current Clock Width = %d, Clock Height = %d"
-		, tempWidth, tempHeight);
-	SendDlgItemMessage(hDlg, IDC_LABEL_HEIGHT, WM_SETTEXT, NULL, tempStr);
+
+	if (Language_Offset == LANGUAGE_OFFSET_JAPANESE) {
+		wchar_t tempStr[64];
+		wsprintfW(tempStr, L"åªç›ÇÃéûåvÇÃïù = %d, çÇÇ≥ = %d"
+			, (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0), (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0));
+		SendDlgItemMessageW(hDlg, IDC_LABEL_HEIGHT, WM_SETTEXT, NULL, tempStr);
+	}
+	else {
+		char tempStr[64];
+		wsprintf(tempStr, "Current Clock Width = %d, Clock Height = %d"
+			, (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0), (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0));
+		SendDlgItemMessage(hDlg, IDC_LABEL_HEIGHT, WM_SETTEXT, NULL, tempStr);
+	}
+
+	LOGFONT logfont;
+	hfontb = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+	GetObject(hfontb, sizeof(LOGFONT), &logfont);
+	logfont.lfWeight = FW_BOLD;
+	hfontb = CreateFontIndirect(&logfont);
+	SendDlgItemMessage(hDlg, IDC_LABEL_HEIGHT, WM_SETFONT, (WPARAM)hfontb, 0);
 
 
 	CheckDlgButton(hDlg, IDC_USEBARVOL,

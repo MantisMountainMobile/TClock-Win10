@@ -436,6 +436,7 @@
     <ClCompile Include="pagemisc.c" />
     <ClCompile Include="pagemouse.c" />
     <ClCompile Include="pagetooltip.c" />
+    <ClCompile Include="page_keywords.c" />
     <ClCompile Include="page_win11.c" />
     <ClCompile Include="propdlg.c" />
     <ClCompile Include="utl.c" />

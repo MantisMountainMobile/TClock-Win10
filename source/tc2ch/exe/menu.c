@@ -364,7 +364,7 @@ void OnTClockCommand(HWND hwnd, WORD wID, WORD wCode)
 				b_EnglishMenu = !b_EnglishMenu;
 				SetMyRegLong(NULL, "EnglishMenu", b_EnglishMenu);
 				b_MenuItems_Initialized = FALSE;
-				Language_Offset = 0;
+				Language_Offset = LANGUAGE_OFFSET_JAPANESE;
 			}
 			return;
 

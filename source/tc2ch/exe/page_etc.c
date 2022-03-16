@@ -8,6 +8,7 @@
 
 static void OnInit(HWND hDlg);
 static void OnApply(HWND hDlg);
+static void OnUpdate(HWND hDlg);
 
 __inline void SendPSChanged(HWND hDlg)
 {
@@ -17,29 +18,37 @@ __inline void SendPSChanged(HWND hDlg)
 
 extern char g_mydir[];
 
-//BOOL b_exe_Win11Main = FALSE;
-BOOL b_exe_UseSubClks = TRUE;
-//BOOL b_exe_UseWin11Notify = TRUE;
-//int exe_AdjustTrayCutPosition = 0;
-//int exe_AdjustWin11ClockWidth = 0;
-//int exe_AdjutDetectNotify = 0;
 
-extern BOOL b_AutoRestart;
+//BOOL b_exe_UseSubClks = TRUE;
+
+//extern BOOL b_AutoRestart;
 
 extern BOOL b_EnglishMenu;
 extern int Language_Offset;
 
+int selectedThermalZone = 0;
+
+static HFONT hfontb;
+
+BOOL b_TempAvailable = TRUE;
 
 /*------------------------------------------------
 　「バージョン情報」ページ用ダイアログプロシージャ
 --------------------------------------------------*/
 
-INT_PTR CALLBACK PageDataPlanProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+INT_PTR CALLBACK PageEtcProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch(message)
 	{
+
 		case WM_INITDIALOG:
 			OnInit(hDlg);
+			return TRUE;
+		case WM_TIMER:		//WM_TIMERに対する処理
+			if (wParam == IDTIMER_UPDATE_TEMP)
+			{
+				OnUpdate(hDlg);
+			}
 			return TRUE;
 		case WM_COMMAND:
 		{
@@ -47,9 +56,20 @@ INT_PTR CALLBACK PageDataPlanProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 			id = LOWORD(wParam); code = HIWORD(wParam);
 			switch (id)
 			{
+			case IDC_THERMALZONE:
+			case IDC_SPIN_THERMALZONE:
+				if (code == EN_CHANGE)
+				{
+					SendPSChanged(hDlg);
+					OnUpdate(hDlg);
+					break;
+				}
 			}
 			SendPSChanged(hDlg);
 			return TRUE;
+			case IDC_GET_TEMP:
+				OnUpdate(hDlg);
+				break;
 		}
 		case WM_NOTIFY:
 			switch (((NMHDR *)lParam)->code)
@@ -62,6 +82,10 @@ INT_PTR CALLBACK PageDataPlanProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 				break;
 			}
 			return TRUE;
+		case WM_DESTROY:
+			KillTimer(hDlg, IDTIMER_UPDATE_TEMP);
+			DeleteObject(hfontb);
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -71,129 +95,113 @@ INT_PTR CALLBACK PageDataPlanProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 --------------------------------------------------*/
 static void OnInit(HWND hDlg)
 {
-	char str[32];
+	int tempInt = 0, tempNumThermalZone = 0;
 
-	CheckDlgButton(hDlg, IDC_ETC_AUTORESTART, b_AutoRestart);
+	CheckDlgButton(hDlg, IDC_ETC_AUTORESTART, GetMyRegLong(NULL, "AutoRestart", TRUE));
 	
-	b_exe_UseSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
-	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, b_exe_UseSubClks);
+//	b_exe_UseSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
+	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE));
 
-	//CheckDlgButton(hDlg, IDC_ENHANCE_SUBCLK, GetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", FALSE));
+	tempInt = (int)SendMessage(g_hwndClock, WM_COMMAND, (WPARAM)CLOCKM_REQUEST_TEMPCOUNTERINFO, selectedThermalZone);
+	tempNumThermalZone = tempInt / 200;
+
+	if (tempNumThermalZone > 0)
+	{
+		b_TempAvailable = TRUE;
+
+		SendDlgItemMessage(hDlg, IDC_SPIN_THERMALZONE, UDM_SETRANGE, 0,
+			MAKELONG(tempNumThermalZone - 1, 0));
+
+		selectedThermalZone = GetMyRegLong("ETC", "SelectedThermalZone", 0);
+		SendDlgItemMessage(hDlg, IDC_SPIN_THERMALZONE, UDM_SETPOS, 0, selectedThermalZone);
+
+		if (tempNumThermalZone == 1)
+		{
+			EnableDlgItem(hDlg, IDC_THERMALZONE, FALSE);
+			EnableDlgItem(hDlg, IDC_SPIN_THERMALZONE, FALSE);
+		}
+
+		if (Language_Offset == LANGUAGE_OFFSET_JAPANESE) {
+			wchar_t tempStr[64];
+			wsprintfW(tempStr, L"現在値: %d ℃", tempInt % 200);
+			SendDlgItemMessageW(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+		}
+		else {
+			char tempStr[64];
+			wsprintf(tempStr, "Current Value: %d deg.", tempInt % 200);
+			SendDlgItemMessage(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+		}
+
+	}
+	else {
+		b_TempAvailable = FALSE;
+
+		EnableDlgItem(hDlg, IDC_THERMALZONE, FALSE);
+		EnableDlgItem(hDlg, IDC_SPIN_THERMALZONE, FALSE);
+
+		if (Language_Offset == LANGUAGE_OFFSET_JAPANESE) {
+			wchar_t tempStr[64];
+			wsprintfW(tempStr, L"取得不可");
+			SendDlgItemMessageW(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+		}
+		else {
+			char tempStr[64];
+			wsprintf(tempStr, "Not Available");
+			SendDlgItemMessage(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+		}
+	}
 
 
-	GetMyRegStr("ETC", "Ethernet_Keyword1", str, 32, "");
-	SetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD1, str);
-
-	GetMyRegStr("ETC", "Ethernet_Keyword2", str, 32, "");
-	SetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD2, str);
-
-	GetMyRegStr("ETC", "Ethernet_Keyword3", str, 32, "");
-	SetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD3, str);
-
-	GetMyRegStr("ETC", "Ethernet_Keyword4", str, 32, "");
-	SetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD4, str);
-
-	GetMyRegStr("ETC", "Ethernet_Keyword5", str, 32, "");
-	SetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD5, str);
 
 
-	GetMyRegStr("VPN", "VPN_Keyword1", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_KEYWORD1, str);
-
-	GetMyRegStr("VPN", "VPN_Keyword2", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_KEYWORD2, str);
-
-	GetMyRegStr("VPN", "VPN_Keyword3", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_KEYWORD3, str);
-
-	GetMyRegStr("VPN", "VPN_Keyword4", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_KEYWORD4, str);
-
-	GetMyRegStr("VPN", "VPN_Keyword5", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_KEYWORD5, str);
 
 
-	GetMyRegStr("VPN", "VPN_Exclude1", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_EXCLUDE1, str);
 
-	GetMyRegStr("VPN", "VPN_Exclude2", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_EXCLUDE2, str);
+	LOGFONT logfont;
+	hfontb = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
+	GetObject(hfontb, sizeof(LOGFONT), &logfont);
+	logfont.lfWeight = FW_BOLD;
+	hfontb = CreateFontIndirect(&logfont);
+	SendDlgItemMessage(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETFONT, (WPARAM)hfontb, 0);	
 
-	GetMyRegStr("VPN", "VPN_Exclude3", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_EXCLUDE3, str);
-
-	GetMyRegStr("VPN", "VPN_Exclude4", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_EXCLUDE4, str);
-
-	GetMyRegStr("VPN", "VPN_Exclude5", str, 32, "");
-	SetDlgItemText(hDlg, IDC_VPN_EXCLUDE5, str);
+	SetTimer(hDlg, IDTIMER_UPDATE_TEMP, 1000, NULL);
+}
 
 
+static void OnUpdate(HWND hDlg)
+{
+	int tempInt = 0;
+
+	if (!b_TempAvailable)return;
+
+	selectedThermalZone = (int)SendDlgItemMessage(hDlg, IDC_SPIN_THERMALZONE, UDM_GETPOS, 0, 0);
+
+	tempInt = (int)SendMessage(g_hwndClock, WM_COMMAND, (WPARAM)CLOCKM_REQUEST_TEMPCOUNTERINFO, selectedThermalZone);
+
+	if (Language_Offset == LANGUAGE_OFFSET_JAPANESE) {
+		wchar_t tempStr[64];
+		wsprintfW(tempStr, L"現在値: %d ℃", tempInt % 200);
+		SendDlgItemMessageW(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+	}
+	else {
+		char tempStr[64];
+		wsprintf(tempStr, "Current Value: %d deg.", tempInt % 200);
+		SendDlgItemMessage(hDlg, IDC_LABEL_CURRENT_TEMP, WM_SETTEXT, NULL, tempStr);
+	}
 
 }
 
 /*------------------------------------------------
   "Apply" button
 --------------------------------------------------*/
-void OnApply(HWND hDlg)
+static void OnApply(HWND hDlg)
 {
-	char str[32];
-
 	SetMyRegLong(NULL, "EnableOnSubDisplay", IsDlgButtonChecked(hDlg, IDC_USE_SUBCLKS));
 
-	//SetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", IsDlgButtonChecked(hDlg, IDC_ENHANCE_SUBCLK));
+	//b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
+	SetMyRegLong(NULL, "AutoRestart", IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART));
 
-	b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
-	SetMyRegLong(NULL, "AutoRestart", b_AutoRestart);
+	SetMyRegLong("ETC", "SelectedThermalZone", selectedThermalZone);
 
-
-
-
-	GetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD1, str, 32);
-	SetMyRegStr("ETC", "Ethernet_Keyword1", str);
-
-	GetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD2, str, 32);
-	SetMyRegStr("ETC", "Ethernet_Keyword2", str);
-
-	GetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD3, str, 32);
-	SetMyRegStr("ETC", "Ethernet_Keyword3", str);
-
-	GetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD4, str, 32);
-	SetMyRegStr("ETC", "Ethernet_Keyword4", str);
-
-	GetDlgItemText(hDlg, IDC_ETHERNET_KEYWORD5, str, 32);
-	SetMyRegStr("ETC", "Ethernet_Keyword5", str);
-
-
-	GetDlgItemText(hDlg, IDC_VPN_KEYWORD1, str, 32);
-	SetMyRegStr("VPN", "VPN_Keyword1", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_KEYWORD2, str, 32);
-	SetMyRegStr("VPN", "VPN_Keyword2", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_KEYWORD3, str, 32);
-	SetMyRegStr("VPN", "VPN_Keyword3", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_KEYWORD4, str, 32);
-	SetMyRegStr("VPN", "VPN_Keyword4", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_KEYWORD5, str, 32);
-	SetMyRegStr("VPN", "VPN_Keyword5", str);
-
-
-	GetDlgItemText(hDlg, IDC_VPN_EXCLUDE1, str, 32);
-	SetMyRegStr("VPN", "VPN_Exclude1", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_EXCLUDE2, str, 32);
-	SetMyRegStr("VPN", "VPN_Exclude2", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_EXCLUDE3, str, 32);
-	SetMyRegStr("VPN", "VPN_Exclude3", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_EXCLUDE4, str, 32);
-	SetMyRegStr("VPN", "VPN_Exclude4", str);
-
-	GetDlgItemText(hDlg, IDC_VPN_EXCLUDE5, str, 32);
-	SetMyRegStr("VPN", "VPN_Exclude5", str);
 }
 

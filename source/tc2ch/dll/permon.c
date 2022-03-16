@@ -11,7 +11,7 @@
 #define MAX_PROCESSOR               64
 #include "tcdll.h"
 
-
+//moved to tcdll.c
 void PerMoni_start(void);
 int PerMoni_get(void);
 void PerMoni_end(void);

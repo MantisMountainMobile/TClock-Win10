@@ -119,7 +119,9 @@ extern int nLogicalProcessors;
 extern BOOL b_EnableClock2;
 
 extern int numPDHGPUInstance;
-
+extern int pdhTemperature;
+extern double pdhTemperatureDouble;
+extern BOOL b_TempAvailable;
 
 /*------------------------------------------------
   GetLocaleInfo() for 95/NT
@@ -865,18 +867,6 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 						sp++;
 					}
 				}
-				//else if(*sp == 'R') // System Resources
-				//{
-				//	int i, per, len, slen;
-				//	BOOL bComma = FALSE;
-				//	i = 3;
-				//	if(*(sp + 1) == 'S') i = 0;
-				//	else if(*(sp + 1) == 'G') i = 1;
-				//	else if(*(sp + 1) == 'U') i = 2;
-
-				//	*dp++ = *sp++;
-				//	*infop++ = 0x01;
-				//}
 
 				// CPU Usage
 				else if(*sp == 'C') 
@@ -1008,6 +998,37 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 						*infop++ = 0x01;
 					}
 				}
+
+				//TEMPERATURE
+				else if (*sp == 'T' && (*(sp + 1) == 'E') && (*(sp + 2) == 'M') && (*(sp + 3) == 'P'))
+				{
+					int len, slen;
+					BOOL bComma = FALSE;
+					sp += 4;
+
+					if (!b_TempAvailable)
+					{
+						*dp++ = 'N'; *infop++ = 0x01;
+						*dp++ = 'A'; *infop++ = 0x01;
+					}
+					else
+					{
+						if (GetNumFormat(&sp, 'x', ',', &len, &slen, &bComma) == TRUE)
+						{
+							len_ret = SetNumFormat(&dp, pdhTemperature, len, slen, bComma);
+							for (int i = 0; i < len_ret; i++)*infop++ = 0x01;
+						}
+						else
+						{
+							if (pdhTemperature > 99) {
+								*dp++ = (char)((pdhTemperature % 1000) / 100 + '0'); *infop++ = 0x01;
+							}
+							*dp++ = (char)((pdhTemperature % 100) / 10 + '0'); *infop++ = 0x01;
+							*dp++ = (char)((pdhTemperature % 10) + '0'); *infop++ = 0x01;
+						}
+					}
+				}
+
 
 
 				// GPU Usage
@@ -2397,27 +2418,30 @@ DWORD FindFormat(char* fmt)
 					else
 						ret |= FORMAT_BEAT1;
 				}
-				else if(*sp == 'R' &&
-					(*(sp + 1) == 'S' || *(sp + 1) == 'G' || *(sp + 1) == 'U') )
-				{
-					sp += 2;
-					ret |= FORMAT_SYSINFO;
-				}
+				//else if(*sp == 'R' &&
+				//	(*(sp + 1) == 'S' || *(sp + 1) == 'G' || *(sp + 1) == 'U') )
+				//{
+				//	sp += 2;
+				//	ret |= FORMAT_SYSINFO;
+				//}
 				else if(*sp == 'C' && *(sp + 1) == 'U' &&
 					(isdigit(*(sp + 2)) && *(sp + 2) != '8' && *(sp + 2) != '9') )
 				{
 					sp += 3;
-					ret |= FORMAT_PERMON;
+					//ret |= FORMAT_PERMON;
+					ret |= FORMAT_CPU;
 				}
 				else if(*sp == 'C' && *(sp + 1) == 'U')
 				{
 					sp += 2;
-					ret |= FORMAT_SYSINFO;
-					ret |= FORMAT_PERMON;
+					//ret |= FORMAT_SYSINFO;
+					//ret |= FORMAT_PERMON;
+					ret |= FORMAT_CPU;
 				}
 				else if(*sp == 'C' && *(sp + 1) == 'C')
 				{
 					sp += 2;
+					//ret |= FORMAT_PERMON;
 					ret |= FORMAT_CPU;
 				}
 				else if(*sp == 'B' && *(sp + 1) == 'L')
@@ -2453,21 +2477,21 @@ DWORD FindFormat(char* fmt)
 					sp += 4;
 					ret |= FORMAT_MEMORY;
 				}
-				else if(*sp == 'B' && *(sp + 1) == 'T')
-				{
-					sp += 2;
-					ret |= FORMAT_MOTHERBRD;
-				}
-				else if(*sp == 'B' && *(sp + 1) == 'V')
-				{
-					sp += 2;
-					ret |= FORMAT_MOTHERBRD;
-				}
-				else if(*sp == 'B' && *(sp + 1) == 'F')
-				{
-					sp += 2;
-					ret |= FORMAT_MOTHERBRD;
-				}
+				//else if(*sp == 'B' && *(sp + 1) == 'T')
+				//{
+				//	sp += 2;
+				//	ret |= FORMAT_MOTHERBRD;
+				//}
+				//else if(*sp == 'B' && *(sp + 1) == 'V')
+				//{
+				//	sp += 2;
+				//	ret |= FORMAT_MOTHERBRD;
+				//}
+				//else if(*sp == 'B' && *(sp + 1) == 'F')
+				//{
+				//	sp += 2;
+				//	ret |= FORMAT_MOTHERBRD;
+				//}
 				else if(*sp == 'N' &&
 					(*(sp + 1) == 'R' || *(sp + 1) == 'S') &&
 					(*(sp + 2) == 'S' || *(sp + 2) == 'A') &&
@@ -2509,6 +2533,10 @@ DWORD FindFormat(char* fmt)
 				{
 					sp += 2;
 					ret |= FORMAT_GPU;
+				}
+				else if (*sp == 'T' && (*(sp + 1) == 'E') && (*(sp + 2) == 'M') && (*(sp + 3) == 'P')) {
+					sp += 4;
+					ret |= FORMAT_TEMP;
 				}
 				else sp = CharNext(sp);
 			}
