@@ -99,8 +99,11 @@ static void OnInit(HWND hDlg)
 
 	CheckDlgButton(hDlg, IDC_ETC_AUTORESTART, GetMyRegLong(NULL, "AutoRestart", TRUE));
 	
-//	b_exe_UseSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
 	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE));
+
+	CheckDlgButton(hDlg, IDC_ETC_SHOWTRAYICON, GetMyRegLong(NULL, "ShowTrayIcon", FALSE));
+	
+
 
 	tempInt = (int)SendMessage(g_hwndClock, WM_COMMAND, (WPARAM)CLOCKM_REQUEST_TEMPCOUNTERINFO, selectedThermalZone);
 	tempNumThermalZone = tempInt / 200;
@@ -196,10 +199,17 @@ static void OnUpdate(HWND hDlg)
 --------------------------------------------------*/
 static void OnApply(HWND hDlg)
 {
+	BOOL bTemp = FALSE;
+	extern BOOL b_ShowTrayIcon;
+
 	SetMyRegLong(NULL, "EnableOnSubDisplay", IsDlgButtonChecked(hDlg, IDC_USE_SUBCLKS));
 
 	//b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
 	SetMyRegLong(NULL, "AutoRestart", IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART));
+
+	bTemp = IsDlgButtonChecked(hDlg, IDC_ETC_SHOWTRAYICON);
+	SetMyRegLong(NULL, "ShowTrayIcon", bTemp);
+	CreateTClockTrayIcon(bTemp);
 
 	SetMyRegLong("ETC", "SelectedThermalZone", selectedThermalZone);
 

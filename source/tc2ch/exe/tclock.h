@@ -131,6 +131,9 @@ int r_stricmp(const char* d, const char* s);
 
 #define CLOCKM_REQUEST_TEMPCOUNTERINFO	(WM_USER + 230)
 
+#define CLOCKM_TRAYICONMSG	(WM_USER + 240)
+#define ID_TRAYICON		100
+
 // for mouse.c and pagemouce.c
 #define MOUSEFUNC_NONE       -1
 #define MOUSEFUNC_DATETIME    0
@@ -188,6 +191,10 @@ HINSTANCE LoadLanguageDLL(char *fname); // load language dll
 HINSTANCE GetLangModule(void);      // instance handle of language dll
 
 void My2chHelp(HWND hDlg);  // show 2ch help
+
+//void CreateTClockTrayIcon(HWND hWnd, PNOTIFYICONDATA lp_notifyicon);	//20220323 Ver4.12, by MMM
+void CreateTClockTrayIcon(BOOL bCreate);	//20220323 Ver4.12, by MMM
+
 
 // alarm.c -> exemain.c
 void GetFileAndOption(const char* command, char* fname, char* opt);

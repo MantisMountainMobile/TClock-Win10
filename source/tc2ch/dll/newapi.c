@@ -325,41 +325,40 @@ void EndNewAPI(HWND hwndClock)
 }
 
 
-void GradientFillClock(COLORREF col1, COLORREF col2, DWORD grad)
+
+
+void GradientFillBack(HDC hdcTarget, int width, int height, COLORREF col1, COLORREF col2, DWORD grad)
 {
 	TRIVERTEX vert[2];
 	GRADIENT_RECT gRect;
 	RECT tempRect;
 
-	extern HDC hdcClock;
-	extern int widthMainClockFrame, heightMainClockFrame;
-
-
-
 	tempRect.left = 0;
-	tempRect.right = widthMainClockFrame;
+	tempRect.right = width;
 	tempRect.top = 0;
-	tempRect.bottom = heightMainClockFrame;
+	tempRect.bottom = height;
 
-	if(!pGradientFill) InitGradientFill();
-	if(!pGradientFill) return;
+	if (!pGradientFill) InitGradientFill();
+	if (!pGradientFill) return;
 
-	vert[0].x      = tempRect.left;
-	vert[0].y      = tempRect.top;
-	vert[0].Red    = (COLOR16)GetRValue(col1) * 256;
-	vert[0].Green  = (COLOR16)GetGValue(col1) * 256;
-	vert[0].Blue   = (COLOR16)GetBValue(col1) * 256;
-	vert[0].Alpha  = 0x0000;
-	vert[1].x      = tempRect.right;
-	vert[1].y      = tempRect.bottom;
-	vert[1].Red    = (COLOR16)GetRValue(col2) * 256;
-	vert[1].Green  = (COLOR16)GetGValue(col2) * 256;
-	vert[1].Blue   = (COLOR16)GetBValue(col2) * 256;
-	vert[1].Alpha  = 0x0000;
-	gRect.UpperLeft  = 0;
+	vert[0].x = tempRect.left;
+	vert[0].y = tempRect.top;
+	vert[0].Red = (COLOR16)GetRValue(col1) * 256;
+	vert[0].Green = (COLOR16)GetGValue(col1) * 256;
+	vert[0].Blue = (COLOR16)GetBValue(col1) * 256;
+	vert[0].Alpha = 0x0000;
+	vert[1].x = tempRect.right;
+	vert[1].y = tempRect.bottom;
+	vert[1].Red = (COLOR16)GetRValue(col2) * 256;
+	vert[1].Green = (COLOR16)GetGValue(col2) * 256;
+	vert[1].Blue = (COLOR16)GetBValue(col2) * 256;
+	vert[1].Alpha = 0x0000;
+	gRect.UpperLeft = 0;
 	gRect.LowerRight = 1;
-	pGradientFill(hdcClock, vert, 2, &gRect, 1, grad);
+	pGradientFill(hdcTarget, vert, 2, &gRect, 1, grad);
 }
+
+
 
 void SetLayeredTaskbar(HWND hwndClock)
 {

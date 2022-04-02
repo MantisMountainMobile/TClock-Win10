@@ -5,7 +5,7 @@
 
 
 
-
+#define TIMEOUT_MS_TCLOCKBARWIN11	100
 
 
 
@@ -16,6 +16,9 @@ extern HWND hwndClockMain;
 extern HWND hwndTrayMain;
 extern HWND hwndTClockExeMain;
 extern HWND hwndTaskBarMain;
+extern HWND hwndTClockBarWin11;
+extern HWND hwndDesktop;
+
 extern BOOL bEnableSubClks;
 extern BOOL b_BatteryLifeAvailable;
 extern int widthTaskbar;
@@ -24,10 +27,19 @@ extern int heightMainClockFrame;
 extern int widthMainClockFrame;
 extern int heightTaskbar;
 
+extern int posXTaskbar;
+extern int posYTaskbar;
+
+extern int originalWidthTaskbar;
+extern int originalHeightTaskbar;
+extern int originalPosYTaskbar;
+
 //Win11対応関連
 //Win11対応自作ウィンドウモードフラグ
 extern BOOL bWin11Main;
 extern BOOL bWin11Sub;
+
+extern int Win11Type;
 
 //Win11用関連ウィンドウハンドル
 extern HWND hwndWin11ReBarWin;
@@ -43,11 +55,18 @@ extern BOOL bEnabledWin11Notify;	//利用するかどうか(通知ウィンドウ自体は常に作る
 extern HDC hdcYesWin11Notify;
 extern HDC hdcNoWin11Notify;
 extern HDC hdcFocusWin11Notify;
+extern HDC hdcWin11Notify;
+
 extern HBITMAP hbm_DIBSection_YesWin11Notify;
 extern HBITMAP hbm_DIBSection_NoWin11Notify;
 extern HBITMAP hbm_DIBSection_FocusWin11Notify;
+extern HBITMAP hbm_DIBSection_Win11Notify;
 extern HBITMAP hbmpIconYesWin11Notify;
+extern HBITMAP hbmpIconNoWin11Notify;
+extern HBITMAP hbmpIconFocusWin11Notify;
 
+extern RGBQUAD* m_color_Win11Notify_start;
+extern RGBQUAD* m_color_Win11Notify_end;
 extern RGBQUAD* m_color_YesWin11Notify_start;
 extern RGBQUAD* m_color_YesWin11Notify_end;
 extern RGBQUAD* m_color_NoWin11Notify_start;
@@ -55,6 +74,9 @@ extern RGBQUAD* m_color_NoWin11Notify_end;
 extern RGBQUAD* m_color_FocusWin11Notify_start;
 extern RGBQUAD* m_color_FocusWin11Notify_end;
 extern COLORREF colWin11Notify;
+
+extern BOOL fillbackcolor;
+
 //現時点で通知が出ているかどうか
 extern BOOL bExistWin11Notify;
 //通知ウィンドウのサイズ
@@ -97,6 +119,18 @@ extern BOOL bAdjustTrayWin11SmallTaskbar;
 extern HBRUSH hBrushWin11Notify;
 extern HPEN hPenWin11Notify;
 
+
+//Type2
+
+extern WNDPROC oldProcTaskbarContentBridge_Win11;
+
+BOOL fillbackWin11NotifyIconInvert = FALSE;
+
+int  modifiedWidthTaskbar_Win11Type2 = 0;
+
+BOOL b_ShowingTClockBarWin11 = FALSE;
+
+
 //extern BOOL bTokenMoveContentBridge;
 
 //Focus Assist状態
@@ -117,12 +151,61 @@ extern HFONT hFontNotify;
 extern BOOL bShowWin11NotifyNumber;
 
 
+//BOOL bEnableContentBridgeResize = TRUE;
+
+
+void CreateTClockBarWin11Type2(void)
+{
+	//最初に残骸が残ってたら消す。
+	HWND tempHwnd;
+	if(tempHwnd = FindWindow("TClockBarWin11", NULL) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
+
+
+	//Win11Type2用のTClockBarのウィンドウを自作する。
+	WNDCLASS classTClockBarWin11;
+	TCHAR szClassName[] = TEXT("TClockBarWin11");
+
+	// register a window class
+	classTClockBarWin11.style = CS_HREDRAW | CS_VREDRAW;		// | CS_OWNDC;
+	classTClockBarWin11.lpfnWndProc = DefWindowProc;
+	classTClockBarWin11.cbClsExtra = 0;
+	classTClockBarWin11.cbWndExtra = 0;
+	classTClockBarWin11.hInstance = hmod;
+	classTClockBarWin11.hIcon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
+	classTClockBarWin11.hCursor = LoadCursor(NULL, IDC_ARROW);
+	classTClockBarWin11.hbrBackground = NULL;
+	classTClockBarWin11.lpszMenuName = NULL;
+	classTClockBarWin11.lpszClassName = szClassName;
+
+	RegisterClass(&classTClockBarWin11);
+
+	hwndTClockBarWin11 = CreateWindowEx(WS_EX_TOOLWINDOW, szClassName, "TClockBarWin11",
+		WS_POPUP | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		NULL, NULL, hmod, NULL);
+
+	if (hwndTClockBarWin11) {
+		//SubclassWindow(hwndTClockBarWin11, WndProcTClockBar_Win11);
+		ShowWindow(hwndTClockBarWin11, SW_SHOW);
+	}
+}
+
+
+
+
 void CreateWin11MainClock(void)
 {
 
+	//Win11Type2の場合は全体を収容するTClockBarWin11を作る
+	if (Win11Type == 2) {
+		CreateTClockBarWin11Type2();
+	}
+
+
 	//最初に残骸が残ってたら消す。
 	HWND tempHwnd;
-	while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockMain", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
+	if (Win11Type < 2){
+		while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockMain", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
+	}
 
 
 	//Win11用のTClockのウィンドウを自作する。
@@ -143,9 +226,20 @@ void CreateWin11MainClock(void)
 
 	RegisterClass(&classTClockWin11);
 
-	hwndClockMain = CreateWindowEx(WS_EX_TOPMOST, szClassName, "TClockMain",
-		WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		hwndTaskBarMain, NULL, hmod, NULL);
+	if (Win11Type == 2) {
+		hwndClockMain = CreateWindowEx(WS_EX_TOOLWINDOW, szClassName, "TClockMain",
+			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			hwndTClockBarWin11, NULL, hmod, NULL);
+		//hwndClockMain = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, szClassName, "TClockMain",
+		//	WS_POPUP | WS_VISIBLE , CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		//	NULL, NULL, hmod, NULL);
+	}
+	else {
+		hwndClockMain = CreateWindowEx(WS_EX_TOPMOST, szClassName, "TClockMain",
+			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			hwndTaskBarMain, NULL, hmod, NULL);
+	}
+
 
 	if (hwndClockMain) {
 		ShowWindow(hwndClockMain, SW_SHOW);
@@ -202,7 +296,9 @@ void CreateWin11Notify(void)
 
 	//最初に残骸が残ってたら消す。
 	HWND tempHwnd;
-	while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockNotify", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
+	if (Win11Type < 2) {
+		while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockNotify", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
+	}
 
 	//Win11用のTClockのウィンドウを自作する。
 	WNDCLASS classTClockWin11Notify;
@@ -222,9 +318,19 @@ void CreateWin11Notify(void)
 
 	RegisterClass(&classTClockWin11Notify);
 
-	hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST, "TClockNotify", "TClockNotify",
-		WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		hwndTaskBarMain, NULL, hmod, NULL);
+	if (Win11Type == 2) {
+		hwndWin11Notify = CreateWindowEx(WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
+			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			hwndTClockBarWin11, NULL, hmod, NULL);
+		//hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
+		//	WS_POPUP | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+		//	NULL, NULL, hmod, NULL);
+	}
+	else {
+		hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST, "TClockNotify", "TClockNotify",
+			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			hwndTaskBarMain, NULL, hmod, NULL);
+	}
 
 	if (hwndWin11Notify) {
 		ShowWindow(hwndWin11Notify, SW_SHOW);
@@ -292,8 +398,8 @@ void LoadBitMapWin11Notify(void)
 	//サイズ:120 x 160が基本だが、違ってもOK
 
 //	HBITMAP hbmpIconYesWin11Notify = NULL;
-	HBITMAP hbmpIconNoWin11Notify = NULL;
-	HBITMAP hbmpIconFocusWin11Notify = NULL;
+	//HBITMAP hbmpIconNoWin11Notify = NULL;
+	//HBITMAP hbmpIconFocusWin11Notify = NULL;
 
 	HDC hdc, tempDC;
 	BYTE tempR, tempG, tempB, tempAlpha;
@@ -316,6 +422,11 @@ void LoadBitMapWin11Notify(void)
 		DeleteObject(hbm_DIBSection_FocusWin11Notify);
 	}
 
+	if (hdcWin11Notify) {
+		DeleteDC(hdcWin11Notify);
+		DeleteObject(hbm_DIBSection_Win11Notify);
+	}
+
 	hbmpIconNoWin11Notify = LoadBitmap(hmod, IDB_BITMAP1);		//ブランク
 	hbmpIconFocusWin11Notify = LoadBitmap(hmod, IDB_BITMAP3);	//三日月マーク
 
@@ -330,6 +441,15 @@ void LoadBitMapWin11Notify(void)
 	tempR = GetRValue(colWin11Notify);
 	tempG = GetGValue(colWin11Notify);
 	tempB = GetBValue(colWin11Notify);
+
+
+	if ((fillbackcolor || (Win11Type == 2)) && (tempR + tempG + tempB < 255))
+	{
+		fillbackWin11NotifyIconInvert = TRUE;
+	}
+	else {
+		fillbackWin11NotifyIconInvert = FALSE;
+	}
 
 	if (hwndWin11Notify) {
 		if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][LoadBitMapWin11Notify] No hwndWin11Notify, canceled.", 999);
@@ -352,6 +472,17 @@ void LoadBitMapWin11Notify(void)
 
 	//DIB section作成用bitmap構造体
 	static BITMAPINFO bmi = { { sizeof(BITMAPINFO),0,0,1,32,BI_RGB }, };
+
+	
+	bmi.bmiHeader.biWidth = widthWin11Notify;
+	bmi.bmiHeader.biHeight = heightWin11Notify;
+
+	hbm_DIBSection_Win11Notify = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&m_color_Win11Notify_start, NULL, 0);
+	m_color_Win11Notify_end = m_color_Win11Notify_start + (widthWin11Notify * heightWin11Notify);
+	hdcWin11Notify = CreateCompatibleDC(hdc);
+	SelectObject(hdcWin11Notify, hbm_DIBSection_Win11Notify);
+	SetStretchBltMode(hdcWin11Notify, HALFTONE);
+
 	bmi.bmiHeader.biWidth = widthNotifyIcon;
 	bmi.bmiHeader.biHeight = heightNotifyIcon;
 
@@ -360,7 +491,6 @@ void LoadBitMapWin11Notify(void)
 	//DIB section 作成, 最初と最後のアドレス取得
 	hbm_DIBSection_YesWin11Notify = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&m_color_YesWin11Notify_start, NULL, 0);
 	m_color_YesWin11Notify_end = m_color_YesWin11Notify_start + (widthNotifyIcon * heightNotifyIcon);
-	SelectObject(hdcYesWin11Notify, hbm_DIBSection_YesWin11Notify);
 
 	//リソースビットマップ(白/透明)を枠にあわせてコピー。枠はGetWin11ElementSizeで決める)
 	hdcYesWin11Notify = CreateCompatibleDC(hdc);
@@ -374,7 +504,7 @@ void LoadBitMapWin11Notify(void)
 
 	StretchBlt(hdcYesWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, tempDC, 0, 0, tempBitmap.bmWidth, tempBitmap.bmHeight, SRCCOPY);
 
-	//ロードしたビットマップはもういらないので破棄
+	//ロードしたビットマップはもういらないので破棄->最後まで利用に変更
 //	DeleteObject(hbmpIconYesWin11Notify);
 
 	for (color = m_color_YesWin11Notify_start; color < m_color_YesWin11Notify_end; ++color)
@@ -390,13 +520,23 @@ void LoadBitMapWin11Notify(void)
 
 		tempUnsigned = color->rgbBlue * tempB / 255;
 		color->rgbBlue = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+		if (fillbackWin11NotifyIconInvert)	//fillbackcolorで色が暗いときのみ、背景を白に反転する。
+		{
+			if (color->rgbReserved == 0)
+			{
+				color->rgbRed = 255;
+				color->rgbGreen = 255;
+				color->rgbBlue = 255;
+			}
+		}
+
 	}
 
 	//通知なしアイコンDC作成
 	//DIB section 作成, 最初と最後のアドレス取得
 	hbm_DIBSection_NoWin11Notify = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&m_color_NoWin11Notify_start, NULL, 0);
 	m_color_NoWin11Notify_end = m_color_NoWin11Notify_start + (widthNotifyIcon * heightNotifyIcon);
-	SelectObject(hdcNoWin11Notify, hbm_DIBSection_NoWin11Notify);
 
 	//リソースビットマップ(白/透明)を枠にあわせてコピー。枠はGetWin11ElementSizeで決める)
 	hdcNoWin11Notify = CreateCompatibleDC(hdc);
@@ -411,8 +551,8 @@ void LoadBitMapWin11Notify(void)
 
 	StretchBlt(hdcNoWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, tempDC, 0, 0, tempBitmap.bmWidth, tempBitmap.bmHeight, SRCCOPY);
 
-	//ロードしたビットマップはもういらないので破棄
-	DeleteObject(hbmpIconNoWin11Notify);
+	//ロードしたビットマップはもういらないので破棄->最後まで利用に変更
+//	DeleteObject(hbmpIconNoWin11Notify);
 
 	for (color = m_color_NoWin11Notify_start; color < m_color_NoWin11Notify_end; ++color)
 	{
@@ -427,13 +567,22 @@ void LoadBitMapWin11Notify(void)
 
 		tempUnsigned = color->rgbBlue * tempB / 255;
 		color->rgbBlue = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+		if (fillbackWin11NotifyIconInvert)	//fillbackcolorで色が暗いときのみ、背景を白に反転する。
+		{
+			if (color->rgbReserved == 0)
+			{
+				color->rgbRed = 255;
+				color->rgbGreen = 255;
+				color->rgbBlue = 255;
+			}
+		}
 	}
 
 	//集中モードアイコンDC作成
 	//DIB section 作成, 最初と最後のアドレス取得
 	hbm_DIBSection_FocusWin11Notify = CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, (void**)&m_color_FocusWin11Notify_start, NULL, 0);
 	m_color_FocusWin11Notify_end = m_color_FocusWin11Notify_start + (widthNotifyIcon * heightNotifyIcon);
-	SelectObject(hdcFocusWin11Notify, hbm_DIBSection_FocusWin11Notify);
 
 	//リソースビットマップ(白/透明)を枠にあわせてコピー。枠はGetWin11ElementSizeで決める)
 	hdcFocusWin11Notify = CreateCompatibleDC(hdc);
@@ -447,8 +596,8 @@ void LoadBitMapWin11Notify(void)
 
 	StretchBlt(hdcFocusWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, tempDC, 0, 0, tempBitmap.bmWidth, tempBitmap.bmHeight, SRCCOPY);
 
-	//ロードしたビットマップはもういらないので破棄
-	DeleteObject(hbmpIconFocusWin11Notify);
+	//ロードしたビットマップはもういらないので破棄->最後まで利用に変更
+//	DeleteObject(hbmpIconFocusWin11Notify);
 
 	for (color = m_color_FocusWin11Notify_start; color < m_color_FocusWin11Notify_end; ++color)
 	{
@@ -510,9 +659,9 @@ void GetWin11ElementSize(void)
 
 	adjustWin11TrayYpos = 0;
 
-	if (typeWin11Taskbar == 0)
+	if ((typeWin11Taskbar == 0) && (Win11Type < 2))	//レジストリのTaskbarSiの設定はビルド22579未満(Win11Type == 1)でないと無効
 	{
-		widthWin11Button = heightTaskbar * 3 / 4;	//『小さいタスクバー』の場合
+		widthWin11Button = heightTaskbar * 3 / 4;
 		if (bAdjustTrayWin11SmallTaskbar) adjustWin11TrayYpos = heightTaskbar / 4;
 	}
 	else
@@ -598,12 +747,322 @@ void GetWin11TrayWidth(void)
 	tempHwnd = FindWindowEx(hwndTrayMain, NULL, "TrayInputIndicatorWClass", NULL);
 	MapWindowPoints(tempHwnd, hwndTrayMain, &pos, 1);
 
-	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][GetWin11TrayWidth] origWidthWin11Tray = ", origWidthWin11Tray);
+	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][GetWin11TrayWidth] origWidthWin11Tray =", origWidthWin11Tray);
+}
+
+
+void SwitchToTClockBarWin11(void)
+{
+
+
+	if (Win11Type < 2) return;
+
+	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] SwitchToTClockBarWin11 called.", 999);
+
+
+	HDC desktopDC = NULL;
+	HDC tclockBarDC = NULL;
+
+	DesktopDirectDraw_Win11();
+
+	if (!b_ShowingTClockBarWin11)
+	{
+		b_ShowingTClockBarWin11 = TRUE;
+		if (desktopDC = GetDC(hwndDesktop)) {
+			if (tclockBarDC = GetDC(hwndTClockBarWin11)) {
+
+				BitBlt(tclockBarDC, 0, 0, posXMainClock, heightMainClockFrame, desktopDC, 0, posYTaskbar, SRCCOPY);
+				ReleaseDC(hwndTClockBarWin11, tclockBarDC);
+			}
+
+			ReleaseDC(hwndDesktop, desktopDC);
+		}
+	}
+
+	ShowWindow(hwndWin11ContentBridge, SW_HIDE);
+
+	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] SwitchToTClockBarWin11 finished.", 999);
+
+}
+
+void ReturnToOriginalTaskBar(void)
+{
+	b_ShowingTClockBarWin11 = FALSE;
+
+	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] ReturnToOriginalTaskBar called.", 999);
+
+	ShowWindow(hwndWin11ContentBridge, SW_SHOW);
+
 }
 
 
 
+void DesktopDirectDraw_Win11(void)
+{
+	HWND tempDeskotopHwnd = NULL;
+	HDC desktopDC = NULL;
+	HDC tclockDC = NULL;
+	HDC notifyDC = NULL;
+	extern HDC hdcClock;
 
+	if (b_DebugLog) {
+		writeDebugLog_Win10("[for_win11.c] DesktopDirectDraw_Win11 called.", 999);
+	}
+
+
+	tempDeskotopHwnd = GetDesktopWindow();	//GetDesktopWindow()がデスクトップ
+	
+	if (desktopDC = GetDC(tempDeskotopHwnd)) {
+		if (tclockDC = GetDC(hwndClockMain)) {
+			
+			BitBlt(desktopDC, posXMainClock, originalPosYTaskbar, widthMainClockFrame, heightMainClockFrame, tclockDC, 0, 0, SRCCOPY);
+			ReleaseDC(hwndClockMain, tclockDC);
+		}
+
+		ReleaseDC(tempDeskotopHwnd, desktopDC);
+	}
+}
+
+
+LRESULT CALLBACK WndProcTClockBar_Win11(HWND tempHwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	if (b_DebugLog) {
+		writeDebugLog_Win10("[for_win11.c][WndProcTClockBar_Win11] Window Message was recevied, message =", message);
+	}
+
+	switch (message)
+	{
+	case WM_MOUSEMOVE:
+	case WM_MOUSEHOVER:
+	case WM_MOUSELEAVE:
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+	case WM_LBUTTONUP:
+	case WM_RBUTTONUP:
+	case WM_MBUTTONUP:
+		return SendMessage(hwndTaskBarMain, message, wParam, lParam);
+	}
+
+	return DefWindowProc(tempHwnd, message, wParam, lParam);
+}
+
+
+
+LRESULT CALLBACK WndProcTaskbarContentBridge_Win11(HWND tempHwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+
+
+//	DesktopDirectDraw_Win11();		//とりあえずTClockを強制的にデスクトップに表示する。
+
+/*
+0を返し続けると15(WM_PAINT)が延々続いてループする。すくなくとも15はoldProcTaskbarContentBridge_Win11に渡さなければいけない。
+
+メッセージ(標準戻り値例)
+
+ウインドウサイズ情報を含むもの
+70		WM_WINDOWPOSCHANGING
+131		WM_NCCALCSIZE
+71		WM_WINDOWPOSCHANGED
+5		WM_SIZE
+
+
+ウィンドウサイズ情報を含まないもの
+133	 	WM_NCPAINT
+15		WM_PAINT (通すか, BeginPaint&EndPaintしないと呼ばれ続ける)
+20 		WM_ERASEBKGND
+26		WM_WININICHANGE
+24		WM_SHOWWINDOW	システムによりタスクバーサイズが戻されたときに1回届く。SetMainClockOnTaskTray_Win11によるタスクバー短縮では出ないためループしない。
+528		WM_PARENTNOTIFY
+
+ウィンドウサイズ情報を含むか不明なもの
+738		独自メッセージ？画面スケーリングを変更すると届くが普段は届かない
+739		独自メッセージ？画面スケーリングを変更すると届くが普段は届かない
+
+*/
+
+	//いろいろブロックを試みたが…
+	//71を止めるとうまくサイズ調整ができなくなる。
+	//15を止めると無限ループでNG
+	//それ以外は止めても、現状のアルゴリズムでは特に効果ない。
+	//デスクトップ直接描画でちらつき改善がみられるが完全ではない。
+
+	//サイズ調節の最後は、
+	//WM_WINDOWPOSCHANGED(71)が届く
+	//oldProcTaskbarContentBridge_Win11の動作からWM_SIZE(5)が発生する
+	//WM_SIZEに対するoldProcTaskbarContentBridge_Win11の動作が完了したら戻ってきてWM_WINDOWPOSCHANGEDが終了する。
+	//この時点でサイズ調整が完了しているので、TClock用の移動を行う。ただし直接呼んでは早すぎるので、
+	//PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);で呼ぶ
+
+	//if (b_DebugLog){
+	//	writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] Window Message was recevied, message =", message);
+	//	writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] wParam =", (int)wParam);
+	//	writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] lParam =", (int)lParam);
+	//	CheckPixel_Win10(2081, posYTaskbar + 10);
+	//	writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] b_ShowingTClockBarWin11 =", b_ShowingTClockBarWin11);
+
+	//	if (message == 528)	//WM_PARENTNOTIFY
+	//	{
+	//		writeDebugLog_Win10("[for_win11.c] WM_PARENTNOTIFY(528)", 999);
+	//		writeDebugLog_Win10("[for_win11.c] posX =", GET_X_LPARAM(lParam));
+	//		writeDebugLog_Win10("[for_win11.c] posY =", GET_Y_LPARAM(lParam));
+	//	}
+
+	//		if (message == 131)	//WM_NCCALCSIZE
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_NCCALCSIZE(131)", 999);
+	//			NCCALCSIZE_PARAMS* pncsp = (NCCALCSIZE_PARAMS*)lParam;
+	//			int newWidth = (int)(*pncsp).rgrc[0].right - (int)(*pncsp).rgrc[0].left;
+	//			int newHeight = (int)(*pncsp).rgrc[0].bottom - (int)(*pncsp).rgrc[0].top;
+	//			writeDebugLog_Win10("[for_win11.c] newWidth =", newWidth);
+	//			writeDebugLog_Win10("[for_win11.c] newHeight =", newHeight);
+	//		}
+
+	//		if (message == 5)	//WM_SIZE
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_SIZE(5)", 999);
+	//			writeDebugLog_Win10("[for_win11.c] Width =", (int)(lParam & 0xFFFF));
+	//			writeDebugLog_Win10("[for_win11.c] Height =", (int)((lParam >> 16) & 0xFFFF));
+	//		}
+
+	//		if ((message == 70))	//WM_WINDOWPOSCHANGING
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_WINDOWPOSCHANGING(70)", 999);
+	//			WINDOWPOS* pwinpos = (WINDOWPOS*)lParam;
+	//			writeDebugLog_Win10("[for_win11.c] x =", (int)(*pwinpos).x);
+	//			writeDebugLog_Win10("[for_win11.c] y =", (int)(*pwinpos).y);
+	//			writeDebugLog_Win10("[for_win11.c] cx =", (int)(*pwinpos).cx);
+	//			writeDebugLog_Win10("[for_win11.c] cy =", (int)(*pwinpos).cy);
+	//		}
+
+	//		if ((message == 71))	//WM_WINDOWPOSCHANGED, これをブロックするとうまく動かない
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_WINDOWPOSCHANGED(71)", 999);
+	//			WINDOWPOS* pwinpos = (WINDOWPOS*)lParam;
+	//			writeDebugLog_Win10("[for_win11.c] x =", (int)(*pwinpos).x);
+	//			writeDebugLog_Win10("[for_win11.c] y =", (int)(*pwinpos).y);
+	//			writeDebugLog_Win10("[for_win11.c] cx =", (int)(*pwinpos).cx);
+	//			writeDebugLog_Win10("[for_win11.c] cy =", (int)(*pwinpos).cy);
+
+	//		}
+
+	//		if (message == WM_NCPAINT)
+	//		{
+	//			HDC tempHDC;
+	//			tempHDC = GetDCEx(tempHwnd, (HRGN)wParam, DCX_WINDOW | DCX_INTERSECTRGN);
+	//			writeDebugLog_Win10("[for_win11.c] WM_NCPAINT(133), Target HDC =", (int)tempHDC);
+	//			ReleaseDC(tempHwnd, tempHDC);
+	//		}
+
+	//		if (message == WM_PAINT)
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_PAINT(15).", 999);
+	//		}
+
+	//		if (message == WM_ERASEBKGND)
+	//		{
+	//			writeDebugLog_Win10("[for_win11.c] WM_ERASEBKGND(20), Target HDC =", (int)wParam);
+	//		}
+	//		
+	//		extern HDC HDC_Stored_Desktop;
+	//		extern HDC HDC_Stored_TaskbarMain;
+	//		extern HDC HDC_Stored_ContentBridge_Win11;
+	//		extern HWND hwndDesktop;
+
+	//		writeDebugLog_Win10("[for_win11.c] hwndDesktop =", (int)hwndDesktop);
+	//		writeDebugLog_Win10("[for_win11.c] HDC_Stored_Desktop =", (int)HDC_Stored_Desktop);
+	//		writeDebugLog_Win10("[for_win11.c] hwndTaskBarMain =", (int)hwndTaskBarMain);
+	//		writeDebugLog_Win10("[for_win11.c] HDC_Stored_TaskbarMain =", (int)HDC_Stored_TaskbarMain);
+	//		writeDebugLog_Win10("[for_win11.c] hwndWin11ContentBridge =", (int)hwndWin11ContentBridge);
+	//		writeDebugLog_Win10("[for_win11.c] HDC_Stored_ContentBridge_Win11 =", (int)HDC_Stored_ContentBridge_Win11);
+	//}
+
+
+
+
+	LRESULT ret = 0;
+
+	//if (message == 15) {		//WM_PAINTはBeginPaint/EndPaintしないと呼ばれ続けるのでこれでスキップする。
+	//	//https://docs.microsoft.com/ja-jp/windows/win32/gdi/wm-paint
+	//	PAINTSTRUCT ps;
+	//	HDC hdc = BeginPaint(tempHwnd, &ps);
+	//	if (b_DebugLog) {
+	//		writeDebugLog_Win10("[for_win11.c] WM_PAINT(15).", 999);
+	//		writeDebugLog_Win10("[for_win11.c] Target HDC =", (int)hdc);
+	//		writeDebugLog_Win10("[for_win11.c] rcPaint.left =", ps.rcPaint.left);
+	//		writeDebugLog_Win10("[for_win11.c] rcPaint.top =", ps.rcPaint.top);
+	//		writeDebugLog_Win10("[for_win11.c] rcPaint.right =", ps.rcPaint.right);
+	//		writeDebugLog_Win10("[for_win11.c] rcPaint.bottom =", ps.rcPaint.bottom);
+	//	}
+
+	//		ReleaseDC(tempHwnd, hdc);	
+	//}
+
+	ret = CallWindowProc(oldProcTaskbarContentBridge_Win11, tempHwnd, message, wParam, lParam);
+
+
+	if (b_DebugLog) {
+		writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] Ret =", ret);
+	}
+
+	if (message == 71)		//WM_WINDOWPOSCHANGED
+	{
+		WINDOWPOS* pwinpos = (WINDOWPOS*)lParam;
+		int tempWidth = (int)(*pwinpos).cx;
+		if (b_DebugLog) {
+			writeDebugLog_Win10("[for_win11.c] cx after oldProcTaskbarContentBridge_Win11 =", tempWidth);
+			writeDebugLog_Win10("[for_win11.c] posXMainClock =", posXMainClock);
+		}
+
+
+		if (tempWidth == posXMainClock) 
+		{
+			if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] Replacement of ContentBridege completed.", 999);
+		}
+		else if ( tempWidth == originalWidthTaskbar)	//配置が戻されたら一連のプロセスの最後に成立する。実際にはoriginalWidthTaskbarに戻るが、それ以外のケースにも対応できる
+		{
+			if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] SetMainClockOnTaskTray_Win11(operation = 0) called due to ContentBridge resize, Size =", (int)(*pwinpos).cx);
+			SwitchToTClockBarWin11();
+			PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);	//Postmessage経由でSetMainClockOnTaskTray_Win11を実行する。
+//			SetMainClockOnTasktray_Win11();			//こんな風に直接呼ぶと早すぎてちらつき->失敗、になる。
+		}
+		else 
+		{
+			if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] SetMainClockOnTaskTray_Win11(operation = 1) called due to ContentBridge resize, Size =", (int)(*pwinpos).cx);
+			PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 1, 0);	//Postmessage経由でSetMainClockOnTaskTray_Win11を実行する。
+		}
+
+	}
+	else if (message == 70)	//通知数が変わるとなぜかこれが届くようなので、通知数が変化していないかチェックする。
+	{
+		if (SetModifiedWidthWin11Tray())	//この関数は通知アイコンの有無が変化したらTRUEになる。
+		{
+			if (b_DebugLog)writeDebugLog_Win10("[for_win11.c][WndProcTaskbarContentBridge_Win11] SetMainClockOnTaskTray_Win11 called due to Notification change.", 999);
+			PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);	//Postmessage経由でSetMainClockOnTaskTray_Win11を実行する。
+			//			SetMainClockOnTasktray_Win11(); こんな風に直接呼ぶとタイミングがずれてうまくいかない
+		}
+	}
+	else if (message == 131)	//WM_NCCALCSIZE
+	{
+		NCCALCSIZE_PARAMS* pncsp = (NCCALCSIZE_PARAMS*)lParam;
+		int newWidth = (int)(*pncsp).rgrc[0].right - (int)(*pncsp).rgrc[0].left;
+		if (newWidth == originalWidthTaskbar) {
+			SwitchToTClockBarWin11();
+		}
+	}
+	else if (message == 528)	//WM_NCCALCSIZE
+	{
+		SwitchToTClockBarWin11();
+	}
+
+//	DesktopDirectDraw_Win11();		//念のためTClockを強制的にデスクトップに表示する。
+
+
+	SetTimer(hwndClockMain, IDTIMERDLL_WIN11TYPE2_SHOW_TASKBAR, TIMEOUT_MS_TCLOCKBARWIN11, NULL);
+
+	return ret;
+}
 
 // Added by TTTT for Win10AU (WIN10RS1) compatibility
 // Imported from TClockLight-tclocklight-kt160911, dll/Wndproc.c
@@ -624,9 +1083,10 @@ LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, 
 
 	switch (message)
 	{
-		case (WM_USER + 100):
+		case (WM_USER + 100):	//1124
 		{
 			if (b_DebugLog)writeDebugLog_Win10("[fow_win11.c][SubclassTrayProc_Win11] WM_USER + 100 (1124) recevied.", 999);
+			//Win10の場合
 			// 再配置前に親ウィンドウから送られ、サイズを返すメッセージ。
 			// DefSubClassTrayProc()を呼ぶとLRESULT形式で、Windows標準時計が入った場合のサイズが帰ってくるので、
 			// 改造した場合のサイズに差し替えて戻す。
@@ -640,7 +1100,9 @@ LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, 
 
 			LRESULT ret;
 
+
 			ret = DefSubclassProc(hwndTrayMain, message, wParam, lParam);
+
 			//これで得られるのはButton + Pagerの幅であり、標準時計とネット等のアイコン類の幅は含まれてないようだ。
 			//ソフトウェアキーボードアイコン分は、起動時値が入ったまま反映されない(なぜかは不明)。
 			//なのであまり使えない。
@@ -649,11 +1111,11 @@ LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, 
 			//時計を切り落とすのは、SetMainClockOnTasktray_Win11で行う。
 
 
-			//再配置に先だって必ず呼ばれるわけではない。ここに処理を入れても確実に実行されない。
+			//再配置に先だって必ず呼ばれるわけではない。ここに処理を入れても確実に実行されない
 
 			return ret;
 		}
-		case (WM_NCCALCSIZE):
+		case (WM_NCCALCSIZE):	//131
 		{
 			int i, newWidth;
 			LRESULT ret;
@@ -699,7 +1161,7 @@ LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, 
 		//	}
 		//	break;
 		//}
-		case WM_NOTIFY:
+		case WM_NOTIFY:		//78
 		{
 			// 再配置が発生したら親ウィンドウから送られる。
 			// DefSubClassTrayProc()を呼ぶとLRESULT形式で返答すべきコード帰ってくるので、そのまま戻せばOKのようだ。
@@ -743,7 +1205,7 @@ LRESULT CALLBACK WndProcWin11Notify(HWND hwnd, UINT message, WPARAM wParam, LPAR
 	tempHwnd = hwnd;
 
 	//このコールバック関数はhwndWin11Notificationとの組み合わせででしか正しく動作しないので、原則としてhwnd = hwndWin11Notifyだがコールバック関数なのでtempHwndで処理している
-	//messageは、定常運転時はWM_TIMER(275)以外はめったに来ない。
+
 
 //	if (b_DebugLog) writeDebugLog_Win10("[for_win11.c][WndProcWin11Notify] Window Message was recevied, message = ", message);
 
@@ -776,12 +1238,16 @@ LRESULT CALLBACK WndProcWin11Notify(HWND hwnd, UINT message, WPARAM wParam, LPAR
 
 
 
+
+
+
+
 void UpdateHdcYesWin11Notify(int num_notify)
 {
 	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c]UpdateHdcYesWin11Notify called with num_notify =", num_notify);
 
 	HDC tempDC;
-	BYTE tempR, tempG, tempB, tempAlpha;
+	BYTE tempR, tempG, tempB;
 	BITMAP tempBitmap;
 	unsigned tempUnsigned;
 	RGBQUAD* color;
@@ -796,11 +1262,58 @@ void UpdateHdcYesWin11Notify(int num_notify)
 
 	tempDC = CreateCompatibleDC(hdcYesWin11Notify);
 	SelectObject(tempDC, hbmpIconYesWin11Notify);
-
 	GetObject(hbmpIconYesWin11Notify, sizeof(BITMAP), &tempBitmap);
 
 	StretchBlt(hdcYesWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, tempDC, 0, 0, tempBitmap.bmWidth, tempBitmap.bmHeight, SRCCOPY);
 
+
+
+	//for (color = m_color_YesWin11Notify_start; color < m_color_YesWin11Notify_end; ++color)
+	//{
+	//	color->rgbReserved = color->rgbRed;
+
+	//	tempUnsigned = color->rgbRed * tempR / 255;
+	//	color->rgbRed = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+	//	tempUnsigned = color->rgbGreen * tempG / 255;
+	//	color->rgbGreen = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+	//	tempUnsigned = color->rgbBlue * tempB / 255;
+	//	color->rgbBlue = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+	//	if (fillbackWin11NotifyIconInvert)	//fillbackcolorで色が暗いときのみ、背景を白に反転する。
+	//	{
+	//		if (color->rgbReserved == 0)
+	//		{
+	//			color->rgbRed = 255;
+	//			color->rgbGreen = 255;
+	//			color->rgbBlue = 255;
+	//		}
+	//	}
+	//}
+
+
+	DeleteDC(tempDC);
+
+
+	SetTextAlign(hdcYesWin11Notify, TA_CENTER | TA_BOTTOM);
+	SelectObject(hdcYesWin11Notify, hFontNotify);
+	SetBkMode(hdcYesWin11Notify, TRANSPARENT);
+	//if (fillbackWin11NotifyIconInvert) {
+	//	SetTextColor(hdcYesWin11Notify, 0x00FFFFFF);
+	//}
+	//else {
+		SetTextColor(hdcYesWin11Notify, 0x00000000);
+	//}
+	char tempString[2];
+
+	sprintf(tempString, "%d", num_notify);
+	if (num_notify < 10) {
+		TextOut(hdcYesWin11Notify, posNotifyText.x, posNotifyText.y - posNotifyIcon.y, tempString, 1);
+	}
+	else {
+		TextOut(hdcYesWin11Notify, posNotifyText.x, posNotifyText.y - posNotifyIcon.y, tempString, 2);
+	}
 
 
 	for (color = m_color_YesWin11Notify_start; color < m_color_YesWin11Notify_end; ++color)
@@ -815,25 +1328,20 @@ void UpdateHdcYesWin11Notify(int num_notify)
 
 		tempUnsigned = color->rgbBlue * tempB / 255;
 		color->rgbBlue = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+		if (fillbackWin11NotifyIconInvert)	//fillbackcolorで色が暗いときのみ、背景を白に反転する。
+		{
+			if (color->rgbReserved == 0)
+			{
+				color->rgbRed = 255;
+				color->rgbGreen = 255;
+				color->rgbBlue = 255;
+			}
+		}
 	}
 
 
-	DeleteDC(tempDC);
 
-
-	SetTextAlign(hdcYesWin11Notify, TA_CENTER | TA_BOTTOM);
-	SelectObject(hdcYesWin11Notify, hFontNotify);
-	SetBkMode(hdcYesWin11Notify, TRANSPARENT);
-	SetTextColor(hdcYesWin11Notify, 0x00000000);
-	char tempString[2];
-
-	sprintf(tempString, "%d", num_notify);
-	if (num_notify < 10) {
-		TextOut(hdcYesWin11Notify, posNotifyText.x, posNotifyText.y - posNotifyIcon.y, tempString, 1);
-	}
-	else {
-		TextOut(hdcYesWin11Notify, posNotifyText.x, posNotifyText.y - posNotifyIcon.y, tempString, 2);
-	}
 }
 
 
@@ -843,7 +1351,9 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 
 	HDC hdc;
 	BOOL b_update = FALSE;
-
+	extern COLORREF originalColorTaskbar_ForWin11Notify;
+	extern COLORREF originalColorTaskbar;
+	extern COLORREF originalColorTaskbarEdge;
 
 	hdc = GetDC(hwndWin11Notify);
 
@@ -879,26 +1389,72 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 
 		if (b_update)
 		{
-			SelectObject(hdc, hBrushWin11Notify);
-			PatBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
-
-			SelectObject(hdc, hPenWin11Notify);
-
-			MoveToEx(hdc, posXShowDesktopArea, 0, NULL);
-			LineTo(hdc, posXShowDesktopArea, heightWin11Notify);
-
-			if (intWin11FocusAssist > 0)
+			if (fillbackcolor) 
 			{
-				BitBlt(hdc, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcFocusWin11Notify, 0, 0, SRCCOPY);
+				FillBack(hdcWin11Notify, widthWin11Notify, heightWin11Notify);
 			}
-			else if (intWin11NotificationNumber > 0)
+			else 
 			{
-				BitBlt(hdc, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcYesWin11Notify, 0, 0, SRCCOPY);
+				if (Win11Type == 2)
+				{
+					originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
+					FillBack(hdcWin11Notify, widthWin11Notify, heightWin11Notify);
+				}
+				else
+				{
+					SelectObject(hdcWin11Notify, hBrushWin11Notify);
+					PatBlt(hdcWin11Notify, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
+				}
 			}
-			else
-			{
-				BitBlt(hdc, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcNoWin11Notify, 0, 0, SRCCOPY);
+			
+			hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+			SelectObject(hdcWin11Notify, hPenWin11Notify);
+			MoveToEx(hdcWin11Notify, posXShowDesktopArea, 0, NULL);
+			LineTo(hdcWin11Notify, posXShowDesktopArea, heightWin11Notify);
+
+			hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
+			SelectObject(hdcWin11Notify, hPenWin11Notify);
+			MoveToEx(hdcWin11Notify, 0, 0, NULL);
+			LineTo(hdcWin11Notify, widthWin11Notify, 0);
+
+
+			if (fillbackcolor || (Win11Type == 2)) {
+
+				if (intWin11FocusAssist > 0)
+				{
+					TransparentBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcFocusWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, (fillbackWin11NotifyIconInvert ? RGB(255, 255, 255) : RGB(0, 0, 0)));
+				}
+				else if (intWin11NotificationNumber > 0)
+				{
+					TransparentBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcYesWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, (fillbackWin11NotifyIconInvert ? RGB(255, 255, 255) : RGB(0, 0, 0)));
+				}
+				else
+				{
+					TransparentBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcNoWin11Notify, 0, 0, widthNotifyIcon, heightNotifyIcon, (fillbackWin11NotifyIconInvert ? RGB(255, 255, 255) : RGB(0, 0, 0)));
+
+				}
+
+				RGBQUAD* color;
+				for (color = m_color_Win11Notify_start; color < m_color_Win11Notify_end; ++color) {
+					color->rgbReserved = 255;
+				}
 			}
+			else {
+				if (intWin11FocusAssist > 0)
+				{
+					BitBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcFocusWin11Notify, 0, 0, SRCCOPY);
+				}
+				else if (intWin11NotificationNumber > 0)
+				{
+					BitBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcYesWin11Notify, 0, 0, SRCCOPY);
+				}
+				else
+				{
+					BitBlt(hdcWin11Notify, posNotifyIcon.x, posNotifyIcon.y, widthNotifyIcon, heightNotifyIcon, hdcNoWin11Notify, 0, 0, SRCCOPY);
+				}
+			}
+
+			BitBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, hdcWin11Notify, 0, 0, SRCCOPY);
 		}
 
 
@@ -909,8 +1465,11 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 }
 
 
-void SetModifiedWidthWin11Tray(void)
+BOOL SetModifiedWidthWin11Tray(void)	//戻り値はアイコンの有無が変化したかどうか：変化したらTRUE
 {
+	BOOL bPrev;
+	bPrev = bExistWin11Notify;
+
 
 	bExistWin11Notify = FALSE;
 	cutOffWidthWin11Tray = defaultWin11ClockWidth;
@@ -925,6 +1484,7 @@ void SetModifiedWidthWin11Tray(void)
 
 	modifiedWidthWin11Tray = origWidthWin11Tray - cutOffWidthWin11Tray;
 
+	return (bPrev != bExistWin11Notify);
 }
 
 
@@ -932,7 +1492,10 @@ void SetModifiedWidthWin11Tray(void)
 void SetMainClockOnTasktray_Win11(void)
 {
 
-	//この関数はSubClassTrayProc_Win11のWM_NOTIFYからしか呼ばれない(状態を維持すること！)。
+	//この関数はWin11Type < 2 (ビルド22579未満)ではSubClassTrayProc_Win11のWM_NOTIFYからしか呼ばれない(状態を維持すること！)。
+	//その場合CLOCKM_MOVEWIN11CONTENTBRIDGEはこの関数から投げる。
+	//一方、Win11Type == 2では、メインクロックウィンドウへ投げたCLOCKM_MOVEWIN11CONTENTBRIDGEメッセージ経由でこちらに来る。呼ばれる順番が逆なのでくれぐれも注意する。
+	//Win11Type == 2でCLOCKM_MOVEWIN11CONTENTBRIDGEメッセージを投げると無限ループする！
 
 
 	//Win11におけるタスクトレイ内再配置の方法
@@ -952,61 +1515,98 @@ void SetMainClockOnTasktray_Win11(void)
 	SetModifiedWidthWin11Tray();
 
 
+	if (Win11Type == 2)
+	{
+		
+		//タスクバーを短縮する。
+		//SWP_NOSENDCHANGINGを入れておかないとタスクバーは移動しない(強制的に戻されるのか？)
+		//SWP_NOTOPMOSTを入れていったんTClockを前に出すが、これはいずれTOPMOSTになる。
+		modifiedWidthTaskbar_Win11Type2 = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify + cutOffWidthWin11Tray;
+		SetWindowPos(hwndTaskBarMain, NULL, 0, 0, modifiedWidthTaskbar_Win11Type2, heightTaskbar,
+			SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
-	int tempX = widthTaskbar - widthMainClockFrame - modifiedWidthWin11Tray - widthWin11Notify;
+		//TClockの左端のX座標を求める。
+		posXMainClock = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify;
 
-	//トレイを、TClockのウィンドウ分左に移動して、右側の時計領域が見えなくなるようにリサイズする。
-	SetWindowPos(hwndTrayMain, NULL, tempX, 0, modifiedWidthWin11Tray, heightMainClockFrame,
-		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);
-	
+		SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
 
-	//『小さいタスクバー』の場合にトレイアイコンを上にシフトする。
-	//ContentBridgeの操作はここでやっても上書きされる模様。ちらつき防止のために一時的に消すことはできた。
-	//下のほうに記述するPostmessage経由でMoveWin11ContentBridgeで調整する。
-	//if (adjustWin11TrayYpos != 0)
-	//{
-	//	SetWindowPos(hwndWin11InnerTrayContentBridge, NULL, 0, - adjustWin11TrayYpos, modifiedWidthWin11Tray, heightMainClockFrame + adjustWin11TrayYpos,
-	//		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
-	//}
-	if (adjustWin11TrayYpos != 0) ShowWindow(hwndWin11InnerTrayContentBridge, SW_HIDE);
+		//TClockBarWin11を設定する。
+		SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, posYTaskbar, originalWidthTaskbar, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+
+		//TClockのウィンドウを所定の場所に移動する。
+		//SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+		//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+		SetWindowPos(hwndClockMain, NULL, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+
+		//自作通知ウィンドウの場所を再設定する。
+		if (hwndWin11Notify) {
+			//SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+			//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+			SetWindowPos(hwndWin11Notify, NULL, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+				SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+		}
+	}
+	else
+	{
+		int tempX = widthTaskbar - widthMainClockFrame - modifiedWidthWin11Tray - widthWin11Notify;
+
+		//トレイを、TClockのウィンドウ分左に移動して、右側の時計領域が見えなくなるようにリサイズする。
+		SetWindowPos(hwndTrayMain, NULL, tempX, 0, modifiedWidthWin11Tray, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
 
-	//アプリアイコン列を、トレイの左端までにリサイズする
-	SetWindowPos(hwndWin11ReBarWin, NULL, 0, 0, tempX, heightMainClockFrame,
-		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);
-
-	//TClockの左端のX座標を求める。
-	posXMainClock = widthTaskbar - widthMainClockFrame - widthWin11Notify;
-
-	//TClockのウィンドウを所定の場所に移動する。
-	SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
-		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-//	ShowWindow(hwndClockMain, SW_SHOW);
+		//『小さいタスクバー』の場合にトレイアイコンを上にシフトする。
+		//ContentBridgeの操作はここでやっても上書きされる模様。ちらつき防止のために一時的に消すことはできた。
+		//下のほうに記述するPostmessage経由でMoveWin11ContentBridgeで調整する。
+		//if (adjustWin11TrayYpos != 0)
+		//{
+		//	SetWindowPos(hwndWin11InnerTrayContentBridge, NULL, 0, - adjustWin11TrayYpos, modifiedWidthWin11Tray, heightMainClockFrame + adjustWin11TrayYpos,
+		//		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
+		//}
+		if (adjustWin11TrayYpos != 0) ShowWindow(hwndWin11InnerTrayContentBridge, SW_HIDE);
 
 
+		//アプリアイコン列を、トレイの左端までにリサイズする
+		SetWindowPos(hwndWin11ReBarWin, NULL, 0, 0, tempX, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);
 
-	//一番上のContentBridgeクラス(2つあるが、トレイの中にあるほうではなく、タスクバー直下)をリサイズする。
-	//ContentBridgeの操作はここでやっても上書きされる模様。
-	//ここでは実行せず、下のほうに記述するPostmessage経由でMoveWin11ContentBridgeで調整する。
-	//SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
-	//	SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);
+		//TClockの左端のX座標を求める。
+		posXMainClock = widthTaskbar - widthMainClockFrame - widthWin11Notify;
 
-	//自作通知ウィンドウの場所を再設定する。
-	if (hwndWin11Notify) {
-		SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
-			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-		ShowWindow(hwndWin11Notify, SW_SHOW);
+		//TClockのウィンドウを所定の場所に移動する。
+		SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+
+
+
+		//一番上のContentBridgeクラス(2つあるが、トレイの中にあるほうではなく、タスクバー直下)をリサイズする。
+		//ContentBridgeの操作はここでやっても上書きされる模様。
+		//ここでは実行せず、下のほうに記述するPostmessage経由でMoveWin11ContentBridgeで調整する。
+		//SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+		//	SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);
+
+		//自作通知ウィンドウの場所を再設定する。
+		if (hwndWin11Notify) {
+			SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+				SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+			ShowWindow(hwndWin11Notify, SW_SHOW);
+		}
+
+		//ContentBridgeの操作はここでやっても上書きされる模様。
+		//あらためてSubClassTrayProc_Win11にWM_NCPAINTが来たタイミングで行う。
+		//…だがこれでは小さいタスクバーに伴うアイコン下がりは残ってしまうので、↓のディレイ方式にする必要がある。
+		//	bTokenMoveContentBridge = TRUE;
+
+		//ContentBridgeの移動は少し遅れて行う必要があるので、こちらでまとめて実行する。
+		PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);	//タイマーを使うほどのディレイは不要で、Postmessage経由の実行でOK
 	}
 
-	//ContentBridgeの操作はここでやっても上書きされる模様。
-	//あらためてSubClassTrayProc_Win11にWM_NCPAINTが来たタイミングで行う。
-	//…だがこれでは小さいタスクバーに伴うアイコン下がりは残ってしまうので、↓のディレイ方式にする必要がある。
-//	bTokenMoveContentBridge = TRUE;
 
-	//ContentBridgeの移動は少し遅れて行う必要があるので、こちらでまとめて実行する。
-	PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 0, 0);	//タイマーを使うほどのディレイは不要で、Postmessage経由の実行でOK
 
-	//サイズ更新したら、hdcClockを作り直すようにする。CreateClockDCはここから呼ぶだけで必要充分なはず。
+	//サイズ更新したら、hdcClockを作り直すようにする。
 	CreateClockDC();
 
 
@@ -1018,7 +1618,9 @@ void SetMainClockOnTasktray_Win11(void)
 	//	SetAllSubClocks();	//メインクロックの状態が変わったら、毎回サブクロックも反映させる必要あり。
 	//->すぐに実行するとうまく行かない＆処理が繰り返されるのでディレイで実行
 
-	if (bEnableSubClks) DelayedUpdateSubClks();
+	if (bEnableSubClks){
+		SetTimer(hwndClockMain, IDTIMERDLL_DELEYED_RESPONSE, 500, NULL);
+	}
 }
 
 
@@ -1049,20 +1651,43 @@ void GetWin11TaskbarType(void)
 }
 
 
-void MoveWin11ContentBridge(void)
+void MoveWin11ContentBridge(int operation)	//Win11 Type2 (build 22579およびそれ以降)ではhwndWin11ContentBridgeの上にアイコンが載るようになっていて、この処理では元アイコン群が切れて見えなくなる。
 {
-	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] MoveWin11ContentBridge called.", 999);
-	SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
-		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);
+	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] MoveWin11ContentBridge called. operation =", operation);
 
-	if (adjustWin11TrayYpos != 0)
-	{
-		//改めて移動して、表示する。
-		SetWindowPos(hwndWin11InnerTrayContentBridge, NULL, 0, - adjustWin11TrayYpos, modifiedWidthWin11Tray, heightMainClockFrame + adjustWin11TrayYpos,
-			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);	// | SWP_SHOWWINDOW
-		//InvalidateRect(hwndTrayMain, NULL, TRUE);
+	if (Win11Type == 2) {
+		switch(operation) 
+		{
+			case 0:
+				SetMainClockOnTasktray_Win11();
+				break;
+			case 1:
+				SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
+				break;
+			case 2:
+				break;
+			case 3:
+				ReturnToOriginalTaskBar();
+				break;
+			default:
+				break;
+		}
+	}
+	else {
+		SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);
+
+		if (adjustWin11TrayYpos != 0)
+		{
+			//改めて移動して、表示する。
+			SetWindowPos(hwndWin11InnerTrayContentBridge, NULL, 0, -adjustWin11TrayYpos, modifiedWidthWin11Tray, heightMainClockFrame + adjustWin11TrayYpos,
+				SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);	// | SWP_SHOWWINDOW
+																		//InvalidateRect(hwndTrayMain, NULL, TRUE);
+		}
+
+		ShowWindow(hwndWin11InnerTrayContentBridge, SW_SHOW);
 	}
 
-	ShowWindow(hwndWin11InnerTrayContentBridge, SW_SHOW);
 }
 

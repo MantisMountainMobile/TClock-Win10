@@ -257,12 +257,16 @@ void OnInit(HWND hDlg)
 	hfonti = CreateFontIndirect(&logfont);
 	SendDlgItemMessage(hDlg, IDC_ITALIC, WM_SETFONT, (WPARAM)hfonti, 0);
 
+	int tempWidth, tempHeight;
+	tempWidth = (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0);
+	tempHeight = (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0);
+
 	//SendDlgItemMessage(hDlg, IDC_SPINCHEIGHT, UDM_SETRANGE, 0,
 	//	MAKELONG(32, -32));
 	//SendDlgItemMessage(hDlg, IDC_SPINCHEIGHT, UDM_SETPOS, 0,
 	//	(int)(short)GetMyRegLong("Color_Font", "ClockHeight", 0));
 	SendDlgItemMessage(hDlg, IDC_SPINCWIDTH, UDM_SETRANGE, 0,
-		MAKELONG(32, -32));
+		MAKELONG(512, -128));
 	SendDlgItemMessage(hDlg, IDC_SPINCWIDTH, UDM_SETPOS, 0,
 		(int)(short)GetMyRegLong("Color_Font", "ClockWidth", 0));
 	SendDlgItemMessage(hDlg, IDC_SPINVPOS, UDM_SETRANGE, 0,

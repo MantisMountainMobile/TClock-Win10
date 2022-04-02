@@ -134,7 +134,7 @@ BOOL CALLBACK PageGraphProc(HWND hDlg, UINT message,
 void OnInit(HWND hDlg)
 {
 	DWORD dw;
-	int tempGraphMode, tempGraphType;
+	int tempGraphMode, tempGraphType, tempWidth, tempHeight;
 
 	LOGFONT logfont;
 	hfontb = (HFONT)SendMessage(hDlg, WM_GETFONT, 0, 0);
@@ -187,11 +187,15 @@ void OnInit(HWND hDlg)
 	SetDlgItemInt(hDlg, IDC_TBGGRAPHRATE, GetMyRegLong("Graph", "NetGraphScaleRecv", 1000), FALSE);
 	SetDlgItemInt(hDlg, IDC_TBGGRAPHRATE2, GetMyRegLong("Graph", "NetGraphScaleSend", 1000), FALSE);
 
+	tempWidth = (int)GetMyRegLong("Status_DoNotEdit", "ClockWidth", 0);
+	tempHeight = (int)GetMyRegLong("Status_DoNotEdit", "ClockHeight", 0);
+
+
 	dw = GetMyRegLong("Graph", "GraphLeft", 0);
 	if(dw > 1000) dw = 1000;
 	if(dw < 0  ) dw = 0;
 	SendDlgItemMessage(hDlg,IDC_SPGRAPHLEFT,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)1000, (short)0));
+		(LPARAM) MAKELONG((short)tempWidth, (short)0));
 	SendDlgItemMessage(hDlg, IDC_SPGRAPHLEFT, UDM_SETPOS, 0,
 		(int)(short)dw);
 
@@ -199,7 +203,7 @@ void OnInit(HWND hDlg)
 	if(dw > 1000) dw = 1000;
 	if(dw < 0  ) dw = 0;
 	SendDlgItemMessage(hDlg,IDC_SPGRAPHTOP,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)1000, (short)0));
+		(LPARAM) MAKELONG((short)tempHeight, (short)0));
 	SendDlgItemMessage(hDlg, IDC_SPGRAPHTOP, UDM_SETPOS, 0,
 		(int)(short)dw);
 
@@ -207,7 +211,7 @@ void OnInit(HWND hDlg)
 	if(dw > 1000) dw = 1000;
 	if(dw < 0  ) dw = 0;
 	SendDlgItemMessage(hDlg,IDC_SPGRAPHRIGHT,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)1000, (short)0));
+		(LPARAM) MAKELONG((short)tempWidth, (short)0));
 	SendDlgItemMessage(hDlg, IDC_SPGRAPHRIGHT, UDM_SETPOS, 0,
 		(int)(short)dw);
 
@@ -215,7 +219,7 @@ void OnInit(HWND hDlg)
 	if(dw > 1000) dw = 1000;
 	if(dw < 0  ) dw = 0;
 	SendDlgItemMessage(hDlg,IDC_SPGRAPHBOTTOM,UDM_SETRANGE,0,
-		(LPARAM) MAKELONG((short)1000, (short)0));
+		(LPARAM) MAKELONG((short)tempHeight, (short)0));
 	SendDlgItemMessage(hDlg, IDC_SPGRAPHBOTTOM, UDM_SETPOS, 0,
 		(int)(short)dw);
 

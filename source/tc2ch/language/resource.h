@@ -418,6 +418,7 @@
 #define IDS_DATAUSAGE2                  1132
 #define IDC_CHECK_ENABLE_CHIME          1132
 #define IDC_COLHOUR                     1133
+#define IDC_CHECK_ENABLE_CHIME2         1133
 #define IDC_CHOOSECOLHOUR               1134
 #define IDS_NETWORKSTG2                 1134
 #define IDC_COLMIN                      1135
@@ -440,7 +441,9 @@
 #define IDC_CHIME_WAV                   1148
 #define IDC_CHIME_WAV_BROWSE            1149
 #define IDC_EDIT_CHIME_VOL              1150
+#define IDC_CHIME_WAV2                  1150
 #define IDC_SPIN_CHIME_VOL              1151
+#define IDC_CHIME_WAV_BROWSE2           1151
 #define IDC_EDIT_CHIME_OFFSET_S         1152
 #define IDC_SPIN_CHIME_OFFSET_S         1153
 #define IDC_EDIT_CHIME_START            1154
@@ -451,6 +454,10 @@
 #define IDC_SPIN_CHIME_BLINK            1159
 #define IDC_CHECK_ENABLE_CHIME_BLINK    1160
 #define IDC_LABEL_BARMETER_THRESHOLD    1161
+#define IDC_EDIT_CHIME_OFFSET_S2        1161
+#define IDC_CHECK_ENABLE_CUCKOOCLOCK    1162
+#define IDC_SPIN_CHIME_OFFSET_S2        1163
+#define IDC_CHECK_ENABLE_CUCKOOCLOCK2   1164
 #define IDC_BARMETERCOL_VOL             1170
 #define IDC_BARMETERCOL_CPU             1171
 #define IDC_BARMETERCOL_BAT             1172
@@ -468,6 +475,7 @@
 #define IDC_BARMETERCOL_3               1184
 #define IDC_CHOOSEBARMETERCOL_3         1185
 #define IDC_BARMETERCOL_CPU2            1186
+#define IDC_ETC_SHOWTRAYICON            1187
 #define IDC_LOCALE                      1200
 #define IDC_YEAR4                       1201
 #define IDC_YEAR                        1202
@@ -698,6 +706,8 @@
 #define IDC_CHOOSECOLDESKTOPICON        2505
 #define IDC_PLAY_WAV                    2506
 #define IDC_PLAY_WAV_STOP               2507
+#define IDC_PLAY_WAV2                   2508
+#define IDC_PLAY_WAV_STOP2              2509
 #define IDC_RADDESKTOPICONNORMAL        2510
 #define IDC_RADDESKTOPICONLIST          2511
 #define IDC_RADDESKTOPICONREPORT        2512

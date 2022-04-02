@@ -261,7 +261,7 @@ extern "C" BOOL WINAPI CheckModernStandbyCapability_Win10(void) //20190725
 
 
 
-extern "C" int WINAPI CheckWinVersion_Win10(void)
+extern "C" int CheckWinVersion_Win10(void)
 {
 	extern BOOL b_DebugLog;
 
@@ -269,6 +269,9 @@ extern "C" int WINAPI CheckWinVersion_Win10(void)
 	int majorVersion;
 	int minorVersion;
 	int buildNumber;
+	extern int WinBuildNumber;
+	extern int Win11Type;
+
 	auto versionInfo = RTL_OSVERSIONINFOW{ sizeof(RTL_OSVERSIONINFOW) };
 	HMODULE hModule = GetModuleHandle("ntdll.dll");
 
@@ -281,13 +284,12 @@ extern "C" int WINAPI CheckWinVersion_Win10(void)
 			majorVersion = (int)versionInfo.dwMajorVersion;
 			minorVersion = (int)versionInfo.dwMinorVersion;
 			buildNumber = (int)versionInfo.dwBuildNumber;
+			
+			WinBuildNumber = buildNumber;
 
 			if (b_DebugLog)
 			{
 				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] Version was checked with RtlGetVersion in ntdll.dll", 999);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MajorVersion = ", majorVersion);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MinorVersion = ", minorVersion);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] BuildNumber = ", buildNumber);
 			}
 		}
 		else
@@ -302,11 +304,30 @@ extern "C" int WINAPI CheckWinVersion_Win10(void)
 			if (b_DebugLog)
 			{
 				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] RtlGetVersion in ntdll.dll is not available. Version was checked with GetVersion()", 999);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MajorVersion = ", majorVersion);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MinorVersion = ", minorVersion);
-				writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] BuildNumber = ", buildNumber);
 			}
 		}
+
+
+		if (buildNumber < 22000)
+		{
+			Win11Type = 0;		//Windows10
+		}
+		else if (buildNumber < 22579)
+		{
+			Win11Type = 1;		//Windows11 Type1 (時計がトレイに載っっている)
+		}
+		else 
+		{
+			Win11Type = 2;		//Windows11 Type2 (時計がContentBridgeに載っていて、タスクバー処理が大きく変わった)
+		}
+
+		if (b_DebugLog)
+		{
+			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MajorVersion = ", majorVersion);
+			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MinorVersion = ", minorVersion);
+			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] BuildNumber = ", buildNumber);
+		}
+
 	}
 	else
 	{
@@ -527,36 +548,74 @@ extern "C" void toggleBarMeterFunc_Win10(int f)
 
 }
 
+LONG prevDebugLogTime;
 
 
 extern "C" void writeDebugLog_Win10(LPSTR s, int num)
 {
-		SYSTEMTIME systemtime;
-		char tempstr_Win10[256];
-		GetLocalTime(&systemtime);
-		DWORD tickCount_LastLog_temp = 0;
-		tickCount_LastLog_temp = GetTickCount();
-		int msPast = tickCount_LastLog_temp - tickCount_LastLog;
-		char marker[32];
-		if (msPast > 1000) strcpy(marker, "*");
-		else strcpy(marker, " ");
+	LONG newDebugLogTime;
+	FILETIME newDebugLogFileTime;
+	int intTimeLag;
+	SYSTEMTIME systemtime;
+	char tempstr_Win10[256], tempstr_TimeLag[16], marker[8];
+
+	GetLocalTime(&systemtime);
+
+	GetSystemTimeAsFileTime(&newDebugLogFileTime);
+	newDebugLogTime = newDebugLogFileTime.dwLowDateTime;
+	intTimeLag = (newDebugLogTime - prevDebugLogTime);
+	prevDebugLogTime = newDebugLogTime;
+
+	if ((intTimeLag > 9900) && (intTimeLag < 10000))intTimeLag = 10000;
+
+	if (intTimeLag >= 10000) 
+	{
+		snprintf(tempstr_TimeLag, 16, "%3dms", intTimeLag / 10000);
+	}
+	else if (intTimeLag >= 10)
+	{
+		snprintf(tempstr_TimeLag, 16, "%3dus", intTimeLag / 10);
+	}
+	else if (intTimeLag == 0)
+	{
+		snprintf(tempstr_TimeLag, 16, "  0ns");
+	}
+	else
+	{
+		snprintf(tempstr_TimeLag, 16, "%d00ns", intTimeLag);
+	}
+
+		
+//		DWORD tickCount_LastLog_temp = 0;
+//		tickCount_LastLog_temp = GetTickCount();
+//		int msPast = tickCount_LastLog_temp - tickCount_LastLog;
+
+		//if (msPast > 1000) strcpy(marker, "*");
+		//else strcpy(marker, " ");
+
+
+		if (intTimeLag > 1000000000)strcpy(marker, "****");
+		else if (intTimeLag > 100000000)strcpy(marker, " ***");
+		else if (intTimeLag > 10000000)strcpy(marker, "  **");
+		else if (intTimeLag > 1000000)strcpy(marker, "   *");
+		else strcpy(marker, "    ");
 
 		if (num != 999)
 		{
-			snprintf(tempstr_Win10, 256, "%s %d/%02d/%02d %02d:%02d:%02d.%03d [%5dms] %s %d", marker,
+			snprintf(tempstr_Win10, 256, "%s %d/%02d/%02d %02d:%02d:%02d.%03d [%s] %s %d", marker,
 				systemtime.wYear, systemtime.wMonth, systemtime.wDay,
 				systemtime.wHour, systemtime.wMinute, systemtime.wSecond,
-				systemtime.wMilliseconds, msPast, s, num);
+				systemtime.wMilliseconds, tempstr_TimeLag, s, num);
 		}
 		else
 		{
-			snprintf(tempstr_Win10, 256, "%s %d/%02d/%02d %02d:%02d:%02d.%03d [%5dms] %s", marker,
+			snprintf(tempstr_Win10, 256, "%s %d/%02d/%02d %02d:%02d:%02d.%03d [%s] %s", marker,
 				systemtime.wYear, systemtime.wMonth, systemtime.wDay,
 				systemtime.wHour, systemtime.wMinute, systemtime.wSecond,
-				systemtime.wMilliseconds, msPast, s);
+				systemtime.wMilliseconds, tempstr_TimeLag, s);
 		}
 		WriteDebugDLL_New(tempstr_Win10);
-		tickCount_LastLog = tickCount_LastLog_temp;
+//		tickCount_LastLog = tickCount_LastLog_temp;
 }
 
 
@@ -855,7 +914,7 @@ extern "C" BOOL updateConnectProfsInfo_Win10(BOOL b_Detail)	// return value: 1 =
 
 
 
-extern "C" BOOL chkExistProf_Win10()
+extern "C" BOOL chkExistProf_Win10(void)
 {
 	BOOL ret = FALSE;
 	extern BOOL b_DebugLog;

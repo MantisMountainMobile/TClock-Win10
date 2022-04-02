@@ -82,6 +82,9 @@ void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval);
 COLORREF TextColorFromInfoVal(int infoval);
 void ClearGraphData(void);
 
+void GetTaskbarColor_Win11Type2(void);
+
+
 
 //tcdll.hに移動
 //LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
@@ -133,7 +136,7 @@ extern HWND hwndTaskBarMain;
 #endif
 
 HWND hwndTrayMain = NULL;
-
+HWND hwndDesktop = NULL;
 
 //以下の配列の初期化はFindAllSubClocksのループの中で行う。
 HWND hwndTaskBarSubClk[MAX_SUBSCREEN];
@@ -158,14 +161,21 @@ BOOL bEnableSubClks = FALSE;
 HANDLE hmod = 0;
 
 HWND hwndClockMain = NULL;
+HWND hwndTClockBarWin11 = NULL;
 WNDPROC oldWndProc = NULL;
 WNDPROC oldWndProcSub[MAX_SUBSCREEN] = { NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL };
+WNDPROC oldProcTaskbarContentBridge_Win11;
 
 BOOL bTimer = FALSE;
 BOOL bTimerDLLMainAdjust = FALSE;
 HDC hdcClock = NULL;
 HDC hdcClock_work = NULL;
-;
+
+HDC HDC_Stored_Desktop = NULL;
+HDC HDC_Stored_ContentBridge_Win11 = NULL;
+HDC HDC_Stored_TaskbarMain = NULL;
+
+
 static HGDIOBJ hbmpClockOld = NULL;
 HBITMAP hbmpClock = NULL;
 HBITMAP hbm_DIBSection = NULL;
@@ -181,7 +191,6 @@ DWORD grad;
 BOOL bTimerCheckNetStat = FALSE;	//Added by TTTT
 BOOL bTimerAdjust_SysInfo = FALSE;
 BOOL bTimerAdjust_NetStat = FALSE;
-BOOL bTimerSubClks = FALSE;
 COLORREF ColorWeekdayText = RGB(0, 0, 0);
 COLORREF ColorSaturdayText = RGB(0, 0, 0);
 COLORREF ColorSundayText = RGB(0, 0, 0);
@@ -192,6 +201,10 @@ BOOL bSaturday = FALSE;
 BOOL bSunday = FALSE;
 BOOL bHoliday = FALSE;
 BOOL b_DayChange = FALSE;
+
+COLORREF originalColorTaskbar = RGB(0, 0, 0);
+COLORREF originalColorTaskbar_ForWin11Notify = RGB(0, 0, 0);
+COLORREF originalColorTaskbarEdge = RGB(0, 0, 0);
 
 // add by 505 =================================
 static BOOL bGetingFocus = FALSE;
@@ -238,6 +251,7 @@ int beatLast = -1;
 int bDispSecond = FALSE;
 int nDispBeat = 0;
 int nBlink = 0;		//Integer for TEST, This should be Zero
+int nChime = 0;
 int BlinksOnChime = 3;
 int dwidth = 0, dheight = 0, dvpos = 0, dlineheight = 0, dclkvpos = 0;
 BOOL bDispSysInfo = FALSE, bTimerSysInfo = FALSE;
@@ -325,6 +339,9 @@ int megabytesInGigaByte = 1000;
 BOOL b_DebugLog = FALSE;
 BOOL b_DebugLog_RegAccess = FALSE;
 BOOL b_DebugLog_Specific = FALSE;
+
+int WinBuildNumber = 0;
+int Win11Type = 0;
 
 char g_mydir_dll[MAX_PATH]; // path to tclock.exe
 
@@ -496,8 +513,14 @@ COLORREF colorBG_original = RGB(0, 0, 0);
 int currentTimeZoneBiasMin = 0;
 int timezoneBiasMin[256];
 int iHourTransition = -1, iMinuteTransition = -1;
+int originalWidthTaskbar = 0;
+int originalHeightTaskbar = 0;
+int originalPosYTaskbar = 0;
+
 int widthTaskbar = 0;
 int heightTaskbar = 0;
+int posXTaskbar = 0;
+int posYTaskbar = 0;
 BOOL bAutoRestart = TRUE;
 
 //Win11対応関連
@@ -519,11 +542,18 @@ BOOL bEnabledWin11Notify = TRUE;	//利用するかどうか(通知ウィンドウ自体は常に作る
 HDC hdcYesWin11Notify = NULL;
 HDC hdcNoWin11Notify = NULL;
 HDC hdcFocusWin11Notify = NULL;
+HDC hdcWin11Notify = NULL;
+
 HBITMAP hbm_DIBSection_YesWin11Notify = NULL;
 HBITMAP hbm_DIBSection_NoWin11Notify = NULL;
 HBITMAP hbm_DIBSection_FocusWin11Notify = NULL;
+HBITMAP hbm_DIBSection_Win11Notify = NULL;
 HBITMAP hbmpIconYesWin11Notify = NULL;
+HBITMAP hbmpIconNoWin11Notify = NULL;
+HBITMAP hbmpIconFocusWin11Notify = NULL;
 
+RGBQUAD* m_color_Win11Notify_start = NULL;
+RGBQUAD* m_color_Win11Notify_end = NULL;
 RGBQUAD* m_color_YesWin11Notify_start = NULL;
 RGBQUAD* m_color_YesWin11Notify_end = NULL;
 RGBQUAD* m_color_NoWin11Notify_start = NULL;
@@ -607,10 +637,16 @@ static TCHAR szChimeWav[MAX_PATH] = "";
 int intOffsetChimeSec = 0;
 int chimeHourStart = 0;
 int chimeHourEnd = 24;
+BOOL b_EnableSecondaryChime = FALSE;
+BOOL b_CuckooClock = FALSE;
+int intOffsetSecondaryChimeSec = 1800;
+static TCHAR szSecondaryChimeWav[MAX_PATH] = "";
 
 extern int numThermalZone;
 extern int indexSelectedThermalZone;
 extern int pdhTemperature;
+
+BOOL b_WININICHANGED = FALSE;
 
 
 void GetMainClock(void)
@@ -650,10 +686,15 @@ void InitClock()
 
 	if(hwndClockMain != NULL) return;
 
-
 	HookEnd();	//Ver 4.0.5.3試行。Initclock起動してからは不要なのでフック外す。不具合出るならこの行を削除する。
 
 	GetModuleFileName(hmod, fname, MAX_PATH);
+
+
+	GetTaskbarSize();
+	originalWidthTaskbar = widthTaskbar;
+	originalHeightTaskbar = heightTaskbar;
+	originalPosYTaskbar = posYTaskbar;
 
 	del_title(fname);
 	add_title(fname, "tclock-win10.ini");
@@ -665,11 +706,28 @@ void InitClock()
 		FindClose(hfind);
 	}
 
+	g_winver = CheckWinVersion_Win10();
+
+	if (Win11Type == 2) 
+	{
+		GetTaskbarColor_Win11Type2();
+	}
 
 	GetMainClock();	//hwndClockMainをゲット, bWin11Mainはここで決定される。
 	if (hwndClockMain == NULL) return;
 
-	g_winver = CheckWinVersion_Win10(); 
+	hwndDesktop = GetDesktopWindow();
+	HDC_Stored_Desktop = GetDC(hwndDesktop);
+	ReleaseDC(hwndDesktop, HDC_Stored_Desktop);
+
+
+	HDC_Stored_TaskbarMain = GetDC(hwndTaskBarMain);
+	ReleaseDC(hwndTaskBarMain, HDC_Stored_TaskbarMain);
+
+	if (hwndWin11ContentBridge) {
+		HDC_Stored_ContentBridge_Win11 = GetDC(hwndWin11ContentBridge);
+		ReleaseDC(hwndWin11ContentBridge, HDC_Stored_ContentBridge_Win11);
+	}
 
 
 	//SafeModeチェック
@@ -677,6 +735,11 @@ void InitClock()
 
 	//レジストリ読み込み
 	ReadData();
+
+
+
+
+
 
 	if (b_DebugLog) {
 		writeDebugLog_Win10("[tclock.c][InitClock] bWin11Main =", bWin11Main);
@@ -707,6 +770,16 @@ void InitClock()
 		GetWin11TrayWidth();	//これは初回起動時のみ！
 		SetModifiedWidthWin11Tray();
 		CalcMainClockSize();
+		if (Win11Type == 2) 
+		{
+			SetMainClockOnTasktray_Win11();
+			COLORREF taskbarColor;
+			HDC tempDC = NULL;
+			tempDC = GetDC(hwndTaskBarMain);
+			taskbarColor = GetBkColor(tempDC);
+			ReleaseDC(hwndTaskBarMain, tempDC);
+			if (b_DebugLog)writeDebugLog_Win10("[tclock.c] Taskbar Backcolor = ", taskbarColor);
+		}
 	}
 	else {							//Win10
 		GetPrevMainClockSize();
@@ -720,18 +793,30 @@ void InitClock()
 
 
 
-
-
 	//サブクラス化
 	oldWndProc = (WNDPROC)GetWindowLongPtr(hwndClockMain, GWLP_WNDPROC);
+	SubclassWindow(hwndClockMain, WndProc);
+
 	if (bWin11Main)		//現時点でWndProcは同じ, Removeも合わせること。
 	{
-		SubclassWindow(hwndClockMain, WndProc);
+
 		if (hwndWin11Notify) SubclassWindow(hwndWin11Notify, WndProcWin11Notify);
+
+		if (Win11Type == 2)
+		{
+			oldProcTaskbarContentBridge_Win11 = (WNDPROC)GetWindowLongPtr(hwndWin11ContentBridge, GWLP_WNDPROC);
+			SubclassWindow(hwndWin11ContentBridge, WndProcTaskbarContentBridge_Win11);
+		}
+		else
+		{
+			SetWindowSubclass(hwndTrayMain, SubclassTrayProc_Win11,
+				SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
+		}
 	}
 	else 
 	{
-		SubclassWindow(hwndClockMain, WndProc);
+		SetWindowSubclass(hwndTrayMain, SubclassTrayProc,
+			SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
 	}
 	//ダブルクリック受け付けない
 	SetClassLongPtr(hwndClockMain, GCL_STYLE,
@@ -747,16 +832,18 @@ void InitClock()
 	//メインタスクバー方向チェックとサブクロックのサブクラス化も行われる。
 	if (bEnableSubClks) ActivateSubClocks();
 
+	//上の処理に取り入れたので、問題なく動くことが確認できたら消す。
+	//if (bWin11Main)
+	//{
+	//	SetWindowSubclass(hwndTrayMain, SubclassTrayProc_Win11,
+	//		SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
 
-	if (bWin11Main)
-	{
-		SetWindowSubclass(hwndTrayMain, SubclassTrayProc_Win11,
-			SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
-	}
-	else {
-		SetWindowSubclass(hwndTrayMain, SubclassTrayProc,
-			SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
-	}
+
+	//}
+	//else {
+	//	SetWindowSubclass(hwndTrayMain, SubclassTrayProc,
+	//		SUBCLASSTRAY_ID, (DWORD_PTR)hwndClockMain);
+	//}
 
 
 
@@ -771,7 +858,7 @@ void InitClock()
 	TooltipInit(hwndClockMain);
 
 
-	if (b_DebugLog)("[tclock.c] InitClock finished.", 999);
+	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] InitClock finished.", 999);
 
 }
 
@@ -780,18 +867,24 @@ void RedrawTClock(void)
 	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] RedrawTClock called.", 999);
 	HDC hdc;
 
+	if (Win11Type == 2) {
+		GetTaskbarColor_Win11Type2();
+	}
+
 	hdc = GetDC(hwndClockMain);
 
 	if (hdc) {
-		DrawClock_New(hdc);
+		DrawClock_New(hdc, b_WININICHANGED);		//b_WININICHANGED = TRUE のときはWin11Type2の場合に強制的に通知を更新する。
 		ReleaseDC(hwndClockMain, hdc);
 	}
+
+	b_WININICHANGED = FALSE;
 }
 
 void RedrawMainTaskbar(void) 
 {
 	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] RedrawMainTaskbar called.", 999);
-	if (hwndTaskBarMain) 
+	if (hwndTaskBarMain)
 	{
 		PostMessage(hwndTrayMain, WM_SIZE, SIZE_RESTORED, 0);
 		PostMessage(hwndTaskBarMain, WM_SIZE, SIZE_RESTORED, 0);
@@ -850,6 +943,11 @@ void DeleteClockRes(void)
 		DeleteObject(hbm_DIBSection_work);
 	}
 
+	if (hdcWin11Notify) {
+		DeleteDC(hdcWin11Notify);
+		DeleteObject(hbm_DIBSection_Win11Notify);
+	}
+
 	if (hdcYesWin11Notify) {
 		DeleteDC(hdcYesWin11Notify);
 		DeleteObject(hbm_DIBSection_YesWin11Notify);
@@ -870,12 +968,25 @@ void DeleteClockRes(void)
 		DeleteObject(hbmpIconYesWin11Notify);
 	}
 
+	if (hbmpIconNoWin11Notify)
+	{
+		DeleteObject(hbmpIconNoWin11Notify);
+	}
+
+	if (hbmpIconFocusWin11Notify)
+	{
+		DeleteObject(hbmpIconFocusWin11Notify);
+	}
+
+
+	
+
 	if (!hBrushWin11Notify)DeleteObject(hBrushWin11Notify);
 	if (!hPenWin11Notify)DeleteObject(hPenWin11Notify);
 
 }
 
-void EndClock()
+void EndClock(void)
 {
 
 	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] EndClock called.", 999);
@@ -884,8 +995,12 @@ void EndClock()
 		newCodes_close_Win10();	//	-> Limited !b_CompactoMode to cope with Win10 April2018 Update
 	}
 
-
 	DragAcceptFiles(hwndClockMain, FALSE);
+
+
+	//サブ画面の時計のサブクラス化を解除してタスクバーサイズを戻す。
+	DisableAllSubClocks();
+
 
 	TooltipEnd(hwndClockMain);
 
@@ -908,7 +1023,7 @@ void EndClock()
 		if(bGraphTimerStart) KillTimer(hwndClockMain, IDTIMERDLL_GRAPH); bGraphTimerStart=FALSE;
 		if(bTimerCheckNetStat) KillTimer(hwndClockMain, IDTIMERDLL_CHECKNETSTAT); bTimerCheckNetStat = FALSE;
 		if(bTooltipTimerStart) KillTimer(hwndClockMain, IDTIMERDLL_TIP); bTooltipTimerStart=FALSE;
-		if (bTimerSubClks) KillTimer(hwndClockMain, IDTIMERDLL_UPDATESUBCLKS); bTimerSubClks = FALSE;
+		KillTimer(hwndClockMain, IDTIMERDLL_DELEYED_RESPONSE);
 
 		if (oldWndProc && (WNDPROC)WndProc == (WNDPROC)GetWindowLongPtr(hwndClockMain, GWLP_WNDPROC))
 		{
@@ -919,6 +1034,34 @@ void EndClock()
 
 	if (bWin11Main)
 	{
+
+		if (Win11Type == 2) {
+			//if (bAdjustTrayWin11SmallTaskbar) {
+			//	//タスクバー幅を戻す(位置とサイズ)
+			//	SetWindowPos(hwndTaskBarMain, NULL, 0, originalPosYTaskbar, originalWidthTaskbar, originalHeightTaskbar,
+			//		SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);		//SWP_NOSENDCHANGINGを入れておかないとタスクバーは移動しない！
+			//}
+			//else {
+				//タスクバー幅を戻す(サイズのみ)
+				SetWindowPos(hwndTaskBarMain, NULL, 0, 0, originalWidthTaskbar, originalHeightTaskbar,
+					SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);		//SWP_NOSENDCHANGINGを入れておかないとタスクバーは移動しない！
+			//}
+		}
+
+		if ((Win11Type == 2) && oldProcTaskbarContentBridge_Win11 && IsWindow(hwndWin11ContentBridge))
+			 //&& ((WNDPROC)WndProcTaskbarContentBridge_Win11 == (WNDPROC)GetWindowLongPtr(hwndWin11ContentBridge, GWLP_WNDPROC)))
+		{
+			SubclassWindow(hwndWin11ContentBridge, oldProcTaskbarContentBridge_Win11);
+			oldProcTaskbarContentBridge_Win11 = NULL;
+			ShowWindow(hwndWin11ContentBridge, SW_SHOW);	//これをやらないとタスクバーが消える。
+			ShowWindow(hwndTaskBarMain, SW_SHOW);	//これをやらないとタスクバーが消える。
+		}
+		else if (Win11Type < 2)
+		{
+			RemoveWindowSubclass(hwndTrayMain, SubclassTrayProc_Win11,
+				SUBCLASSTRAY_ID);
+		}
+
 		PostMessage(hwndClockMain, WM_CLOSE, 0, 0);
 		UnregisterClass("TClockMain", hmod);
 
@@ -926,15 +1069,17 @@ void EndClock()
 		PostMessage(hwndWin11Notify, WM_CLOSE, 0, 0);
 		UnregisterClass("TClockNotify", hmod);
 
-		RemoveWindowSubclass(hwndTrayMain, SubclassTrayProc_Win11,
-			SUBCLASSTRAY_ID);
+		if (Win11Type == 2) {
+//			SubclassWindow(hwndTClockBarWin11, DefWindowProc);
+			PostMessage(hwndTClockBarWin11, WM_CLOSE, 0, 0);
+			UnregisterClass("TClockBarWin11", hmod);
+		}
+
 	}else {
 		RemoveWindowSubclass(hwndTrayMain, SubclassTrayProc,
 			SUBCLASSTRAY_ID);
 	}
 
-	//サブ画面の時計のサブクラス化を解除してタスクバーサイズを戻す。
-	DisableAllSubClocks();
 
 	RedrawMainTaskbar();
 
@@ -950,7 +1095,8 @@ void EndClock()
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	HWND tempHwnd;
-	tempHwnd = hwnd;
+//	tempHwnd = hwnd;
+	tempHwnd = hwndClockMain;
 
 	//このコールバック関数はhwndClockMainとの組み合わせででしか正しく動作しないので、原則としてhwnd = hwndClockMainだがコールバック関数なのでtempHwndで処理している
 	//messageは、定常運転時はWM_TIMER(275)以外はめったに来ない。
@@ -966,14 +1112,26 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_LBUTTONUP:
 		case WM_RBUTTONUP:
 		case WM_MBUTTONUP:
+			//if (b_DebugLog) {
+			//	writeDebugLog_Win10("[tclock.c][WndProc] Mouse Event received.", 999);
+			//	writeDebugLog_Win10("[tclock.c][WndProc] xPos =", (int)GET_X_LPARAM(GetMessagePos()));
+			//	writeDebugLog_Win10("[tclock.c][WndProc] yPos =", (int)GET_Y_LPARAM(GetMessagePos()));
+			//}
 			if (bEnableTooltip) {
-					TooltipOnMouseEvent(tempHwnd, message, wParam, lParam);
+					TooltipOnMouseEvent(tempHwnd, message, wParam, lParam, 1);
 			}
 			if (b_Sleeping)
 			{
 				b_Sleeping = FALSE;
 				if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc] Awake from Sleep by Mouse Action", 999);
 			}
+			//if (Win11Type == 2)
+			//{
+			//	extern BOOL b_ShowingTClockBarWin11;
+			//	if (b_ShowingTClockBarWin11) {
+			//		ReturnToOriginalTaskBar();
+			//	}
+			//}
 			break;
 	}
 
@@ -1011,7 +1169,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case (WM_USER+101):		// 親ウィンドウから送られる
 		{
 			CreateClockDC();
-			if(bEnableSubClks) DelayedUpdateSubClks();
+
+
+			//b_WININICHANGED = TRUE;		//すぐにこのフラグを立てると画面設定更新前にontimer_win10が呼ばれてしまうので、待機後(DelayedResponseToSysChangeに移動)
+			if (b_DebugLog)writeDebugLog_Win10("[tclock.c][WndProc] WM_WININICHANGE etc received. message = ", message);
+			SetTimer(hwndClockMain, IDTIMERDLL_DELEYED_RESPONSE, 500, NULL);
+
 			return 0;
 		}
 		case WM_SIZE:
@@ -1040,7 +1203,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			PAINTSTRUCT ps;
 			HDC hdc;
 			hdc = BeginPaint(tempHwnd, &ps);
-			DrawClock_New(hdc);
+			DrawClock_New(hdc, FALSE);
 			EndPaint(tempHwnd, &ps);
 			return 0;
 		}
@@ -1064,22 +1227,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				//Ver 4.1以降はOnTimer_Win10から行うこととする。タイマーも起動しないようにしている。
 //					TooltipOnTimer(tempHwnd);
 				}
-				else if (wParam == IDTIMERDLL_UPDATESUBCLKS) {
-					KillTimer(tempHwnd, IDTIMERDLL_UPDATESUBCLKS);
-					bTimerSubClks = FALSE;
-					//if (indexSubClkToUpdate == 255) {
-						CheckSubClocks();
-						SetAllSubClocks();
-					//}
-					//else {
-					//	SetSpecificSubClock(indexSubClkToUpdate);
-					//	indexSubClkToUpdate = 255;
-					//}
+				else if (wParam == IDTIMERDLL_DELEYED_RESPONSE) {
+					KillTimer(tempHwnd, IDTIMERDLL_DELEYED_RESPONSE);
+					DelayedResponseToSyschange();
 				}
-				//else if (wParam == IDTIMERDLL_MOVEWIN11CONTENTBRIDGE) {
-				//	KillTimer(tempHwnd, IDTIMERDLL_MOVEWIN11CONTENTBRIDGE);
-				//	MoveWin11ContentBridge();
-				//}
+				else if (wParam == IDTIMERDLL_WIN11TYPE2_SHOW_TASKBAR) {
+					KillTimer(hwndClockMain, IDTIMERDLL_WIN11TYPE2_SHOW_TASKBAR);
+					MoveWin11ContentBridge(3);
+				}
 			}
 			else if (wParam == IDTIMERDLL_DLLMAIN)
 			{
@@ -1109,6 +1264,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				DWORD mp;
 				mp = GetMessagePos();
 				PostMessage(hwndTClockExeMain, WM_CONTEXTMENU, (WPARAM)tempHwnd, (LPARAM)mp);
+				if (Win11Type == 2) {	//クリックによりTClockBarWin11がタスクバーより前面に来てしまうのを戻す。
+					SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, 0, 0, 0,
+						SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+				}
 				return 0;
 			}
 
@@ -1181,7 +1340,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case CLOCKM_REFRESHCLOCK: // refresh the clock
 		{
-			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc] CLOCKM_REFRESHCLOCKE received", 999);
+			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc] CLOCKM_REFRESHCLOCK received", 999);
 			RestartOnRefresh();
 			return 0;
 		}
@@ -1209,7 +1368,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			saveAndOpenProfTable(TRUE);
 			return 0;
 		case CLOCKM_MOVEWIN11CONTENTBRIDGE:
-			if (bWin11Main) MoveWin11ContentBridge();
+			if (bWin11Main) MoveWin11ContentBridge((int)wParam);
 			return 0;
 		case CLOCKM_REFRESHTASKBAR: // refresh other elements than clock
 
@@ -1221,6 +1380,19 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 	}
 	return CallWindowProc(oldWndProc, tempHwnd, message, wParam, lParam);
+}
+
+
+void DelayedResponseToSyschange(void)
+{
+	if (b_DebugLog)writeDebugLog_Win10("[subclock.c] DelayedResponseToSyschange called.", 999);
+	b_WININICHANGED = TRUE;	//次のOntimer_Win10->RedrawClockのタイミングでWin11Notifyが強制更新される。
+
+
+	if (bEnableSubClks) {
+		CheckSubClocks();
+		SetAllSubClocks();
+	}
 }
 
 void RestartOnRefresh(void)
@@ -1254,8 +1426,10 @@ void RestartOnRefresh(void)
 //		GetWin11TrayWidth();	//呼んではNG。すでにサイズが変わっているので誤情報を取得してしまう。
 		SetModifiedWidthWin11Tray();
 		//CreateWin11NotifyDC();	//不要
-		//Win11ではSetMainClockOnTasktray_Win11を実行する(要らないかも)
-		//SetMainClockOnTasktray_Win11();
+		//Win11ではSetMainClockOnTasktray_Win11を実行する(Win11Type == 2の場合は必要)
+		if (Win11Type == 2) {
+			SetMainClockOnTasktray_Win11();
+		}
 		if (bEnabledWin11Notify) DrawWin11Notify(TRUE);	//通知アイコンの色の反映のため
 	}
 
@@ -1308,6 +1482,8 @@ void ReadData()
 	UpdateSettingFile();
 
 	SetMyRegLong("Status_DoNotEdit", "Win11TClockMain", bWin11Main);
+
+	SetMyRegLong("Status_DoNotEdit", "WindowsType", Win11Type);
 
 	GetModuleFileName(hmod, g_mydir_dll, MAX_PATH);		//iniファイル経由でなくディレクトリ取得するように by TTTT
 	del_title(g_mydir_dll);
@@ -1388,6 +1564,7 @@ void ReadData()
 
 
 	fillbackcolor = GetMyRegLong("Color_Font", "UseBackColor", TRUE);
+
 	grad = GetMyRegLong("Color_Font", "GradDir", GRADIENT_FILL_RECT_H);
 
 	bClockShadow = GetMyRegLong("Color_Font", "ForeColorShadow", FALSE);
@@ -1992,6 +2169,26 @@ void ReadData()
 	BlinksOnChime = (int)(short)GetMyRegLong("Chime", "BlinksOnChime", 3);
 	SetMyRegLong("Chime", "BlinksOnChime", BlinksOnChime);
 
+	b_EnableSecondaryChime = GetMyRegLong("Chime", "EnableSecondaryChime", 0);
+	SetMyRegLong("Chime", "EnableSecondaryChime", b_EnableSecondaryChime);
+
+	b_CuckooClock = GetMyRegLong("Chime", "CuckooClock", 0);
+	SetMyRegLong("Chime", "CuckooClock", b_CuckooClock);
+
+	intOffsetSecondaryChimeSec = (int)(short)GetMyRegLong("Chime", "OffsetSecondaryChimeSec", 1800);
+	SetMyRegLong("Chime", "OffsetSecondaryChimeSec", intOffsetSecondaryChimeSec);
+
+	GetMyRegStr("Chime", "SecondaryChimeWav", fname, MAX_PATH, "C:\\Windows\\Media\\chimes.wav");
+	if (GetFileAttributes(fname) != 0xFFFFFFFF)
+	{
+		lstrcpy(szSecondaryChimeWav, fname);
+	}
+	else {
+		lstrcpy(szSecondaryChimeWav, "C:\\Windows\\Media\\chimes.wav");
+	}
+	SetMyRegStr("Chime", "SecondaryChimeWav", szSecondaryChimeWav);
+
+
 
 	indexSelectedThermalZone = GetMyRegLong("ETC", "SelectedThermalZone", 0);
 	SetMyRegLong("ETC", "SelectedThermalZone", indexSelectedThermalZone);
@@ -2247,11 +2444,21 @@ void GetDisplayTime(SYSTEMTIME* pt, int* beat100)
 	memcpy(pt, &lt, sizeof(lt));
 }
 
-void PlayChime(void)
+void PlayChime(BOOL b_sedondary)
 {
-	if (GetFileAttributes(szChimeWav) != 0xFFFFFFFF)
+	if (!b_sedondary) 
 	{
-		PlaySound(szChimeWav, NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+		if (GetFileAttributes(szChimeWav) != 0xFFFFFFFF)
+		{
+			PlaySound(szChimeWav, NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+		}
+	}
+	else 
+	{
+		if (GetFileAttributes(szSecondaryChimeWav) != 0xFFFFFFFF)
+		{
+			PlaySound(szSecondaryChimeWav, NULL, SND_FILENAME | SND_ASYNC | SND_NODEFAULT);
+		}
 	}
 }
 
@@ -2261,13 +2468,21 @@ void PlayChime(void)
 void OnTimer_Win10(void)
 {
 	SYSTEMTIME t;
-	int beat100 = 0;
+	int beat100 = 0, tempInt = 0;
 	//HDC hdc;
 	BOOL bRedraw;
 
+
+	if (Win11Type == 2) {
+		CheckPixel_Win10(posXMainClock + 1, originalPosYTaskbar + 10);
+	}
+
+
+
+
+
+
 	GetDisplayTime(&t, nDispBeat ? (&beat100) : NULL);
-
-
 
 	if (b_DebugLog)
 	{
@@ -2335,6 +2550,13 @@ void OnTimer_Win10(void)
 
 
 
+
+
+
+
+
+
+
 	bRedraw = FALSE;
 
 	if (bDispSecond) bRedraw = TRUE;
@@ -2375,37 +2597,80 @@ void OnTimer_Win10(void)
 		bRedraw = TRUE;
 	}
 
-
-	if (((t.wMinute * 60 + t.wSecond - intOffsetChimeSec) % 3600) == 0)
+	tempInt = (3600 + t.wMinute * 60 + t.wSecond - intOffsetChimeSec) % 3600;
+	if (tempInt == 0)
 	{
+		if (b_EnableChime) {
+			BOOL bRing = FALSE;
+			int tempInt = t.wHour;
+			if (intOffsetChimeSec < 0) {
+				tempInt++;
+				if (tempInt == 24) tempInt = 0;
+			}
+
+			if ((tempInt >= chimeHourStart) && (tempInt <= chimeHourEnd)) {
+				bRing = TRUE;
+			}
+
+			if (bRing) {
+				if (b_CuckooClock)
+				{
+					nChime = (tempInt + 11) % 12 + 1;
+					//if (intOffsetChimeSec < 0)
+					//{
+					//	nChime = t.wHour % 12 + 1;
+					//}
+					//else
+					//{
+					//	nChime = (t.wHour + 11) % 12 + 1;
+					//}
+				}
+				else {
+					nChime = 1;
+				}
+			}
+		}
 		if (b_EnableBlinkOnChime) {
 			nBlink = BlinksOnChime * 2;
 			bRedraw = TRUE;
 		}
+	}
+	else
+	{
+		tempInt = (3600 + t.wMinute * 60 + t.wSecond - intOffsetSecondaryChimeSec) % 3600;
 
-		if (b_EnableChime) {
-			if (intOffsetChimeSec < 0)
-			{
-				if (((t.wHour == 23) && (chimeHourStart == 0)) || ((chimeHourStart - t.wHour - 1) <= 0))
+		if (tempInt == 0)
+		{
+			if (b_EnableChime && b_EnableSecondaryChime) {
+				if (intOffsetSecondaryChimeSec < 0)
 				{
-					if ((chimeHourEnd - t.wHour) > 0)
+					if (((t.wHour == 23) && (chimeHourStart == 0)) || ((chimeHourStart - t.wHour - 1) <= 0))
 					{
-						PlayChime();
+						if ((chimeHourEnd - t.wHour) > 0)
+						{
+							PlayChime(TRUE);
+						}
 					}
 				}
-			}
-			else
-			{
-				if ((chimeHourStart - t.wHour) <= 0)
+				else
 				{
-					if (((chimeHourEnd - t.wHour) >= 0) || ((t.wHour == 0) && (chimeHourEnd == 24)))
+					if ((chimeHourStart - t.wHour) <= 0)
 					{
-						PlayChime();
+						if (((chimeHourEnd - t.wHour) >= 0) || ((t.wHour == 0) && (chimeHourEnd == 24)))
+						{
+							PlayChime(TRUE);
+						}
 					}
 				}
 			}
 		}
 	}
+
+	if (nChime > 0) {
+		PlayChime(FALSE);
+		nChime--;
+	}
+
 
 	memcpy(&LastTime, &t, sizeof(t));
 
@@ -2521,10 +2786,15 @@ void DrawClock(HWND hwnd, HDC hdc)
 	DrawClockFocusRect(hdc);
 }
 
-void DrawClock_New(HDC hdc)
+void DrawClock_New(HDC hdc, BOOL b_forceUpdateWin11Notify)
 {
 	SYSTEMTIME t;
 	int beat100 = 0;
+
+
+	//ここでWin11 Notificationも描画する。
+	//先にNotificationを書く。Win11Type==2において通知更新があった場合にメインクロック描画より先にoriginalColorTaskbar_ForWin11Notifyが更新される。
+	if (bEnabledWin11Notify) DrawWin11Notify(b_forceUpdateWin11Notify);
 
 	if (hdcClock) {
 		GetDisplayTime(&t, nDispBeat ? (&beat100) : NULL);
@@ -2536,8 +2806,6 @@ void DrawClock_New(HDC hdc)
 		if (b_DebugLog)writeDebugLog_Win10("[tclock.c][DrawClock_New] Draw was canceled because of No hdcClodk.", 999);
 	}
 
-	//ここでついでにNotificationも描画する。
-	if (bEnabledWin11Notify) DrawWin11Notify(FALSE);
 }
 
 static POINT ptMinHand[15] = {
@@ -3304,7 +3572,7 @@ void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval)
 	textcol_dow = TextColorFromInfoVal(88);
 	textcol_temp = TextColorFromInfoVal(infoval);
 
-	if (fillbackcolor) 
+	if (fillbackcolor || (Win11Type == 2)) 
 	{
 		if (bClockShadow)
 		{
@@ -3501,7 +3769,16 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 
 	if (!hdcClock) return;
 
-	FillClock();
+	//FillClock();
+	FillBack(hdcClock, widthMainClockFrame, heightMainClockFrame);
+
+	if (Win11Type == 2)		//Win11Type2での上端の色が違う部分を再現する。
+	{
+		for (color = m_color_end - widthMainClockFrame; color <m_color_end ; ++color) {
+			*(unsigned*)color = originalColorTaskbarEdge;
+		}
+	}
+	
 
 	for (int i = 0; i < 1024; i++)
 	{
@@ -3785,7 +4062,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	textshadow = TextColorFromInfoVal(99);
 	textcol_dow = TextColorFromInfoVal(88);
 
-	if (fillbackcolor) {	//背景非透過の場合
+	if (fillbackcolor || (Win11Type == 2)) {	//背景非透過の場合
 		for (color = m_color_start; color < m_color_end; ++color) {
 			color->rgbReserved = 255;
 		}
@@ -3953,8 +4230,8 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 				DeleteObject(hbm_tempDIBSection2);
 			}
 			else {
-				DisableSpecificSubClock(i);
 				if (b_DebugLog)	writeDebugLog_Win10("[tclock.c][DrawClockSub] Clock on SubDisplay Disabled !! ID = ", i);
+				DisableSpecificSubClock(i);
 			}
 		}
 	}
@@ -4656,6 +4933,69 @@ void getGraphVal()
 	bGraphRedraw = TRUE;
 }
 
+
+
+
+void FillBack(HDC hdcTarget, int width, int height) 
+{
+	HBRUSH hbr;
+	COLORREF col;
+	RECT tempRect;
+
+
+	tempRect.left = 0;
+	tempRect.right = width;
+	tempRect.top = 0;
+	tempRect.bottom = height;
+
+
+
+	if (!fillbackcolor)
+	{
+		//以前はここに時計背景をhdcClockに収容してその上に書き込むコードがあったが、2021年10月時点で機能しないものになっている。
+		//Windowsのタスクバー構造が完全に変わっていてその方式が復活する可能性はないので、削除
+		//透明化は、時計のビットマップを透過合成対応にして実現している。
+
+		if (Win11Type == 2)
+		{
+			//Win11Type2では透明効果でタスクバー色が変わるのでTClockの左端は毎秒色を合わせる。
+			//一方で、TClock右端には通知アイコンがあって、毎秒更新されるわけではないので、原則グラデーションで描画する。
+			//通知の更新がある場合に、左右の色が一致する。(通知の色をタスクバーの色に合わせる)
+			GradientFillBack(hdcTarget, width, height, originalColorTaskbar, originalColorTaskbar_ForWin11Notify, 0);
+		}
+	}
+	else
+	{
+		if (colback == colback2)	
+		{
+			col = colback;
+			hbr = CreateSolidBrush(col);
+			FillRect(hdcTarget, &tempRect, hbr);
+			DeleteObject(hbr);
+		}
+		else if ((width == widthWin11Notify) && (grad == 0) && bEnabledWin11Notify)	//横グラデでWin11Notifyのウィンドウの場合は第2色で塗りつぶす
+		{
+			col = colback2;
+			hbr = CreateSolidBrush(col);
+			FillRect(hdcTarget, &tempRect, hbr);
+			DeleteObject(hbr);
+		}
+		else
+		{
+			COLORREF col2;
+
+			col = colback;
+			col2 = colback2;
+
+			GradientFillBack(hdcTarget, width, height, col, col2, grad);
+		}
+	}
+
+}
+
+
+
+//使われていない。適当なタイミングで消す。
 /*------------------------------------------------
   paint background of clock
 --------------------------------------------------*/
@@ -4678,25 +5018,33 @@ void FillClock()
 		//以前はここに時計背景をhdcClockに収容してその上に書き込むコードがあったが、2021年10月時点で機能しないものになっている。
 		//Windowsのタスクバー構造が完全に変わっていてその方式が復活する可能性はないので、削除
 		//透明化は、時計のビットマップを透過合成対応にして実現している。
-	}
-	else if (colback == colback2)
-	{
-		col = colback;
-		//if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
-		hbr = CreateSolidBrush(col);
-		FillRect(hdcClock, &tempRect, hbr);
-		DeleteObject(hbr);
-	}
-	else
-	{
-		COLORREF col2;
 
-		col = colback;
-		//if(col & 0x80000000) col = GetSysColor(col & 0x00ffffff);
-		col2 = colback2;
-		//if(col2 & 0x80000000) col2 = GetSysColor(col2 & 0x00ffffff);
+		if (Win11Type == 2)
+		{
+			col = originalColorTaskbar;
+			hbr = CreateSolidBrush(col);
+			FillRect(hdcClock, &tempRect, hbr);
+			DeleteObject(hbr);
+		}
+	}
+	else 
+	{
+		if (colback == colback2)
+		{
+			col = colback;
+			hbr = CreateSolidBrush(col);
+			FillRect(hdcClock, &tempRect, hbr);
+			DeleteObject(hbr);
+		}
+		else
+		{
+			COLORREF col2;
 
-		GradientFillClock(col, col2, grad);
+			col = colback;
+			col2 = colback2;
+
+			GradientFillBack(hdcClock, widthMainClockFrame, heightMainClockFrame, col, col2, grad);
+		}
 	}
 }
 
@@ -4803,6 +5151,10 @@ void CalcMainClockSize(void)
 	else {
 		widthMainClockFrame = widthMainClockContent;
 		heightMainClockFrame = tempRect.bottom - tempRect.top;
+		//if (bAdjustTrayWin11SmallTaskbar && (Win11Type == 2))
+		//{
+		//	heightMainClockFrame = 2 * originalHeightTaskbar / 3;
+		//}
 	}
 
 	SetMyRegLong("Status_DoNotEdit", "ClockWidth", widthMainClockFrame);
@@ -5134,21 +5486,94 @@ void SetMainClockOnTasktray(void)
 	}
 
 
-	//サイズ更新したら、hdcClockを作り直すようにする。CreateClockDCはここから呼ぶだけで必要充分なはず。
+	//サイズ更新したら、hdcClockを作り直すようにする。
 	CreateClockDC();
 
 	//	SetAllSubClocks();	//メインクロックの状態が変わったら、毎回サブクロックも反映させる必要あり。
 	//->すぐに実行するとうまく行かない＆処理が繰り返されるのでディレイで実行
-	if (bEnableSubClks) DelayedUpdateSubClks();
+	if (bEnableSubClks) {
+		SetTimer(hwndClockMain, IDTIMERDLL_DELEYED_RESPONSE, 500, NULL);
+	}
+}
+
+void CheckPixel_Win10(int posX, int posY)
+{
+	HWND tempHwnd = NULL;
+	HDC tempDC = NULL;
+	RECT tempRect;
+	COLORREF tempCol;
+
+	tempHwnd = GetDesktopWindow();	//GetDesktopWindow()がデスクトップ
+	GetWindowRect(tempHwnd, &tempRect);
+	tempDC = GetDC(tempHwnd);
+	if (tempDC) {
+		tempCol = GetPixel(tempDC, posX, posY);
+
+		if (b_DebugLog) {
+			writeDebugLog_Win10("[tclock.c][GetPixelForCheck_Win10] posX =", posX);
+			writeDebugLog_Win10("[tclock.c][GetPixelForCheck_Win10] posY =", posY);
+			writeDebugLog_Win10("[tclock.c][GetPixelForCheck_Win10] red =", GetRValue(tempCol));
+			writeDebugLog_Win10("[tclock.c][GetPixelForCheck_Win10] green =", GetGValue(tempCol));
+			writeDebugLog_Win10("[tclock.c][GetPixelForCheck_Win10] blue =", GetBValue(tempCol));
+		}
+
+		ReleaseDC(tempHwnd, tempDC);
+	}
+}
+
+void GetTaskbarColor_Win11Type2(void)
+{
+	HWND tempHwnd = NULL;
+	HDC tempDC = NULL;
+	RECT tempRect;
+	int posX, posY;
+
+	GetWindowRect(hwndTaskBarMain, &tempRect);
+	posX = (posXMainClock < 10 ? 0 : (posXMainClock - 10));
+	posY = tempRect.top;
+
+
+	tempHwnd = GetDesktopWindow();	//GetDesktopWindow()がデスクトップ
+	GetWindowRect(tempHwnd, &tempRect);
+	tempDC = GetDC(tempHwnd);
+	if (tempDC) {
+//		originalColorTaskbar = GetPixel(tempDC, tempRect.left, tempRect.bottom - 1);	// bottom, rightは 1 引かないとはみ出てCLR_INVALIDになる。
+//		originalColorTaskbarEdge = GetPixel(tempDC, tempRect.left, tempRect.bottom - originalHeightTaskbar);	// Taskbar上端1ドットだけ色が違う・・・
+
+		originalColorTaskbar = GetPixel(tempDC, posX, tempRect.bottom - 1);	// bottom, rightは 1 引かないとはみ出てCLR_INVALIDになる。
+		originalColorTaskbarEdge = GetPixel(tempDC, posX, posY);	// Taskbar上端1ドットだけ色が違う。
+
+		ReleaseDC(tempHwnd, tempDC);
+
+		if (b_DebugLog)writeDebugLog_Win10("[tclock.c][GetTaskbarColor_Win11Type2] originalColorTaskbar =", (int)originalColorTaskbar);
+		if (b_DebugLog)writeDebugLog_Win10("[tclock.c][GetTaskbarColor_Win11Type2] originalColorTaskbarEdge =", (int)originalColorTaskbarEdge);
+
+		if (originalColorTaskbar == CLR_INVALID) {
+			if (b_DebugLog)writeDebugLog_Win10("[tclock.c][GetTaskbarColor_Win11Type2] Failed to get originalColorTaskbar", 999);
+			originalColorTaskbar = RGB(0, 0, 0);
+		}
+
+		if (originalColorTaskbarEdge == CLR_INVALID) {
+			if (b_DebugLog)writeDebugLog_Win10("[tclock.c][GetTaskbarColor_Win11Type2] Failed to get originalColorTaskbarEdge", 999);
+			originalColorTaskbarEdge = RGB(0, 0, 0);
+		}
+	}
+	else {
+//		if (b_DebugLog)writeDebugLog_Win10("[tclock.c][GetTaskbarColor_Win11Type2] Failed to get HDC for Taskbar", 999);
+	}
 }
 
 void GetTaskbarSize(void)
 {
 	RECT tempRect;
+
 	GetWindowRect(hwndTaskBarMain, &tempRect);
+
+	posXTaskbar = tempRect.left;
+	posYTaskbar = tempRect.top;
+
 	widthTaskbar = tempRect.right - tempRect.left;
 	heightTaskbar = tempRect.bottom - tempRect.top;
-
 
 	if (b_DebugLog){
 		writeDebugLog_Win10("[tclock.c][GetTaskbarSize] widthTaskbar =", widthTaskbar);
@@ -5156,9 +5581,10 @@ void GetTaskbarSize(void)
 	}
 
 	if (heightTaskbar == 0) {
-		if (b_DebugLog) writeDebugLog_Win10("[tclock.c][GetWin11ElementSize] Failed to Get heightTaskbar. TClock will not work correctly....", 999);
+		if (b_DebugLog) writeDebugLog_Win10("[tclock.c][GetTaskbarSize] Failed to Get heightTaskbar. TClock will not work correctly....", 999);
 		heightTaskbar = 48;	//万が一0だった場合に100%の場合の値を入れる。そうしないと処理がループする。とはいえこうなると正常動作しない。
 	}
+
 
 }
 

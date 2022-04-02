@@ -49,6 +49,8 @@ static DWORD dwTooltipTypeCur = 0;
 //static int alphaTooltip = 255;
 static int nTooltipIcon = 0;
 static HWND hwndTooltip = NULL;
+static HWND hwndCurrentTooltipOwner = NULL;
+static int uIdCurrentTooltipOwner = 1;
 static int iTooltipSelected = 0;
 static BOOL bTooltipCustomDrawDisable = FALSE;
 
@@ -126,14 +128,11 @@ void TooltipInit(HWND hwnd)
 
 	dwTooltipTypeCur = dwTooltipType;
 
-	//hwndTooltip = CreateWindowEx(WS_EX_LAYERED, TOOLTIPS_CLASS, (LPSTR)NULL,
-	//	TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
-	//	CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-	//	NULL, NULL, hmod, NULL);
 	hwndTooltip = CreateWindowEx(0, TOOLTIPS_CLASS, (LPSTR)NULL,
-		TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
+		WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | ((dwTooltipTypeCur == TOOLTIPTYPE_BALLOON) ? TTS_BALLOON : 0),
 		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 		NULL, NULL, hmod, NULL);
+
 	if (!hwndTooltip) return;
 
 	SetWindowPos(hwndTooltip, HWND_TOPMOST, 0, 0, 0, 0,
@@ -142,7 +141,6 @@ void TooltipInit(HWND hwnd)
 	bTooltipBalloon = (GetWindowLongPtr(hwndTooltip, GWL_STYLE) & TTS_BALLOON) != 0;
 
 	ti.cbSize = sizeof(TOOLINFO);
-	//		ti.hwnd = hwnd;		//以下の行と同内容
 	ti.hwnd = hwndClockMain;
 	ti.uId = 1;
 
@@ -152,6 +150,7 @@ void TooltipInit(HWND hwnd)
 	else {
 		ti.uFlags = TTF_SUBCLASS;	//TTF_SUBCLASSを入れないと、マウスが入った際の座標が左に移動した際に1回消える(点滅する)。Ver4.1以降
 	}
+
 
 	ti.hinst = NULL;
 	ti.lpszText = LPSTR_TEXTCALLBACK;
@@ -172,6 +171,57 @@ void TooltipInit(HWND hwnd)
 	SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM)(LPTOOLINFO)&ti);
 	SendMessage(hwndTooltip, TTM_ACTIVATE, TRUE, 0);
 
+	hwndCurrentTooltipOwner = hwndClockMain;
+	uIdCurrentTooltipOwner = 1;
+
+}
+
+void TooltipAddSubClock(int index)
+{
+	extern HWND hwndClockSubClk[];
+	extern int	heightSubClock[];
+	extern int	widthSubClock[];
+	TOOLINFO tempTooltipInfo;
+
+	if (!hwndTooltip || !hwndClockSubClk[index])return;
+
+	tempTooltipInfo.cbSize = sizeof(TOOLINFO);
+	tempTooltipInfo.hwnd = hwndClockSubClk[index];
+	tempTooltipInfo.uId = BASE_UID_SUBSCREEN + index;
+
+	if (bWin11Main) 
+	{
+		tempTooltipInfo.uFlags = 0;	//Win11ではTTF_SUBCLASSを入れると終了時にクラッシュする。マウスが入った際の1回消える問題は出ない模様？
+	}
+	else {
+		tempTooltipInfo.uFlags = TTF_SUBCLASS;	//TTF_SUBCLASSを入れないと、マウスが入った際の座標が左に移動した際に1回消える(点滅する)。Ver4.1以降
+	}
+
+	tempTooltipInfo.hinst = NULL;
+	tempTooltipInfo.lpszText = LPSTR_TEXTCALLBACK;
+	tempTooltipInfo.rect.left = 0;
+	tempTooltipInfo.rect.top = 0;
+	tempTooltipInfo.rect.right = widthSubClock[index];
+	tempTooltipInfo.rect.bottom = heightSubClock[index];
+
+	SendMessage(hwndTooltip, TTM_ADDTOOL, 0, (LPARAM)(LPTOOLINFO)&tempTooltipInfo);
+}
+
+
+
+void TooltipRemoveSubClock(int index)
+{
+
+	extern HWND hwndClockSubClk[];
+	TOOLINFO tempTooltipInfo;
+
+	if (!hwndTooltip || !hwndClockSubClk[index])return;
+
+	tempTooltipInfo.cbSize = sizeof(TOOLINFO);
+	tempTooltipInfo.hwnd = hwndClockSubClk[index];
+	tempTooltipInfo.uId = BASE_UID_SUBSCREEN + index;
+
+	SendMessage(hwndTooltip, TTM_DELTOOL, 0, (LPARAM)(LPTOOLINFO)&tempTooltipInfo);
 }
 
 void TooltipDeleteRes(void)
@@ -525,7 +575,7 @@ static void TooltipUpdateText(void)
 	if (bTooltip2)
 	{
 
-		GetWindowRect(hwndClockMain, &rcClock);
+		GetWindowRect(hwndCurrentTooltipOwner, &rcClock);
 		dw = GetMessagePos();
 		if (bTooltipTate)
 		{
@@ -623,15 +673,12 @@ void TooltipOnTimer(HWND hwnd, BOOL bForce)
 	{
 		TooltipUpdateText();
 
+		//以下の行を行うことで、ツールチップがタイムアウトで消えなくなる。hwndとuIdをツールチップを出している時計に合わせる必要あり。
 		TOOLINFO ti;
-
 		ti.cbSize = sizeof(TOOLINFO);
-		ti.hwnd = hwnd;
-		ti.uId = 1;
+		ti.hwnd = hwndCurrentTooltipOwner;
+		ti.uId = uIdCurrentTooltipOwner;
 		SendMessage(hwndTooltip, TTM_GETTOOLINFO, 0, (LPARAM)(LPTOOLINFO)&ti);
-		//			ti.uFlags = 0;
-		//			ti.hinst = NULL;
-		//			ti.lpszText = LPSTR_TEXTCALLBACK;
 		SendMessage(hwndTooltip, TTM_UPDATETIPTEXT, 0, (LPARAM)(LPTOOLINFO)&ti);
 
 	}
@@ -722,7 +769,7 @@ void TooltipReadData(void)
 
 BOOL TooltipOnNotify(LRESULT *plRes, LPARAM lParam)
 {
-	if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipOnNotify called with code=", ((LPNMHDR)lParam)->code);
+	//if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipOnNotify called with code=", ((LPNMHDR)lParam)->code);
 
 
 
@@ -984,43 +1031,35 @@ DWORD TooltipFindFormat(void)
 	return dwInfoTooltip;
 }
 
-void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, int uid)
 {
-//	if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipOnMouseEvent called", 999);
-
-
-
+	//if (b_DebugLog)writeDebugLog_Win10("[tooltip.c] TooltipOnMouseEvent called", 999);
 
 	MSG msg;
 	int tempInt;
 	extern posXMainClock;
 
-
 	msg.hwnd = hwnd;
 	msg.message = message;
 	msg.wParam = wParam;
-	msg.lParam = lParam;		//相対座標
+	msg.lParam = lParam;
 	msg.time = GetMessageTime();
-	msg.pt.x = GET_X_LPARAM(GetMessagePos());		//絶対座標
-	msg.pt.y = GET_Y_LPARAM(GetMessagePos());		//絶対座標
-
-	//
-	//if (b_DebugLog) {
-	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] time =", msg.time);
-	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.HIWORD =", HIWORD(msg.lParam));
-	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] lParam.LOWORD =", LOWORD(msg.lParam));
-	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Xpos =", msg.pt.x);
-	//	writeDebugLog_Win10("[tooltip.c][TooltipOnMouseevent] Ypos =", msg.pt.y);
-	//}
+	msg.pt.x = GET_X_LPARAM(GetMessagePos());
+	msg.pt.y = GET_Y_LPARAM(GetMessagePos());
 
 	//マウスがTClock内部で左に移動する場合、どうやってもツールチップが最初に一回消えるため、点滅してしまう。
 	//ここで座標を細工しても実際には新たにマウス座標を取得して処理するため解決できない。
 	//結局は、ツール登録の際にti.uFlagsにTTF_SUBCLASSを入れたら解決した。
 
 
-	if (hwndTooltip)		//Win10(!bWin11Main)の場合はuFlag = TTF_SUBCLASSにしているので送らなくていい
+	if (hwndTooltip)
 	{
 		SendMessage(hwndTooltip, TTM_RELAYEVENT, 0, (LPARAM)&msg);
 	}
 
+	hwndCurrentTooltipOwner = hwnd;
+	uIdCurrentTooltipOwner = uid;
 }
+
+
+

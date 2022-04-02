@@ -439,7 +439,7 @@ void WriteDebug_New2(const char* s)
 	//tickCount_LastLog_temp = GetTickCount();
 
 	{
-		wsprintf(strTemp, "[TCock Main]   %d/%02d/%02d %02d:%02d:%02d.%03d %s",
+		wsprintf(strTemp, "[TCock Main] Main %d/%02d/%02d %02d:%02d:%02d.%03d %s",
 			systemtime.wYear, systemtime.wMonth, systemtime.wDay,
 			systemtime.wHour, systemtime.wMinute, systemtime.wSecond,
 			systemtime.wMilliseconds, s);

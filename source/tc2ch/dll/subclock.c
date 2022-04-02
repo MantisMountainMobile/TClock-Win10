@@ -24,7 +24,6 @@ extern HWND hwndOriginalWin11SubClk[];
 extern BOOL bEnableSpecificSubClk[];
 extern BOOL bSuppressUpdateSubClk[];
 extern BOOL bEnableSubClks;
-extern BOOL bTimerSubClks;
 extern int	heightSubClock[];
 extern int	widthSubClock[];
 extern int	origSubClockWidth[];
@@ -145,6 +144,24 @@ LRESULT CALLBACK WndProcSubClk(HWND hwnd, UINT message, WPARAM wParam, LPARAM lP
 		PostMessage(hwndTClockExeMain, message, wParam, lParam);
 		return 0;
 	}
+	//ツールチップ処理導入準備(MainClockのWndProcのコード)
+	case WM_MOUSEMOVE:
+		//if (b_DebugLog) {
+		//	writeDebugLog_Win10("[subclock.c][WndProcSubClk] WM_MOUSEMOVE Received", 999);
+		//}
+		if (bEnableTooltip) {
+			TooltipOnMouseEvent(hwnd, message, wParam, lParam, BASE_UID_SUBSCREEN + GetSubClkIndexFromHWND(hwnd));
+		}
+		return 0;
+	case WM_NOTIFY:
+		//if (b_DebugLog) {
+		//	writeDebugLog_Win10("[subclock.c][WndProcSubClk] WM_NOTIFY Received", 999);
+		//}
+		{
+			LRESULT lres;
+			if (TooltipOnNotify(&lres, lParam)) return lres;
+			break;
+		}
 	case WM_WINDOWPOSCHANGING:		// =70, これが2回連続する。
 	{
 		if (bWmWinPosChangingRecevied)
@@ -358,6 +375,9 @@ void SetSpecificSubClock(int i)
 
 	CalcSpecificSubClockSize(i);
 
+	//ツールチップ連携開始(width, heightが必要なのでここで実行する)
+	TooltipAddSubClock(i);
+
 	tempIsVert = IsVertTaskbar(hwndTaskBarSubClk[i]);
 
 	if (tempIsVert) {
@@ -452,12 +472,7 @@ void SetAllSubClocks(void) {
 	}
 }
 
-void DelayedUpdateSubClks(void)
-{
-	if (b_DebugLog)writeDebugLog_Win10("[subclock.c] DelayedUpdateSubClks called.", 999);
-	SetTimer(hwndClockMain, IDTIMERDLL_UPDATESUBCLKS, 500, NULL);
-	bTimerSubClks = TRUE;
-}
+
 
 void CheckSubClocks(void)
 {
@@ -473,6 +488,8 @@ void CheckSubClocks(void)
 	int i, tempIndex;
 	HWND tempHwndSubTaskbar = NULL;
 	HWND tempHwndSubClk = NULL;
+
+
 
 	//既存サブ時計のチェック
 	for (i = 0; i < MAX_SUBSCREEN; i++)
@@ -596,6 +613,9 @@ void DisableSpecificSubClock(int i) {
 		writeDebugLog_Win10("[subclock.c]DisableSpecificSubClock called for screen:", i);
 	}
 
+	//ツールチップ連携解除
+	TooltipRemoveSubClock(i);
+
 	//サブクラス化解除:これを最初にやっておかないと、サブ時計のサイズを戻したのに反応してSetSpecificSubClockが呼ばれてサイズが大きくなってしまう！
 	if (bEnableSpecificSubClk[i] && hwndClockSubClk[i] && oldWndProcSub[i])
 	{
@@ -680,7 +700,6 @@ void DisableSpecificSubClock(int i) {
 		{
 			//Win11の場合。サブクロックウィンドウを削除する。
 			ClearSpecificSubClock(i);
-//			ShowWindow(hwndClockSubClk[i], SW_HIDE);		//どういうわけか、これが効かないので上のクリア関数を使う。
 			PostMessage(hwndClockSubClk[i], WM_CLOSE, 0, 0);
 		}
 		else
@@ -730,5 +749,6 @@ void ClearSpecificSubClock(int i)
 		PatBlt(hdcSub, 0, 0, widthSubClock[i], heightSubClock[i], BLACKNESS);
 	}
 }
+
 
 

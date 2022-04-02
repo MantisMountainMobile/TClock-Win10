@@ -86,22 +86,25 @@
 
 #define IDTIMERDLL_DLLMAIN			11
 #define IDTIMERDLL_SYSINFO			12
-#define IDTIMERDLL_UPDATESUBCLKS	13
+#define IDTIMERDLL_DELEYED_RESPONSE	13
 #define IDTIMERDLL_CHECKNETSTAT		14
 #define IDTIMERDLL_GRAPH			15
 #define IDTIMERDLL_TIP				16
+#define IDTIMERDLL_WIN11TYPE2_SHOW_TASKBAR	17
 //#define IDTIMERDLL_MOVEWIN11CONTENTBRIDGE	17
 
 
 //サブスクリーンタスクバーの最大処理数 20211107 TTTT
 #define MAX_SUBSCREEN				8
-
+#define BASE_UID_SUBSCREEN			100
 // tclock.c
 void DrawClock(HWND hwnd, HDC hdc);
-void DrawClock_New(HDC hdc);
+void DrawClock_New(HDC hdc, BOOL b_forceUpdateWin11Notify);
 //void FillClock(HWND hwnd, HDC hdc, RECT *prc, int nblink);
 void FillClock();
+void FillBack(HDC hdcTarget, int width, int height);
 void checkDisplayStatus_Win10(void); //added by TTTT
+void CheckPixel_Win10(int posX, int posY);
 
 
 // utl.c
@@ -153,8 +156,11 @@ SYSTEMTIME CalcTimeDifference_Europe_Win10(SYSTEMTIME*, int, int, BOOL);
 
 //tclock.c
 void SetWindowVisible_Win10(HWND targetHWND, BOOL bVisibility);
+void DelayedResponseToSyschange(void);
+
 
 //for_win11.c
+void CreateTClockBarWin11Type2(void);
 void CreateWin11MainClock(void);
 HWND CreateWin11SubClock(HWND tempHwndTaskbar);
 void CreateWin11Notify(void);
@@ -165,11 +171,19 @@ void GetWin11TrayWidth(void);
 LRESULT CALLBACK SubclassTrayProc_Win11(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData);
 LRESULT CALLBACK WndProcWin11Notify(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 void DrawWin11Notify(BOOL b_forceUpdate);
-void SetModifiedWidthWin11Tray(void);
+BOOL SetModifiedWidthWin11Tray(void);
 void SetMainClockOnTasktray_Win11(void);
 void GetWin11TaskbarType(void);
 //void DelayedMoveWin11ContentBridge(void);
-void MoveWin11ContentBridge(void);
+void MoveWin11ContentBridge(int operation);
+void UpdateHdcYesWin11Notify(int num_notify);
+LRESULT CALLBACK WndProcTaskbarContentBridge_Win11(HWND tempHwnd, UINT message, WPARAM wParam, LPARAM lParam);
+void DesktopDirectDraw_Win11(void);
+void SwitchToTClockBarWin11(void);
+void ReturnToOriginalTaskBar(void);
+LRESULT CALLBACK WndProcTClockBar_Win11(HWND tempHwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+
 
 //subclock.c
 LRESULT CALLBACK WndProcSubClk(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
@@ -178,7 +192,6 @@ void StoreSpecificSubClockDimensions(int i);
 void ActivateSubClocks(void);
 void FindAllSubClocks(void);
 void DisableAllSubClocks(void);
-void DelayedUpdateSubClks(void);
 void DisableSpecificSubClock(int i);
 void SetAllSubClocks(void);
 void SetSpecificSubClock(int i);
@@ -201,15 +214,15 @@ HBITMAP ReadBitmap(HWND hwnd, char* fname, BOOL b);
 void EndNewAPI(HWND hwnd);
 void SetLayeredWindow(HWND hwnd, INT alphaTip, COLORREF colBack);
 void SetLayeredTaskbar(HWND hwndClock);
-//void InitLayeredStartMenu(HWND hwndClock);
-//void SetLayeredStartMenu(HWND hwnd);
-//void GradientFillClock(HDC hdc, RECT* prc, COLORREF col1, COLORREF col2, DWORD grad);
-void GradientFillClock(COLORREF col1, COLORREF col2, DWORD grad);
+void GradientFillBack(HDC hdcTarget, int width, int height, COLORREF col1, COLORREF col2, DWORD grad); //20220321 by MMM
+
 HRESULT MyAlphaBlend(HDC hdcDest, int nXOriginDest, int nYOriginDest, int nWidthDest, int nHeightDest,
   HDC hdcSrc, int nXOriginSrc, int nYOriginSrc, int nWidthSrc, int nHeightSrc, BLENDFUNCTION blendFunction);
 HRESULT MyTransparentBlt(HDC hdcDest, int nXOriginDest, int nYOriginDest, int nWidthDest, int nHeightDest,
   HDC hdcSrc, int nXOriginSrc, int nYOriginSrc, int nWidthSrc, int nHeightSrc, UINT crTransparent);
 HRESULT MyDrawThemeParentBackground(HWND hwnd,HDC hdc, RECT* prc);
+
+
 
 // sysres.c
 //int GetFreeSystemResources(WORD wSysRes);
@@ -275,7 +288,12 @@ DWORD TooltipFindFormat(void);
 void TooltipOnTimer(HWND hwnd, BOOL bForce);
 void TooltipOnRefresh(HWND hwnd);
 BOOL TooltipOnNotify(LRESULT *plRes, LPARAM lParam);
-void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+void TooltipOnMouseEvent(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, int uid);
+
+void TooltipAddSubClock(int index);
+void TooltipRemoveSubClock(int index);
+
+
 
 //void Check_Light_Theme_Win10(void);
 
@@ -310,7 +328,7 @@ extern "C" {
 
 	void getMasterVolume_Win10(void); //added for new iVolume function
 	void initializeVolume_Win10(void); //added for new iVolume function
-	int WINAPI CheckWinVersion_Win10(void);	//added for currently reliable versioncheck
+	int CheckWinVersion_Win10(void);	//added for currently reliable versioncheck
 	BOOL WINAPI CheckModernStandbyCapability_Win10(void);
 
 	void toggleBarMeterFunc_Win10(int f);
@@ -318,9 +336,9 @@ extern "C" {
 
 	void saveAndOpenProfTable(BOOL b_Open);
 
-	BOOL chkExistProf_Win10();
+	BOOL chkExistProf_Win10(void);
 
-	void EndClock();
+	void EndClock(void);
 	void RestartTClockFromDLL(void);
 
 

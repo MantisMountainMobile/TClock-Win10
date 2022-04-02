@@ -49,11 +49,14 @@ char exeVersionString[32];
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);	//tclock.exe本体のウィンドウプロシージャコールバック
 
+
 char szClassName[] = "TClockMainClass"; // window class name
 char szWindowText[] = "TClock";         // caption of the window	(TClock-Win10にする？)
 
 static BOOL bMenuOpened = FALSE;
 static BOOL bDestroy = FALSE;
+
+static NOTIFYICONDATA notifyIconData;
 
 void CheckCommandLine(HWND hwnd);
 static void OnTimerMain(HWND hwnd);
@@ -69,7 +72,6 @@ void SetIdlePriority(void);		//Added by TTTT
 
 //void OnTimerZombieCheck(HWND hwnd); //Added by TTTT
 void OnTimerZombieCheck2(HWND hwnd);
-
 
 void OnDLLAliveMessage(WPARAM tempwParam); //Added by TTTT
 
@@ -93,10 +95,9 @@ BOOL b_DebugLog_RegAccess = FALSE;
 BOOL b_DebugLog_Specific = FALSE;
 
 BOOL b_NormalLog = FALSE;		//added by TTTT
-
-
 BOOL b_EnglishMenu =FALSE;		//Added by TTTT
 
+BOOL b_ShowTrayIcon = FALSE;
 
 // XButton Messages
 #define WM_XBUTTONDOWN 0x020B
@@ -328,9 +329,6 @@ static UINT WINAPI TclockExeMain(void)
 
 
 
-
-
-
 	b_DebugLog = GetMyRegLong(NULL, "DebugLog", FALSE);
 	SetMyRegLong(NULL, "DebugLog", b_DebugLog);
 
@@ -340,6 +338,7 @@ static UINT WINAPI TclockExeMain(void)
 
 	b_NormalLog = GetMyRegLong(NULL, "NormalLog", TRUE);
 	SetMyRegLong(NULL, "NormalLog", b_NormalLog);
+
 
 
 
@@ -441,6 +440,9 @@ static UINT WINAPI TclockExeMain(void)
 
 	g_hwndMain = hwnd;	//メイン隠しウィンドウのハンドルをグローバル変数のg_hwndMainにコピー
 
+	CreateTClockTrayIcon(GetMyRegLong(NULL, "ShowTrayIcon", FALSE));
+	SetMyRegLong(NULL, "ShowTrayIcon", b_ShowTrayIcon);
+
 	SetIdlePriority();	//デフォルトではIDLE_PRIORITY_CLASSとする	added by TTTT
 
 	CheckCommandLine(hwnd);		//コマンドラインチェック。この時点ではタスクトレイの改造は行っていない。この中で開始ウェイトも設定されている(?)
@@ -496,6 +498,30 @@ void SetIdlePriority(void)
 	Sleep(10);
 }
 
+
+void CreateTClockTrayIcon(BOOL bCreate)
+{
+	if (bCreate) {
+		if (!b_ShowTrayIcon) {
+			notifyIconData.cbSize = sizeof(NOTIFYICONDATA);
+			notifyIconData.hIcon = g_hIconTClock;
+			notifyIconData.hWnd = g_hwndMain;
+			notifyIconData.uCallbackMessage = CLOCKM_TRAYICONMSG;
+			notifyIconData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+			notifyIconData.uID = ID_TRAYICON;
+			strcpy(notifyIconData.szTip, "TClock-Win10");
+			Shell_NotifyIcon(NIM_ADD, &notifyIconData);
+			b_ShowTrayIcon = TRUE;
+		}
+	}
+	else {
+		if (b_ShowTrayIcon) {
+			Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+			b_ShowTrayIcon = FALSE;
+		}
+	}
+	return;
+}
 
 
 /*-------------------------------------------
@@ -662,13 +688,17 @@ LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wParam, LPARAM lParam)	
 			//nCountFindingClock = -1;
 			g_hwndClock = (HWND)lParam;
 			return 0;
-		case (WM_USER+1):   // error
-			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_USER+1 received");	//DLL Window生成時のエラー
+		case (WM_USER + 1):   // error
+			if (b_DebugLog) {
+				char tempString[256];
+				wsprintf(tempString, "[exemain.c][WndProc] WM_USER+1 received from dllmain.c, with error code = %d", (int)lParam);
+				WriteDebug_New2(tempString);	//DLL Window生成時のエラー
+			}
 			//nCountFindingClock = -1;
 			InitError((int)lParam);
 			PostMessage(hwnd, WM_CLOSE, 0, 0);
 			return 0;
-		case (WM_USER+2):   // exit (from tclock.c EndClock())	このコードはVer4.0.3以降では修了処理として呼ばれなくなっている(はず)。適当な時期に削除すること。
+		case (WM_USER + 2):   // exit (from tclock.c EndClock())	このコードはVer4.0.3以降では修了処理として呼ばれなくなっている(はず)。適当な時期に削除すること。
 			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_USER+2 received");
 
 			TerminateTClockFromDLL(hwnd);	//tcdlll(tclock.cから呼ばれるときはFromDLLを実行する)
@@ -695,6 +725,24 @@ LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wParam, LPARAM lParam)	
 			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_USER+10 received");
 			return 0;
 		}
+
+		case CLOCKM_TRAYICONMSG:
+			if (wParam == ID_TRAYICON) {
+				switch (lParam) {
+					case WM_RBUTTONDOWN:
+					case WM_LBUTTONDOWN:
+					//					OnContextMenu(hwnd, (HWND)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+						{
+						POINT pos;
+						GetCursorPos(&pos);
+						OnContextMenu(hwnd, (HWND)wParam, pos.x, pos.y);
+						break;
+						}
+				}
+			}
+			return 0;
+
+
 
 		// return from power saving
 		case WM_POWERBROADCAST:		//これもカレンダー関係のみのコード。不要か。
@@ -869,6 +917,9 @@ void TerminateTClock(HWND hwnd)
 		KillTimer(hwnd, IDTIMER_START);
 		bcontractTimer = FALSE;
 	}
+
+//	if (b_ShowTrayIcon)Shell_NotifyIcon(NIM_DELETE, &notifyIconData);
+	CreateTClockTrayIcon(FALSE);
 
 	PostQuitMessage(0);
 	g_hwndMain = NULL;

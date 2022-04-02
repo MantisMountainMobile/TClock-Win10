@@ -1165,10 +1165,17 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 					if (*(sp + 1) == 'd') {
 						disptime = CalcTimeDifference_Win10(pt, td_hour, td_min, td_neg);
 					}else if (*(sp + 1) == 'u') {
-						disptime = CalcTimeDifference_US_Win10(pt, td_hour, td_min, td_neg);
+						if (disptime.wYear > 2023) 
+						{
+							disptime = CalcTimeDifference_Win10(pt, td_hour-1, td_min, td_neg);
+						}
+						else 
+						{
+							disptime = CalcTimeDifference_US_Win10(pt, td_hour, td_min, td_neg);
+						}
 					}
-					else {
-						disptime = CalcTimeDifference_Europe_Win10(pt, td_hour, td_min, td_neg);
+					else {		//Only applicable for UK in 2022 and future.
+						disptime = CalcTimeDifference_Win10(pt, td_hour, td_min, td_neg);
 					}
 
 					sp += 8;
@@ -1190,7 +1197,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 					}
 					else if ((*(sp + 2) == 'E'))
 					{
-						if (b_SummerTime_Europe) {
+						if (b_SummerTime_Europe) {		//This flag will not be enabled in 2022-.
 							*dp++ = (char)'*'; *infop++ = 0x08;
 						}
 						else {
@@ -2640,6 +2647,7 @@ SYSTEMTIME CalcTimeDifference_US_Win10(SYSTEMTIME* pt, int td_h, int td_m, BOOL 
 	i = systemtime_temp.wDayOfWeek;
 	if (i == 0) i = 7;
 
+
 	if (((systemtime_temp.wMonth > 3) && (systemtime_temp.wMonth < 11))
 		|| ((systemtime_temp.wMonth == 3) && ((systemtime_temp.wDay - i) > 7))
 		|| ((systemtime_temp.wMonth == 3) && (systemtime_temp.wDay > 7) && (systemtime_temp.wDay <= 14) && (systemtime_temp.wDayOfWeek == 0) && (systemtime_temp.wHour >= 2))
@@ -2680,7 +2688,7 @@ SYSTEMTIME CalcTimeDifference_US_Win10(SYSTEMTIME* pt, int td_h, int td_m, BOOL 
 
 
 
-
+//This function is not called in 2022 or later.
 SYSTEMTIME CalcTimeDifference_Europe_Win10(SYSTEMTIME* pt, int td_h, int td_m, BOOL pol_neg)
 {
 	SYSTEMTIME systemtime_temp, systemtime_utc;
@@ -2707,6 +2715,8 @@ SYSTEMTIME CalcTimeDifference_Europe_Win10(SYSTEMTIME* pt, int td_h, int td_m, B
 
 	i = systemtime_utc.wDayOfWeek;
 	if (i == 0) i = 7;
+
+
 
 	if (((systemtime_utc.wMonth > 3) && (systemtime_utc.wMonth < 10))
 		|| ((systemtime_utc.wMonth == 3) && ((systemtime_utc.wDay + 7 - i) > 31))
