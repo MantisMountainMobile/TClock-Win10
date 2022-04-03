@@ -1033,8 +1033,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 5,0,0,1
- PRODUCTVERSION 5,0,0,1
+ FILEVERSION 5,0,1,1
+ PRODUCTVERSION 5,0,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1051,11 +1051,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock-Win10 Language DLL（日本語/English）"
             VALUE "FileDescription", "TClock-Win10 Language DLL（日本語/English）"
-            VALUE "FileVersion", "5.0.0.1"
+            VALUE "FileVersion", "5.0.1.1"
             VALUE "InternalName", "LANGJA"
             VALUE "OriginalFilename", "tclang-win10.dll"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "5.0.0.1"
+            VALUE "ProductVersion", "5.0.1.1"
         END
     END
     BLOCK "VarFileInfo"

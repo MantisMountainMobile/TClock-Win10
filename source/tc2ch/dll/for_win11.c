@@ -509,6 +509,9 @@ void LoadBitMapWin11Notify(void)
 
 	for (color = m_color_YesWin11Notify_start; color < m_color_YesWin11Notify_end; ++color)
 	{
+
+
+
 		//色が存在するポイントはAlphaを輝度値にする(元を白/黒ビットマップにしておけばどの色からでも取れる)。こうしないと黒が表示されない
 		color->rgbReserved = color->rgbRed;
 
@@ -612,6 +615,17 @@ void LoadBitMapWin11Notify(void)
 
 		tempUnsigned = color->rgbBlue * tempB / 255;
 		color->rgbBlue = (tempUnsigned>255 ? 255 : (BYTE)tempUnsigned);
+
+		if (fillbackWin11NotifyIconInvert)	//fillbackcolorで色が暗いときのみ、背景を白に反転する。
+		{
+			if (color->rgbReserved == 0)
+			{
+				color->rgbRed = 255;
+				color->rgbGreen = 255;
+				color->rgbBlue = 255;
+			}
+		}
+
 	}
 
 
@@ -1350,7 +1364,7 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] DrawWin11Notify called with bExistWin11Notify =", bExistWin11Notify);
 
 	HDC hdc;
-	BOOL b_update = FALSE;
+	BOOL b_update = b_forceUpdate;
 	extern COLORREF originalColorTaskbar_ForWin11Notify;
 	extern COLORREF originalColorTaskbar;
 	extern COLORREF originalColorTaskbarEdge;
@@ -1382,10 +1396,10 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 			intWin11NotificationNumberPrev = intWin11NotificationNumber;
 		}
 
-		if (b_forceUpdate) {
-			UpdateHdcYesWin11Notify(intWin11NotificationNumber);
-			b_update = TRUE;
-		}
+		//if (b_forceUpdate) {
+		//	UpdateHdcYesWin11Notify(intWin11NotificationNumber);
+		//	b_update = TRUE;
+		//}
 
 		if (b_update)
 		{
@@ -1412,10 +1426,12 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 			MoveToEx(hdcWin11Notify, posXShowDesktopArea, 0, NULL);
 			LineTo(hdcWin11Notify, posXShowDesktopArea, heightWin11Notify);
 
-			hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
-			SelectObject(hdcWin11Notify, hPenWin11Notify);
-			MoveToEx(hdcWin11Notify, 0, 0, NULL);
-			LineTo(hdcWin11Notify, widthWin11Notify, 0);
+			if (Win11Type == 2) {		//Win11Type2での上端ライン再現
+				hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
+				SelectObject(hdcWin11Notify, hPenWin11Notify);
+				MoveToEx(hdcWin11Notify, 0, 0, NULL);
+				LineTo(hdcWin11Notify, widthWin11Notify, 0);
+			}
 
 
 			if (fillbackcolor || (Win11Type == 2)) {
@@ -1577,9 +1593,8 @@ void SetMainClockOnTasktray_Win11(void)
 		posXMainClock = widthTaskbar - widthMainClockFrame - widthWin11Notify;
 
 		//TClockのウィンドウを所定の場所に移動する。
-		SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+		SetWindowPos(hwndClockMain, NULL, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
 			SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-
 
 
 		//一番上のContentBridgeクラス(2つあるが、トレイの中にあるほうではなく、タスクバー直下)をリサイズする。
@@ -1590,7 +1605,7 @@ void SetMainClockOnTasktray_Win11(void)
 
 		//自作通知ウィンドウの場所を再設定する。
 		if (hwndWin11Notify) {
-			SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+			SetWindowPos(hwndWin11Notify, NULL, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
 				SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 			ShowWindow(hwndWin11Notify, SW_SHOW);
 		}

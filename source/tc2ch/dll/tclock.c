@@ -82,7 +82,7 @@ void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval);
 COLORREF TextColorFromInfoVal(int infoval);
 void ClearGraphData(void);
 
-void GetTaskbarColor_Win11Type2(void);
+void GetTaskbarColor_Win11Type2(BOOL bBoundary);
 
 
 
@@ -696,6 +696,11 @@ void InitClock()
 	originalHeightTaskbar = heightTaskbar;
 	originalPosYTaskbar = posYTaskbar;
 
+	if (Win11Type == 2)
+	{
+		GetTaskbarColor_Win11Type2(FALSE);
+	}
+
 	del_title(fname);
 	add_title(fname, "tclock-win10.ini");
 	hfind = FindFirstFile(fname, &fd);
@@ -708,10 +713,7 @@ void InitClock()
 
 	g_winver = CheckWinVersion_Win10();
 
-	if (Win11Type == 2) 
-	{
-		GetTaskbarColor_Win11Type2();
-	}
+
 
 	GetMainClock();	//hwndClockMainをゲット, bWin11Mainはここで決定される。
 	if (hwndClockMain == NULL) return;
@@ -773,12 +775,12 @@ void InitClock()
 		if (Win11Type == 2) 
 		{
 			SetMainClockOnTasktray_Win11();
-			COLORREF taskbarColor;
-			HDC tempDC = NULL;
-			tempDC = GetDC(hwndTaskBarMain);
-			taskbarColor = GetBkColor(tempDC);
-			ReleaseDC(hwndTaskBarMain, tempDC);
-			if (b_DebugLog)writeDebugLog_Win10("[tclock.c] Taskbar Backcolor = ", taskbarColor);
+			//COLORREF taskbarColor;
+			//HDC tempDC = NULL;
+			//tempDC = GetDC(hwndTaskBarMain);
+			//taskbarColor = GetBkColor(tempDC);
+			//ReleaseDC(hwndTaskBarMain, tempDC);
+			//if (b_DebugLog)writeDebugLog_Win10("[tclock.c] Taskbar Backcolor = ", taskbarColor);
 		}
 	}
 	else {							//Win10
@@ -851,6 +853,8 @@ void InitClock()
 	DragAcceptFiles(hwndClockMain, b);
 
 
+	b_WININICHANGED = TRUE; //Win11で通知アイコン更新。おまじない。
+
 	//タスクバーの更新
 	RedrawMainTaskbar();	//即時反映のために必要。必要があればWindowsのリサイズ処理を通してMainClockの再配置やサイズ更新、hdcClock再作成が実行される。
 
@@ -867,9 +871,9 @@ void RedrawTClock(void)
 	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] RedrawTClock called.", 999);
 	HDC hdc;
 
-	if (Win11Type == 2) {
-		GetTaskbarColor_Win11Type2();
-	}
+	//if (Win11Type == 2) {
+	//	GetTaskbarColor_Win11Type2(TRUE);
+	//}
 
 	hdc = GetDC(hwndClockMain);
 
@@ -1447,6 +1451,7 @@ void RestartOnRefresh(void)
 
 	RedrawMainTaskbar();
 
+	b_WININICHANGED = TRUE;
 	RedrawTClock();
 
 	TooltipOnRefresh(hwndClockMain);
@@ -2778,6 +2783,7 @@ void OnTimerUpperTaskbar(void)
 --------------------------------------------------*/
 void DrawClock(HWND hwnd, HDC hdc)
 {
+	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] DrawClock called.", 999);
 	SYSTEMTIME t;
 	int beat100 = 0;
 
@@ -2788,9 +2794,14 @@ void DrawClock(HWND hwnd, HDC hdc)
 
 void DrawClock_New(HDC hdc, BOOL b_forceUpdateWin11Notify)
 {
+	if (b_DebugLog)writeDebugLog_Win10("[tclock.c] DrawClock_New called.", 999);
+
 	SYSTEMTIME t;
 	int beat100 = 0;
 
+	if (Win11Type == 2) {
+		GetTaskbarColor_Win11Type2(TRUE);
+	}
 
 	//ここでWin11 Notificationも描画する。
 	//先にNotificationを書く。Win11Type==2において通知更新があった場合にメインクロック描画より先にoriginalColorTaskbar_ForWin11Notifyが更新される。
@@ -3705,6 +3716,9 @@ COLORREF TextColorFromInfoVal(int infoval)
 --------------------------------------------------*/
 void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 {
+
+	if (b_DebugLog) writeDebugLog_Win10("[tclock.c] DrawClockSub called.", 999);
+
 	BITMAP bmp;
 	RECT rcFill,  rcClock;
 
@@ -5521,15 +5535,23 @@ void CheckPixel_Win10(int posX, int posY)
 	}
 }
 
-void GetTaskbarColor_Win11Type2(void)
+void GetTaskbarColor_Win11Type2(BOOL bBoundary)	//bBoundary == TRUEだとTClockの境界付近、FALSEだど左端
 {
+	//extern BOOL b_ShowingTClockBarWin11;
+	//if (b_ShowingTClockBarWin11)return;
+
 	HWND tempHwnd = NULL;
 	HDC tempDC = NULL;
 	RECT tempRect;
 	int posX, posY;
 
 	GetWindowRect(hwndTaskBarMain, &tempRect);
-	posX = (posXMainClock < 10 ? 0 : (posXMainClock - 10));
+	if (bBoundary) {
+		posX = (posXMainClock < 10 ? 0 : (posXMainClock - 10));
+	}
+	else {
+		posX = 0;
+	}
 	posY = tempRect.top;
 
 
