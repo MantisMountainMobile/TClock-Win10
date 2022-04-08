@@ -9,6 +9,9 @@
 //#if defined(_MSC_VER) && (_MSC_VER >= 1200)
 typedef LARGE_INTEGER TC_SINT64;
 typedef ULARGE_INTEGER TC_UINT64;
+
+int PusuBackIndex = 0;
+
 //#else
 //typedef union _TC_SINT64 {
 //    struct {
@@ -906,4 +909,692 @@ PSTR CreateFullPathName(HINSTANCE hmod, PSTR fname)
 HWND FindVistaCalenderWindow(void)
 {
 	return FindWindowEx(FindWindow("ClockFlyoutWindow", NULL), NULL, "DirectUIHWND", "");
+}
+
+
+
+//Check Window Status including Aero-Snap
+//by MMM, 2022/4
+//return value:
+//0: SW_SHOWNORMAL(not snapped)
+//1: SW_SHOWNORMAL(Aero-snapped)
+//2: Zoomed(Maximized)
+//3: Iconiezed(Minimized)
+//4: Else
+//+8: !IsVisible
+int CheckWindowStatus_TClockExe(HWND hwnd)
+{
+	//https://espresso3389.hatenablog.com/entry/2015/11/20/025612
+	int ret = 0;
+
+
+	if (IsIconic(hwnd)) {
+		ret= 3;
+	}
+	else if (IsZoomed(hwnd)) {
+		ret = 2;
+	}
+	else {
+		RECT rcTemp;
+		WINDOWPLACEMENT wpTemp;
+		wpTemp.length = sizeof(WINDOWPLACEMENT);
+		GetWindowPlacement(hwnd, &wpTemp);
+		if (wpTemp.showCmd == SW_SHOWNORMAL) {
+			GetWindowRect(hwnd, &rcTemp);
+
+			//char tempStr[256];
+			//wsprintf(tempStr, "rcTemp.left, right, top, bottom = %d, %d, %d, %d", rcTemp.left, rcTemp.right, rcTemp.top, rcTemp.bottom);
+			//WriteDebug_New2(tempStr);
+			//wsprintf(tempStr, "wpTemp.rcNormalPositionleft, right, top, bottom = %d, %d, %d, %d", wpTemp.rcNormalPosition.left, wpTemp.rcNormalPosition.right, wpTemp.rcNormalPosition.top, wpTemp.rcNormalPosition.bottom);
+			//WriteDebug_New2(tempStr);
+
+			//			if (memcmp(&rcTemp, &wpTemp.rcNormalPosition, sizeof(RECT)) != 0) {	//これらが(1座標でも)違うことでAeroSnap判定できるが、何かと誤判定が起こる。
+			int point = 0;
+			if (rcTemp.left == wpTemp.rcNormalPosition.left) point++;
+			if (rcTemp.right == wpTemp.rcNormalPosition.right) point++;
+			if (rcTemp.top == wpTemp.rcNormalPosition.top) point++;
+			if (rcTemp.bottom == wpTemp.rcNormalPosition.bottom) point++;
+			if (point < 2)//なので、一致が0個または1個ならAeroSnapと判定することにした。
+			{		
+				ret = 1;
+			}
+			else {
+				ret = 0;
+			}
+		}
+		else {
+			ret = 4;
+		}
+	}
+
+	if (!IsWindowVisible(hwnd))
+	{
+		ret += 8;
+	}
+
+	return ret;
+}
+
+
+
+BOOL IsTClockWindow(HWND hwnd)
+{
+	BOOL ret = FALSE;
+	char classname[80];
+
+	GetClassName(hwnd, classname, 80);
+	if (lstrcmpi(classname, "TClockMain") == 0)
+	{
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "TClockNotify") == 0) {
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "TClockSub") == 0) {
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "TClockBarWin11") == 0) {
+		ret = TRUE;
+	}
+	
+	return ret;
+}
+
+BOOL IsSystemWindow(HWND hwnd)
+{
+	BOOL ret = FALSE;
+	char classname[80], windowname[80];
+
+	GetClassName(hwnd, classname, 80);
+	if (lstrcmpi(classname, "WorkerW") == 0)
+	{
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "Shell_TrayWnd") == 0) {
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "Shell_SecondaryTrayWnd") == 0) {
+		ret = TRUE;
+	}
+	else if (lstrcmpi(classname, "ApplicationFrameWindow") == 0) {
+		GetWindowText(hwnd, windowname, 80);
+		if (strlen(windowname) == 0) {		//電卓とかもこのクラスなので名無しのもののみシステムウィンドウとして判定する。
+			ret = TRUE;
+		}
+	}
+
+	
+
+	return ret;
+}
+
+
+
+/*------------------------------------------------
+Enhanced Kyu!   (Based on TClock Light)
+Mainly move, minimum / no resize version
+--------------------------------------------------*/
+
+BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
+{
+	//char tempString[256];
+	//char tempClassName[80];
+	//GetClassName(hwnd, tempClassName, 80);
+	//wsprintf(tempString, "hwnd = %d, Name = %s, WindowStatus = %d", hwnd, tempClassName, CheckWindowStatus_TClockExe(hwnd));
+	//WriteDebug_New2(tempString);
+
+
+	if (IsTClockWindow(hwnd))return TRUE;
+	if (IsSystemWindow(hwnd))return TRUE;
+
+
+
+	if (CheckWindowStatus_TClockExe(hwnd) == 0)
+	{
+		RECT rcScr, rcScrWnd, rc, rcTaskbar;
+		int xcenter, ycenter, widthWnd, heightWnd, widthArea, heightArea, posX, posY;
+		HWND tempHwnd;
+		BOOL bFound = FALSE;
+		int minimumHeight = 300;
+		int minimumWidth = 400;
+
+		tempHwnd = FindWindow("Shell_TrayWnd", "");
+		GetScreenRect(tempHwnd, &rcScr);
+
+		xcenter = (rcScr.left + rcScr.right) / 2;
+		ycenter = (rcScr.top + rcScr.bottom) / 2;
+
+		if (GetScreenRect(hwnd, &rcScrWnd))
+		{
+			if (rcScr.left == rcScrWnd.left && rcScr.top == rcScrWnd.top) {
+				bFound = TRUE;
+			}
+			else
+			{
+				tempHwnd = NULL;
+				while ((tempHwnd = FindWindowEx(NULL, tempHwnd, "Shell_SecondaryTrayWnd", NULL)) != NULL)
+				{
+					GetScreenRect(tempHwnd, &rcScr);
+					if (rcScr.left == rcScrWnd.left && rcScr.top == rcScrWnd.top) {
+						bFound = TRUE;
+						break;
+					}
+				}
+			}
+
+			if (!bFound) {
+				return TRUE;
+			}
+
+
+			char strTemp[128];
+
+			GetWindowRect(hwnd, &rc);
+
+
+			if ((rc.right - rc.left < 5) || (rc.bottom - rc.top < 5)) {	//Too small window is ignored
+				return TRUE;
+			}
+
+			posX = rc.left;
+			posY = rc.top;
+			widthWnd = rc.right - rc.left;
+			heightWnd = rc.bottom - rc.top;
+
+			xcenter = (rcScr.left + rcScr.right) / 2;
+			ycenter = (rcScr.top + rcScr.bottom) / 2;
+
+			widthArea = rcScr.right - rcScr.left;
+			heightArea = rcScr.bottom - rcScr.top;
+
+			//minimumWidth = widthArea / 8;
+			//minimumHeight = heightArea / 8;
+
+			GetWindowRect(tempHwnd, &rcTaskbar);
+
+
+			//if ((rcTaskbar.bottom < ycenter) || (rcTaskbar.top > ycenter))
+			//{
+			//	heightArea -= rcTaskbar.bottom - rcTaskbar.top;
+			//}
+
+			if (heightWnd > heightArea) {
+				heightWnd = heightArea;
+			}
+
+			if (widthWnd > widthArea) {
+				widthWnd = widthArea;
+			}
+
+			if (rcTaskbar.bottom < ycenter)
+			{
+				// Top taskbar
+				if (rc.top < rcTaskbar.bottom)
+				{
+					posY = rcTaskbar.bottom;
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+					posY = rcScr.bottom - heightWnd;
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					//if (widthWnd < minimumWidth) widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					//if (widthWnd < minimumWidth) widthWnd = minimumWidth;
+					posX = rcScr.right - widthWnd;
+				}
+
+			}
+			else if (rcTaskbar.top > ycenter)
+			{
+				// Bottom taskbar
+				if (rc.top < rcScr.top)
+				{
+					posY = rcScr.top;
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcTaskbar.top)
+				{
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+					posY = rcTaskbar.top - heightWnd;
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					//if (widthWnd < minimumWidth) widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					//if (widthWnd < minimumWidth) widthWnd = minimumWidth;
+					posX = rcScr.right - widthWnd;
+				}
+
+			}
+			else if (rcTaskbar.right < xcenter)
+			{
+				// Left taskbar
+				if (rc.top < rcScr.top)
+				{
+					posY = rcScr.top;
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+					posY = rcScr.bottom - heightWnd;
+				}
+
+				if (rc.left < rcTaskbar.right)
+				{
+					posX = rcTaskbar.right;
+					//if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					//if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+					posX = rcScr.right - widthWnd;
+				}
+
+			}
+			else if (rcTaskbar.left > xcenter)
+			{
+				//Right Taskbar
+				if (rc.top < rcScr.top)
+				{
+					posY = rcScr.top;
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					//if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+					posY = rcScr.bottom - heightWnd;
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					//if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcTaskbar.left)
+				{
+					//if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+					posX = rcTaskbar.left - widthWnd;
+				}
+			}
+
+			if ((posX != rc.left) || (posY != rc.top) || (widthWnd != rc.right - rc.left) || (heightWnd != rc.bottom - rc.top))
+			{
+				SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE);
+				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+				PusuBackIndex++;
+			}
+		}
+		else
+		{
+			GetWindowRect(hwnd, &rc);
+
+			posX = 100 * (PusuBackIndex + 1);
+			posY = 100 * (PusuBackIndex + 1) * ycenter / xcenter;
+			widthWnd = rc.right - rc.left;
+			heightWnd = rc.bottom - rc.top;
+
+			if (widthWnd > xcenter) {
+				widthWnd = xcenter;
+			}
+
+			if (heightWnd > ycenter) {
+				heightWnd = ycenter;
+			}
+			SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+			PusuBackIndex++;
+		}
+
+	}
+
+	return TRUE;
+}
+
+
+
+
+/*------------------------------------------------
+Enhanced Kyu!   (Based on TClock Light)
+Mainly resize, minimum move version
+--------------------------------------------------*/
+/*
+BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
+{
+
+
+	if (CheckWindowStatus_TClockExe(hwnd) == 0)
+	{
+		RECT rcScr, rcScrWnd, rc, rcTaskbar;
+		int xcenter, ycenter, widthWnd, heightWnd, widthArea, heightArea, posX, posY;
+		HWND tempHwnd;
+		BOOL bFound = FALSE;
+		int minimumHeight = 300;
+		int minimumWidth = 400;
+
+		tempHwnd = FindWindow("Shell_TrayWnd", "");
+		if (tempHwnd == hwnd) return TRUE;	//Target is Main Taskbar;
+		GetScreenRect(tempHwnd, &rcScr);
+
+		xcenter = (rcScr.left + rcScr.right) / 2;
+		ycenter = (rcScr.top + rcScr.bottom) / 2;
+
+		if (GetScreenRect(hwnd, &rcScrWnd))
+		{
+			if (rcScr.left == rcScrWnd.left && rcScr.top == rcScrWnd.top) {
+				bFound = TRUE;
+			}
+			else
+			{
+				tempHwnd = NULL;
+				while ((tempHwnd = FindWindowEx(NULL, tempHwnd, "Shell_SecondaryTrayWnd", NULL)) != NULL)
+				{
+					if (tempHwnd == hwnd) return TRUE;	//Target is Sub Taskbar;
+
+					GetScreenRect(tempHwnd, &rcScr);
+					if (rcScr.left == rcScrWnd.left && rcScr.top == rcScrWnd.top) {
+						bFound = TRUE;
+						break;
+					}
+				}
+			}
+
+			if (!bFound) {
+				return TRUE;
+			}
+
+
+
+
+
+			char strTemp[128];
+
+			GetWindowRect(hwnd, &rc);
+
+
+			if ((rc.right - rc.left < 5) || (rc.bottom - rc.top < 5)) {	//Too small window is ignored
+				return TRUE;
+			}
+
+			posX = rc.left;
+			posY = rc.top;
+			widthWnd = rc.right - rc.left;
+			heightWnd = rc.bottom - rc.top;
+
+			xcenter = (rcScr.left + rcScr.right) / 2;
+			ycenter = (rcScr.top + rcScr.bottom) / 2;
+
+
+			widthArea = rcScr.right - rcScr.left;
+			heightArea = rcScr.bottom - rcScr.top;
+
+			if (PusuBackIndex < 10) {
+				minimumWidth = widthArea * (20 - PusuBackIndex) / 60;
+				minimumHeight = heightArea * (20 - PusuBackIndex) / 60;
+			}
+			else {
+				minimumWidth = widthArea / 6;
+				minimumHeight = heightArea / 6;
+			}
+
+			GetWindowRect(tempHwnd, &rcTaskbar);
+
+			if ((rcTaskbar.bottom < ycenter) || (rcTaskbar.top > ycenter))
+			{
+				heightArea -= rcTaskbar.bottom - rcTaskbar.top;
+			}
+
+			if (heightWnd > heightArea) {
+				heightWnd = heightArea;
+			}
+
+
+			if (rcTaskbar.bottom < ycenter)
+			{
+				// Top taskbar
+				if (rc.top < rcTaskbar.bottom)
+				{
+					posY = rcTaskbar.bottom;
+					heightWnd = rc.bottom - posY;
+					if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					if (posY < rcScr.bottom - minimumHeight) {
+						heightWnd = rcScr.bottom - posY;
+					}
+					else 
+					{
+						posY = rcScr.bottom - minimumHeight;
+						heightWnd = minimumHeight;
+					}
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					widthWnd = rc.right - posX;
+					if (widthWnd < minimumWidth) widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					if (posX < rcScr.right - minimumWidth) {
+						widthWnd = rcScr.right - posX;
+					}
+					else {
+						posX = rcScr.right - minimumWidth;
+						widthWnd = minimumWidth;
+					}
+				}
+
+			}
+			else if (rcTaskbar.top > ycenter)
+			{
+				// Bottom taskbar
+				if (rc.top < rcScr.top)
+				{
+					posY = rcScr.top;
+					heightWnd = rc.bottom - posY;
+					if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcTaskbar.top)
+				{
+					if (posY < rcTaskbar.top - minimumHeight) {
+						heightWnd = rcTaskbar.top - posY;
+					}
+					else
+					{
+						posY = rcTaskbar.top - minimumHeight;
+						heightWnd = minimumHeight;
+					}
+
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					widthWnd = rc.right - posX;
+					if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					if (posX < rcScr.right - minimumWidth) {
+						widthWnd = rcScr.right - posX;
+					}
+					else {
+						posX = rcScr.right - minimumWidth;
+						widthWnd = minimumWidth;
+					}
+				}
+
+			}
+			else if (rcTaskbar.right < xcenter)
+			{
+				// Left taskbar
+				if (rc.top < rcScr.top) {
+					posY = rcScr.top;
+					heightWnd = rc.bottom - posY;
+					if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					if (posY < rcScr.bottom - minimumHeight) {
+						heightWnd = rcScr.bottom - posY;
+					}
+					else
+					{
+						posY = rcScr.bottom - minimumHeight;
+						heightWnd = minimumHeight;
+					}
+				}
+
+				if (rc.left < rcTaskbar.right)
+				{
+					posX = rcTaskbar.right;
+					widthWnd = rc.right - posX;
+					if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcScr.right)
+				{
+					if (posX < rcScr.right - minimumWidth) {
+						widthWnd = rcScr.right - posX;
+					}
+					else {
+						posX = rcScr.right - minimumWidth;
+						widthWnd = minimumWidth;
+					}
+				}
+
+			}
+			else if (rcTaskbar.left > xcenter)
+			{
+				//Right Taskbar
+				if (rc.top < rcScr.top) {
+					posY = rcScr.top;
+					heightWnd = rc.bottom - posY;
+					if (heightWnd < minimumHeight)heightWnd = minimumHeight;
+				}
+
+				if (rc.bottom > rcScr.bottom)
+				{
+					if (posY < rcScr.bottom - minimumHeight) {
+						heightWnd = rcScr.bottom - posY;
+					}
+					else
+					{
+						posY = rcScr.bottom - minimumHeight;
+						heightWnd = minimumHeight;
+					}
+
+				}
+
+				if (rc.left < rcScr.left)
+				{
+					posX = rcScr.left;
+					widthWnd = rc.right - posX;
+					if (widthWnd < minimumWidth)widthWnd = minimumWidth;
+				}
+
+				if (rc.right > rcTaskbar.left)
+				{
+					if (posX < rcTaskbar.left - minimumWidth) {
+						widthWnd = rcTaskbar.left - posX;
+
+					}
+					else
+					{
+						posX = rcTaskbar.left - minimumWidth;
+						widthWnd = minimumWidth;
+					}
+				}
+			}
+
+			if ((posX != rc.left) || (posY != rc.top) || (widthWnd != rc.right - rc.left) || (heightWnd != rc.bottom - rc.top))
+			{
+				SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE);
+				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+				PusuBackIndex++;
+			}
+		}
+		else
+		{
+			GetWindowRect(hwnd, &rc);
+
+			posX = 100 * (PusuBackIndex + 1);
+			posY = 100 * (PusuBackIndex + 1) * ycenter / xcenter;
+			widthWnd = rc.right - rc.left;
+			heightWnd = rc.bottom - rc.top;
+
+			if (widthWnd > xcenter) {
+				widthWnd = xcenter;
+			}
+
+			if (heightWnd > ycenter) {
+				heightWnd = ycenter;
+			}
+			SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+			PusuBackIndex++;
+		}
+
+	}
+
+	return TRUE;
+}
+*/
+
+/*------------------------------------------------
+get screen rect(Based on TClock Light)
+--------------------------------------------------*/
+BOOL GetScreenRect(HWND hwnd, RECT *prc)
+{
+	MONITORINFO mi = { sizeof(MONITORINFO) };
+	HMONITOR hMon;
+	BOOL ret = TRUE;
+
+	hMon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
+
+	if (hMon) {
+		if (GetMonitorInfo(hMon, &mi))
+		{
+			*prc = mi.rcMonitor;
+		}
+		else
+		{
+			prc->left = prc->top = 0;
+			prc->right = GetSystemMetrics(SM_CXSCREEN);
+			prc->bottom = GetSystemMetrics(SM_CYSCREEN);
+		}
+	}
+	else {
+		ret = FALSE;
+	}
+	
+	return ret;
 }

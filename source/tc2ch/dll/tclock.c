@@ -151,8 +151,7 @@ int widthMainClockContent, heightMainClockContent;
 int widthMainClockFrame, heightMainClockFrame;
 
 BOOL bEnableSubClks = FALSE;
-//BOOL bEnhanceSubClkOnDarkTray = FALSE;
-//int indexSubClkToUpdate = 255;
+
 
 
 /*------------------------------------------------
@@ -536,7 +535,6 @@ HWND hwndWin11Notify = NULL;
 
 //通知ウィンドウ用
 //利用設定・フラグ
-BOOL bUseWin11Notify = TRUE;		//ユーザ設定
 BOOL bEnabledWin11Notify = TRUE;	//利用するかどうか(通知ウィンドウ自体は常に作る)
 //通知ウィンドウ描画用
 HDC hdcYesWin11Notify = NULL;
@@ -626,7 +624,6 @@ BOOL bUseDateColor = FALSE;
 BOOL bUseDowColor = FALSE;
 BOOL bUseTimeColor = FALSE;
 
-BOOL bShowWin11NotifyNumber = TRUE;
 
 
 
@@ -648,6 +645,8 @@ extern int pdhTemperature;
 
 BOOL b_WININICHANGED = FALSE;
 
+extern BOOL b_ShowingTClockBarWin11;
+BOOL b_ShowingTClockBarWin11_backup = FALSE;
 
 void GetMainClock(void)
 {
@@ -739,7 +738,7 @@ void InitClock()
 	ReadData();
 
 
-
+	b_WININICHANGED = TRUE; //Win11Type2では通知アイコン更新のおまじない。
 
 
 
@@ -774,7 +773,8 @@ void InitClock()
 		CalcMainClockSize();
 		if (Win11Type == 2) 
 		{
-			SetMainClockOnTasktray_Win11();
+			SetMainClockOnTasktray_Win11();		//タスクバーの移動
+			PostMessage(hwndClockMain, CLOCKM_MOVEWIN11CONTENTBRIDGE, 1, 0);	//ContentBridgeウィンドウのカットとTClockMain, TClockWin11Notifyの配置
 			//COLORREF taskbarColor;
 			//HDC tempDC = NULL;
 			//tempDC = GetDC(hwndTaskBarMain);
@@ -853,7 +853,7 @@ void InitClock()
 	DragAcceptFiles(hwndClockMain, b);
 
 
-	b_WININICHANGED = TRUE; //Win11で通知アイコン更新。おまじない。
+
 
 	//タスクバーの更新
 	RedrawMainTaskbar();	//即時反映のために必要。必要があればWindowsのリサイズ処理を通してMainClockの再配置やサイズ更新、hdcClock再作成が実行される。
@@ -1519,9 +1519,6 @@ void ReadData()
 	bEnableSubClks = GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE);
 	SetMyRegLong(NULL, "EnableOnSubDisplay", bEnableSubClks);
 
-	//bEnhanceSubClkOnDarkTray = GetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", FALSE);
-	//SetMyRegLong(NULL, "EnhanceSubClkOnDarkTray", bEnhanceSubClkOnDarkTray);
-
 	offsetClockMS = (int)(short)GetMyRegLong(NULL, "OffsetClockMS", 0);
 	SetMyRegLong(NULL, "OffsetClockMS", (int)(short)offsetClockMS);
 
@@ -2121,9 +2118,7 @@ void ReadData()
 	adjustWin11DetectNotify = (int)(short)GetMyRegLong("Win11", "AdjustDetectNotify", 0);
 	SetMyRegLong("Win11", "AdjustDetectNotify", adjustWin11DetectNotify);
 
-	bUseWin11Notify = GetMyRegLong("Win11", "UseTClockNotify", 1);
-	SetMyRegLong("Win11", "UseTClockNotify", bUseWin11Notify);
-	if (bUseWin11Notify && bWin11Main && hwndWin11Notify) {
+	if (bWin11Main && hwndWin11Notify) {
 		bEnabledWin11Notify = TRUE;
 	}
 	else
@@ -2132,13 +2127,10 @@ void ReadData()
 	}
 
 	bAdjustTrayWin11SmallTaskbar = (BOOL)GetMyRegLong("Win11", "AdjustWin11IconPosition", 1);
+	if (Win11Type == 2) {
+		bAdjustTrayWin11SmallTaskbar = FALSE;
+	}
 	SetMyRegLong("Win11", "AdjustWin11IconPosition", bAdjustTrayWin11SmallTaskbar);
-
-
-	bShowWin11NotifyNumber = (BOOL)GetMyRegLong("Win11", "ShowWin11NotifyNumber", 1);
-	SetMyRegLong("Win11", "ShowWin11NotifyNumber", bShowWin11NotifyNumber);
-
-
 
 
 	b_EnableChime = GetMyRegLong("Chime", "EnableChime", 0);
@@ -2479,7 +2471,14 @@ void OnTimer_Win10(void)
 
 
 	if (Win11Type == 2) {
-		CheckPixel_Win10(posXMainClock + 1, originalPosYTaskbar + 10);
+		if (b_ShowingTClockBarWin11_backup) {
+			if (b_DebugLog)writeDebugLog_Win10("[tclock.c][OnTimer_Win10] ReturnToOriginalTaskBar missed. So call it from OnTimer_Win10.", 999);
+			MoveWin11ContentBridge(2);
+			b_ShowingTClockBarWin11_backup = 0;
+		}
+		else {
+			b_ShowingTClockBarWin11_backup = b_ShowingTClockBarWin11;
+		}
 	}
 
 
@@ -5164,11 +5163,21 @@ void CalcMainClockSize(void)
 	}
 	else {
 		widthMainClockFrame = widthMainClockContent;
+
+		//Win11Type2でWin11の時計より小さくならないようにする。-->表示はOKだがタスクトレイオーバーフローのクリックが別のトレイアイコンに届くのを避けるため必要
+		if (Win11Type == 2) {
+			int widthMinimum = defaultWin11ClockWidth + defaultWin11NotificationWidth; // +10;		//10ドット分は、クリックでメニューが開けるように。
+			if (bEnabledWin11Notify) {
+				widthMinimum -= widthWin11Notify;
+			}
+
+			if (widthMainClockFrame < widthMinimum)
+			{
+				widthMainClockFrame = widthMinimum;
+			}
+		}
+
 		heightMainClockFrame = tempRect.bottom - tempRect.top;
-		//if (bAdjustTrayWin11SmallTaskbar && (Win11Type == 2))
-		//{
-		//	heightMainClockFrame = 2 * originalHeightTaskbar / 3;
-		//}
 	}
 
 	SetMyRegLong("Status_DoNotEdit", "ClockWidth", widthMainClockFrame);

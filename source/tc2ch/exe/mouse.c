@@ -541,6 +541,14 @@ void ExecuteMouseFunction(HWND hwnd, LONG fnc, int btn, int clk)
 			ShellExecute(NULL, "open", "ms-clock:", NULL, NULL, SW_SHOWNORMAL);
 			break;
 		}
+
+		case MOUSEFUNC_PUSHBACK:
+		{
+			extern int PusuBackIndex;
+			PusuBackIndex = 0;
+			EnumWindows(PusuBackOBWindow, NULL);
+			break;
+		}
 	}
 }
 

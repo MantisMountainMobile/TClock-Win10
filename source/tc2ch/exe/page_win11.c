@@ -20,7 +20,7 @@ extern char g_mydir[];
 
 BOOL b_exe_Win11Main = FALSE;
 //BOOL b_exe_UseSubClks = TRUE;
-BOOL b_exe_UseWin11Notify = TRUE;
+//BOOL b_exe_UseWin11Notify = TRUE;
 int exe_AdjustTrayCutPosition = 0;
 int exe_AdjustWin11ClockWidth = 0;
 int exe_AdjutDetectNotify = 0;
@@ -114,10 +114,16 @@ static void OnInit(HWND hDlg)
 
 	if (b_exe_Win11Main)
 	{
-		b_exe_UseWin11Notify = (BOOL)GetMyRegLong("Win11", "UseTClockNotify", 1);
-		CheckDlgButton(hDlg, IDC_ETC_USE_WIN11NOTIFY, b_exe_UseWin11Notify);
+		//b_exe_UseWin11Notify = (BOOL)GetMyRegLong("Win11", "UseTClockNotify", 1);
 
-		CheckDlgButton(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, (BOOL)GetMyRegLong("Win11", "ShowWin11NotifyNumber", 1));
+		//CheckDlgButton(hDlg, IDC_ETC_USE_WIN11NOTIFY, b_exe_UseWin11Notify);
+		//CheckDlgButton(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, (BOOL)GetMyRegLong("Win11", "ShowWin11NotifyNumber", 1));
+
+		//Ver 5.1.2‚Å”pŽ~(•\Ž¦‚ÍŽc‚µ‚Ä‚ ‚é)
+		CheckDlgButton(hDlg, IDC_ETC_USE_WIN11NOTIFY, TRUE);
+		EnableDlgItem(hDlg, IDC_ETC_USE_WIN11NOTIFY, FALSE);
+		CheckDlgButton(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, TRUE);
+		EnableDlgItem(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, FALSE);
 
 
 		int IconSize = GetMyRegLong("Status_DoNotEdit", "Win11IconSize", 99);
@@ -139,13 +145,19 @@ static void OnInit(HWND hDlg)
 		EnableDlgItem(hDlg, IDC_SPG_ETC_NOTIFY_DETECTPOS, FALSE);
 		EnableDlgItem(hDlg, IDC_ETC_NOTIFY_DETECTPOS, FALSE);
 
-		b_exe_AdjustTrayWin11SmallTaskbar = (BOOL)GetMyRegLong("Win11", "AdjustWin11IconPosition", 1);
-		CheckDlgButton(hDlg, IDC_ETC_ADJUST_WIN11_SMALLTASKBAR, (BOOL)GetMyRegLong("Win11", "AdjustWin11IconPosition", 1));
+		if (GetMyRegLong("Status_DoNotEdit", "WindowsType", 1) == 2) {
+			CheckDlgButton(hDlg, IDC_ETC_ADJUST_WIN11_SMALLTASKBAR, FALSE);
+			EnableDlgItem(hDlg, IDC_ETC_ADJUST_WIN11_SMALLTASKBAR, FALSE);
+		}
+		else {
+			b_exe_AdjustTrayWin11SmallTaskbar = (BOOL)GetMyRegLong("Win11", "AdjustWin11IconPosition", 1);
+			CheckDlgButton(hDlg, IDC_ETC_ADJUST_WIN11_SMALLTASKBAR, (BOOL)GetMyRegLong("Win11", "AdjustWin11IconPosition", 1));
+		}
 
 	}
 	else {
-		EnableDlgItem(hDlg, IDC_ETC_USE_WIN11NOTIFY, FALSE);
-		EnableDlgItem(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, FALSE);
+		//EnableDlgItem(hDlg, IDC_ETC_USE_WIN11NOTIFY, FALSE);
+		//EnableDlgItem(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, FALSE);
 		EnableDlgItem(hDlg, IDC_SPG_ETC_CUTPOSITION, FALSE);
 		EnableDlgItem(hDlg, IDC_ETC_CUTPOSITION, FALSE);
 		EnableDlgItem(hDlg, IDC_SPG_ETC_CUT_LIMIT, FALSE);
@@ -171,8 +183,8 @@ void OnApply(HWND hDlg)
 	//b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
 	//SetMyRegLong(NULL, "AutoRestart", b_AutoRestart);
 
-	SetMyRegLong("Win11", "UseTClockNotify", IsDlgButtonChecked(hDlg, IDC_ETC_USE_WIN11NOTIFY));
-	SetMyRegLong("Win11", "ShowWin11NotifyNumber", IsDlgButtonChecked(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER));
+	//SetMyRegLong("Win11", "UseTClockNotify", IsDlgButtonChecked(hDlg, IDC_ETC_USE_WIN11NOTIFY));
+	//SetMyRegLong("Win11", "ShowWin11NotifyNumber", IsDlgButtonChecked(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER));
 
 
 	SetMyRegLong("Win11", "AdjustCutTray", (int)(short)SendDlgItemMessage(hDlg, IDC_SPG_ETC_CUTPOSITION, UDM_GETPOS, 0, 0));

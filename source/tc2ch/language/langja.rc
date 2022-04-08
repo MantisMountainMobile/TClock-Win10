@@ -40,6 +40,7 @@ BEGIN
         MENUITEM "タスクマネージャ起動",                  IDC_TASKMAN
         MENUITEM "コマンドプロンプト起動",                 IDC_CMD
         MENUITEM "アラーム＆クロック",                   IDC_ALARM_CLOCK
+        MENUITEM "画面外ウィンドウを戻す",                 IDC_PUSHBACK
         MENUITEM SEPARATOR
         MENUITEM "コントロールパネル：トップ",               IDC_CONTROLPNL
         MENUITEM "コントロールパネル：電源オプション",           IDC_POWERPNL
@@ -1033,8 +1034,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 5,0,1,1
- PRODUCTVERSION 5,0,1,1
+ FILEVERSION 5,1,5,1
+ PRODUCTVERSION 5,1,5,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1051,11 +1052,11 @@ BEGIN
         BEGIN
             VALUE "Comments", "TClock-Win10 Language DLL（日本語/English）"
             VALUE "FileDescription", "TClock-Win10 Language DLL（日本語/English）"
-            VALUE "FileVersion", "5.0.1.1"
+            VALUE "FileVersion", "5.1.5.1"
             VALUE "InternalName", "LANGJA"
             VALUE "OriginalFilename", "tclang-win10.dll"
             VALUE "ProductName", "TClock-Win10"
-            VALUE "ProductVersion", "5.0.1.1"
+            VALUE "ProductVersion", "5.1.5.1"
         END
     END
     BLOCK "VarFileInfo"
@@ -1137,6 +1138,10 @@ BEGIN
     END
 
     IDD_PAGE_KEYWORDS_ENG, DIALOG
+    BEGIN
+    END
+
+    IDD_PAGE_WIN11, DIALOG
     BEGIN
     END
 
@@ -1710,6 +1715,7 @@ BEGIN
     IDS_BMCOLOR_TITLE_NET   "メーターバーの色 (通信速度)"
     IDS_BM_THRESHOLD        "閾値"
     IDS_PROP_KEYWORDS       "判定用キーワード"
+    IDS_PUSHBACK            "画面外ウィンドウを戻す"
 END
 
 STRINGTABLE
@@ -1721,6 +1727,7 @@ BEGIN
     IDS_BMCOLOR_TITLE_NET_ENG "Meter Bar Color (Net Speed)"
     IDS_BM_THRESHOLD_ENG    "Threshold"
     IDS_PROP_KEYWORDS_ENG   "Keywords"
+    IDS_PUSHBACK_ENG        "Push-back unaccessible windows"
 END
 
 #endif    // 日本語 (日本) resources

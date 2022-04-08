@@ -450,6 +450,14 @@ void OnTClockCommand(HWND hwnd, WORD wID, WORD wCode)
 			return;
 		}
 
+		case IDC_PUSHBACK:
+		{
+			extern int PusuBackIndex;
+			PusuBackIndex = 0;
+			EnumWindows(PusuBackOBWindow, NULL);
+			return;
+		}
+
 		case IDC_DATETIME_Win10:
 		{
 			HWND hwndTray;
@@ -519,6 +527,7 @@ void InitializeMenuItems(void)
 	ModifyMenu(hPopupMenu, IDC_TASKMAN, MF_BYCOMMAND, IDC_TASKMAN, MyString(IDS_TASKMGR));
 	ModifyMenu(hPopupMenu, IDC_CMD, MF_BYCOMMAND, IDC_CMD,MyString(IDS_CMD));
 	ModifyMenu(hPopupMenu, IDC_ALARM_CLOCK, MF_BYCOMMAND, IDC_ALARM_CLOCK, MyString(IDS_ALARM_CLOCK));
+	ModifyMenu(hPopupMenu, IDC_PUSHBACK, MF_BYCOMMAND, IDC_PUSHBACK, MyString(IDS_PUSHBACK));
 	ModifyMenu(hPopupMenu, IDC_VISTACALENDAR, MF_BYCOMMAND, IDC_VISTACALENDAR, MyString(IDS_VISTACALENDAR));
 	ModifyMenu(hPopupMenu, IDC_SHOWAVAILABLENETWORKS, MF_BYCOMMAND, IDC_SHOWAVAILABLENETWORKS, MyString(IDS_SHOWAVAILABLENETWORKS));
 	ModifyMenu(hPopupMenu, IDC_CONTROLPNL, MF_BYCOMMAND, IDC_CONTROLPNL, MyString(IDS_CONTROLPNL));

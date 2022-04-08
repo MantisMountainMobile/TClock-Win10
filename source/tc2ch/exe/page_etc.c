@@ -101,9 +101,9 @@ static void OnInit(HWND hDlg)
 	
 	CheckDlgButton(hDlg, IDC_USE_SUBCLKS, GetMyRegLong(NULL, "EnableOnSubDisplay", TRUE));
 
-	CheckDlgButton(hDlg, IDC_ETC_SHOWTRAYICON, GetMyRegLong(NULL, "ShowTrayIcon", FALSE));
-	
-
+	//CheckDlgButton(hDlg, IDC_ETC_SHOWTRAYICON, GetMyRegLong(NULL, "ShowTrayIcon", TRUE));
+	CheckDlgButton(hDlg, IDC_ETC_SHOWTRAYICON, TRUE);
+	EnableDlgItem(hDlg, IDC_ETC_SHOWTRAYICON, FALSE);
 
 	tempInt = (int)SendMessage(g_hwndClock, WM_COMMAND, (WPARAM)CLOCKM_REQUEST_TEMPCOUNTERINFO, selectedThermalZone);
 	tempNumThermalZone = tempInt / 200;

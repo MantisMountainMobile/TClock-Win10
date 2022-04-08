@@ -600,6 +600,9 @@ void CleanSettingFile(void)
 	DelMyReg_DLL("Tooltip", "TipEnableDoubleBuffering");
 	DelMyReg_DLL("Tooltip", "TipDispInterval");
 		
-	
+	DelMyReg_DLL("Win11", "UseTClockNotify");
+	DelMyReg_DLL("Win11", "ShowWin11NotifyNumber");
+
+	DelMyReg_DLL(NULL, "EnhanceSubClkOnDarkTray");
 }
 

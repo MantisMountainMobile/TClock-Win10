@@ -142,6 +142,7 @@ static MOUSE_FUNC_INFO mouse_func_list[] = {
 	{	MOUSEFUNC_NONE,			IDS_NONE},
 	{ MOUSEFUNC_VISTACALENDAR,		IDS_VISTACALENDAR },
 	{ MOUSEFUNC_ALARM_CLOCK,		IDS_ALARM_CLOCK2 },
+	{ MOUSEFUNC_PUSHBACK,		IDS_PUSHBACK },
 	{ MOUSEFUNC_SHOWAVAILABLENETWORKS,		IDS_SHOWAVAILABLENETWORKS },
 	{ MOUSEFUNC_TASKMGR,		IDS_TASKMGR },	//Added by TTTT
 	{ MOUSEFUNC_CMD,			IDS_CMD },		//Added by TTTT
@@ -440,8 +441,10 @@ static UINT WINAPI TclockExeMain(void)
 
 	g_hwndMain = hwnd;	//メイン隠しウィンドウのハンドルをグローバル変数のg_hwndMainにコピー
 
-	CreateTClockTrayIcon(GetMyRegLong(NULL, "ShowTrayIcon", FALSE));
-	SetMyRegLong(NULL, "ShowTrayIcon", b_ShowTrayIcon);
+	//CreateTClockTrayIcon(GetMyRegLong(NULL, "ShowTrayIcon", FALSE));
+	//SetMyRegLong(NULL, "ShowTrayIcon", b_ShowTrayIcon);
+
+	CreateTClockTrayIcon(GetMyRegLong(NULL, "ShowTrayIcon", TRUE));
 
 	SetIdlePriority();	//デフォルトではIDLE_PRIORITY_CLASSとする	added by TTTT
 
@@ -665,8 +668,9 @@ LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wParam, LPARAM lParam)	
 			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_DESTROY received");
 			return 0;
 		case WM_ENDSESSION:	//セッション終了時のTClock終了はこちらから
-			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_ENDSESSION received");
-			if(wParam) TerminateTClock(hwnd);
+			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_ENDSESSION received. TClock is terminated from now.");
+			//if(wParam) TerminateTClock(hwnd);
+			PostMessage(g_hwndMain, WM_CLOSE, 0, 0);
 			break;
 		case WM_QUERYENDSESSION:	//セッション終了時の事前確認のようなもの。修了処理はWM_ENDSESSIONに実装する。
 			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] WM_QUERYENDSESSION received");

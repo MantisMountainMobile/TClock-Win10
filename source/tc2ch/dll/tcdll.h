@@ -182,6 +182,7 @@ void DesktopDirectDraw_Win11(void);
 void SwitchToTClockBarWin11(void);
 void ReturnToOriginalTaskBar(void);
 LRESULT CALLBACK WndProcTClockBar_Win11(HWND tempHwnd, UINT message, WPARAM wParam, LPARAM lParam);
+void LogCursorPos(void);
 
 
 

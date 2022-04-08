@@ -1175,7 +1175,7 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 						}
 					}
 					else {		//Only applicable for UK in 2022 and future.
-						disptime = CalcTimeDifference_Win10(pt, td_hour, td_min, td_neg);
+						disptime = CalcTimeDifference_Europe_Win10(pt, td_hour, td_min, td_neg);
 					}
 
 					sp += 8;

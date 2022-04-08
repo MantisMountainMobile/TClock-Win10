@@ -155,6 +155,8 @@ int r_stricmp(const char* d, const char* s);
 #define MOUSEFUNC_CMD			208		//added by TTTT
 
 #define MOUSEFUNC_ALARM_CLOCK			209		//added by TTTT
+#define MOUSEFUNC_PUSHBACK			210		//Introduced from TClock Light in 2022
+
 
 
 #define MAX_AUTORESTART			2
@@ -259,12 +261,12 @@ BOOL SetMyRegLong(char* subkey, char* entry, DWORD val);
 BOOL DelMyReg(char* subkey, char* entry);
 BOOL DelMyRegKey(char* subkey);
 int DelRegAll(void);
-
 HWND FindVistaCalenderWindow(void);	//originally in calendar.c
-
-
 void AdjustConboBoxDropDown(HWND hComboBox, int nDropDownCount);
-
+BOOL GetScreenRect(HWND hwnd, RECT *prc);
+BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam);
+int CheckWindowStatus_TClockExe(HWND hwnd);
+BOOL IsTClockWindow(HWND hwnd);
 
 
 // tcdll.dll‚ÌAPI

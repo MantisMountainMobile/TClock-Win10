@@ -176,6 +176,7 @@
 #define IDS_STRING8                     253
 #define IDS_BM_THRESHOLD                253
 #define IDS_PROP_KEYWORDS               254
+#define IDS_PUSHBACK                         255
 #define IDC_DATETIME_Win10              406
 #define IDC_DATETIME                    408
 #define IDC_TASKBARPROP                 413
@@ -190,6 +191,7 @@
 #define IDC_CMD                         428
 #define IDC_TOGGLE_DATAPLANFUNC         429
 #define IDC_ALARM_CLOCK                 430
+#define IDC_PUSHBACK							431
 #define IDC_EXITWIN                     506
 #define IDC_USEDATAPLANFUNC             1001
 #define IDC_DATAPLANYEAR                1002
@@ -542,6 +544,7 @@
 #define IDC_ZERO                        1253
 #define IDS_BM_THRESHOLD_ENG            1253
 #define IDS_PROP_KEYWORDS_ENG           1254
+#define IDS_PUSHBACK_ENG                     1255
 #define IDC_DROPFILES                   1401
 #define IDC_LABDROPFILESAPP             1402
 #define IDC_DROPFILESAPP                1403
@@ -807,6 +810,7 @@
 #define IDC_REMOVE_DRIVE0               40010
 #define ID_ALARM_CLOCK                  40010
 #define IDC_REMOVE_DRIVE1               40011
+#define ID_Menu40011                    40011
 #define IDC_REMOVE_DRIVE2               40012
 #define IDC_REMOVE_DRIVE3               40013
 #define IDC_REMOVE_DRIVE4               40014
@@ -823,7 +827,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        107
-#define _APS_NEXT_COMMAND_VALUE         40011
+#define _APS_NEXT_COMMAND_VALUE         40013
 #define _APS_NEXT_CONTROL_VALUE         1076
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
