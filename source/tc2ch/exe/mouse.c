@@ -447,6 +447,13 @@ void ExecuteMouseFunction(HWND hwnd, LONG fnc, int btn, int clk)
 			MyPropertyDialog();
 			break;
 		}
+		case MOUSEFUNC_TCLOCKMENU:
+		{
+			POINT pos;
+			GetCursorPos(&pos);
+			OnContextMenu(hwnd, NULL, pos.x, pos.y);
+			break;
+		}
 		case MOUSEFUNC_VISTACALENDAR:
 		{
 			PostMessage(g_hwndClock, CLOCKM_VISTACALENDAR, 0, 0);
@@ -542,11 +549,11 @@ void ExecuteMouseFunction(HWND hwnd, LONG fnc, int btn, int clk)
 			break;
 		}
 
-		case MOUSEFUNC_PUSHBACK:
+		case MOUSEFUNC_PULLBACK:
 		{
-			extern int PusuBackIndex;
-			PusuBackIndex = 0;
-			EnumWindows(PusuBackOBWindow, NULL);
+			extern int PullBackIndex;
+			PullBackIndex = 0;
+			EnumWindows(PullBackOBWindow, NULL);
 			break;
 		}
 	}

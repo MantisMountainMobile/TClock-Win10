@@ -10,7 +10,7 @@
 typedef LARGE_INTEGER TC_SINT64;
 typedef ULARGE_INTEGER TC_UINT64;
 
-int PusuBackIndex = 0;
+int PullBackIndex = 0;
 
 //#else
 //typedef union _TC_SINT64 {
@@ -1035,7 +1035,7 @@ Enhanced Kyu!   (Based on TClock Light)
 Mainly move, minimum / no resize version
 --------------------------------------------------*/
 
-BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK PullBackOBWindow(HWND hwnd, LPARAM lParam)
 {
 	//char tempString[256];
 	//char tempClassName[80];
@@ -1242,15 +1242,15 @@ BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
 			{
 				SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE);
 				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-				PusuBackIndex++;
+				PullBackIndex++;
 			}
 		}
 		else
 		{
 			GetWindowRect(hwnd, &rc);
 
-			posX = 100 * (PusuBackIndex + 1);
-			posY = 100 * (PusuBackIndex + 1) * ycenter / xcenter;
+			posX = 100 * (PullBackIndex + 1);
+			posY = 100 * (PullBackIndex + 1) * ycenter / xcenter;
 			widthWnd = rc.right - rc.left;
 			heightWnd = rc.bottom - rc.top;
 
@@ -1263,7 +1263,7 @@ BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
 			}
 			SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE | SWP_SHOWWINDOW);
 			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-			PusuBackIndex++;
+			PullBackIndex++;
 		}
 
 	}
@@ -1279,7 +1279,7 @@ Enhanced Kyu!   (Based on TClock Light)
 Mainly resize, minimum move version
 --------------------------------------------------*/
 /*
-BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
+BOOL CALLBACK PullBackOBWindow(HWND hwnd, LPARAM lParam)
 {
 
 
@@ -1348,9 +1348,9 @@ BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
 			widthArea = rcScr.right - rcScr.left;
 			heightArea = rcScr.bottom - rcScr.top;
 
-			if (PusuBackIndex < 10) {
-				minimumWidth = widthArea * (20 - PusuBackIndex) / 60;
-				minimumHeight = heightArea * (20 - PusuBackIndex) / 60;
+			if (PullBackIndex < 10) {
+				minimumWidth = widthArea * (20 - PullBackIndex) / 60;
+				minimumHeight = heightArea * (20 - PullBackIndex) / 60;
 			}
 			else {
 				minimumWidth = widthArea / 6;
@@ -1539,15 +1539,15 @@ BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
 			{
 				SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE);
 				SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-				PusuBackIndex++;
+				PullBackIndex++;
 			}
 		}
 		else
 		{
 			GetWindowRect(hwnd, &rc);
 
-			posX = 100 * (PusuBackIndex + 1);
-			posY = 100 * (PusuBackIndex + 1) * ycenter / xcenter;
+			posX = 100 * (PullBackIndex + 1);
+			posY = 100 * (PullBackIndex + 1) * ycenter / xcenter;
 			widthWnd = rc.right - rc.left;
 			heightWnd = rc.bottom - rc.top;
 
@@ -1560,7 +1560,7 @@ BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam)
 			}
 			SetWindowPos(hwnd, HWND_TOPMOST, posX, posY, widthWnd, heightWnd, SWP_NOACTIVATE | SWP_SHOWWINDOW);
 			SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-			PusuBackIndex++;
+			PullBackIndex++;
 		}
 
 	}

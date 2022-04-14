@@ -137,6 +137,7 @@ int r_stricmp(const char* d, const char* s);
 // for mouse.c and pagemouce.c
 #define MOUSEFUNC_NONE       -1
 #define MOUSEFUNC_DATETIME    0
+#define MOUSEFUNC_TCLOCKMENU    1
 
 #define MOUSEFUNC_PROPERTY    10
 #define MOUSEFUNC_VISTACALENDAR    11
@@ -155,7 +156,7 @@ int r_stricmp(const char* d, const char* s);
 #define MOUSEFUNC_CMD			208		//added by TTTT
 
 #define MOUSEFUNC_ALARM_CLOCK			209		//added by TTTT
-#define MOUSEFUNC_PUSHBACK			210		//Introduced from TClock Light in 2022
+#define MOUSEFUNC_PULLBACK			210		//Introduced from TClock Light in 2022
 
 
 
@@ -264,7 +265,7 @@ int DelRegAll(void);
 HWND FindVistaCalenderWindow(void);	//originally in calendar.c
 void AdjustConboBoxDropDown(HWND hComboBox, int nDropDownCount);
 BOOL GetScreenRect(HWND hwnd, RECT *prc);
-BOOL CALLBACK PusuBackOBWindow(HWND hwnd, LPARAM lParam);
+BOOL CALLBACK PullBackOBWindow(HWND hwnd, LPARAM lParam);
 int CheckWindowStatus_TClockExe(HWND hwnd);
 BOOL IsTClockWindow(HWND hwnd);
 

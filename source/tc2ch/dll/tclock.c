@@ -695,10 +695,7 @@ void InitClock()
 	originalHeightTaskbar = heightTaskbar;
 	originalPosYTaskbar = posYTaskbar;
 
-	if (Win11Type == 2)
-	{
-		GetTaskbarColor_Win11Type2(FALSE);
-	}
+
 
 	del_title(fname);
 	add_title(fname, "tclock-win10.ini");
@@ -712,6 +709,10 @@ void InitClock()
 
 	g_winver = CheckWinVersion_Win10();
 
+	if (Win11Type == 2)
+	{
+		GetTaskbarColor_Win11Type2(FALSE);
+	}
 
 
 	GetMainClock();	//hwndClockMainをゲット, bWin11Mainはここで決定される。
@@ -1268,7 +1269,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				DWORD mp;
 				mp = GetMessagePos();
 				PostMessage(hwndTClockExeMain, WM_CONTEXTMENU, (WPARAM)tempHwnd, (LPARAM)mp);
-				if (Win11Type == 2) {	//クリックによりTClockBarWin11がタスクバーより前面に来てしまうのを戻す。
+				if (bWin11Main && (Win11Type == 2)) {	//クリックによりTClockBarWin11がタスクバーより前面に来てしまうのを戻す。
 					SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, 0, 0, 0,
 						SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 				}
@@ -2470,7 +2471,7 @@ void OnTimer_Win10(void)
 	BOOL bRedraw;
 
 
-	if (Win11Type == 2) {
+	if (bWin11Main && (Win11Type == 2)) {
 		if (b_ShowingTClockBarWin11_backup) {
 			if (b_DebugLog)writeDebugLog_Win10("[tclock.c][OnTimer_Win10] ReturnToOriginalTaskBar missed. So call it from OnTimer_Win10.", 999);
 			MoveWin11ContentBridge(2);
@@ -2798,7 +2799,7 @@ void DrawClock_New(HDC hdc, BOOL b_forceUpdateWin11Notify)
 	SYSTEMTIME t;
 	int beat100 = 0;
 
-	if (Win11Type == 2) {
+	if (bWin11Main && (Win11Type == 2)) {
 		GetTaskbarColor_Win11Type2(TRUE);
 	}
 
@@ -3582,7 +3583,7 @@ void Textout_Tclock_Win10_3(int x, int y, char* sp, int len, int infoval)
 	textcol_dow = TextColorFromInfoVal(88);
 	textcol_temp = TextColorFromInfoVal(infoval);
 
-	if (fillbackcolor || (Win11Type == 2)) 
+	if (fillbackcolor || (bWin11Main && (Win11Type == 2))) 
 	{
 		if (bClockShadow)
 		{
@@ -3785,7 +3786,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	//FillClock();
 	FillBack(hdcClock, widthMainClockFrame, heightMainClockFrame);
 
-	if (Win11Type == 2)		//Win11Type2での上端の色が違う部分を再現する。
+	if (bWin11Main && (Win11Type == 2))		//Win11Type2での上端の色が違う部分を再現する。
 	{
 		for (color = m_color_end - widthMainClockFrame; color <m_color_end ; ++color) {
 			*(unsigned*)color = originalColorTaskbarEdge;
@@ -4075,7 +4076,7 @@ void DrawClockSub(HDC hdc, SYSTEMTIME* pt, int beat100)
 	textshadow = TextColorFromInfoVal(99);
 	textcol_dow = TextColorFromInfoVal(88);
 
-	if (fillbackcolor || (Win11Type == 2)) {	//背景非透過の場合
+	if (fillbackcolor || (bWin11Main && (Win11Type == 2))) {	//背景非透過の場合
 		for (color = m_color_start; color < m_color_end; ++color) {
 			color->rgbReserved = 255;
 		}
@@ -4969,7 +4970,7 @@ void FillBack(HDC hdcTarget, int width, int height)
 		//Windowsのタスクバー構造が完全に変わっていてその方式が復活する可能性はないので、削除
 		//透明化は、時計のビットマップを透過合成対応にして実現している。
 
-		if (Win11Type == 2)
+		if (bWin11Main && (Win11Type == 2))
 		{
 			//Win11Type2では透明効果でタスクバー色が変わるのでTClockの左端は毎秒色を合わせる。
 			//一方で、TClock右端には通知アイコンがあって、毎秒更新されるわけではないので、原則グラデーションで描画する。
@@ -5032,7 +5033,7 @@ void FillClock()
 		//Windowsのタスクバー構造が完全に変わっていてその方式が復活する可能性はないので、削除
 		//透明化は、時計のビットマップを透過合成対応にして実現している。
 
-		if (Win11Type == 2)
+		if (bWin11Main && (Win11Type == 2))
 		{
 			col = originalColorTaskbar;
 			hbr = CreateSolidBrush(col);
@@ -5165,7 +5166,7 @@ void CalcMainClockSize(void)
 		widthMainClockFrame = widthMainClockContent;
 
 		//Win11Type2でWin11の時計より小さくならないようにする。-->表示はOKだがタスクトレイオーバーフローのクリックが別のトレイアイコンに届くのを避けるため必要
-		if (Win11Type == 2) {
+		if (bWin11Main && (Win11Type == 2)) {
 			int widthMinimum = defaultWin11ClockWidth + defaultWin11NotificationWidth; // +10;		//10ドット分は、クリックでメニューが開けるように。
 			if (bEnabledWin11Notify) {
 				widthMinimum -= widthWin11Notify;

@@ -164,7 +164,8 @@ static void OnInit(HWND hDlg)
 		EnableDlgItem(hDlg, IDC_ETC_CUT_LIMIT, FALSE);
 		EnableDlgItem(hDlg, IDC_SPG_ETC_NOTIFY_DETECTPOS, FALSE);
 		EnableDlgItem(hDlg, IDC_ETC_NOTIFY_DETECTPOS, FALSE);
-
+		EnableDlgItem(hDlg, IDC_ETC_USE_WIN11NOTIFY, FALSE);
+		EnableDlgItem(hDlg, IDC_ETC_SHOW_WIN11NOTIFY_NUMBER, FALSE);
 		EnableDlgItem(hDlg, IDC_ETC_ADJUST_WIN11_SMALLTASKBAR, FALSE);
 	}
 

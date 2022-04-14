@@ -176,7 +176,8 @@
 #define IDS_STRING8                     253
 #define IDS_BM_THRESHOLD                253
 #define IDS_PROP_KEYWORDS               254
-#define IDS_PUSHBACK                         255
+#define IDS_PULLBACK                    255
+#define IDS_TCLOCKMENU                  256
 #define IDC_DATETIME_Win10              406
 #define IDC_DATETIME                    408
 #define IDC_TASKBARPROP                 413
@@ -191,7 +192,7 @@
 #define IDC_CMD                         428
 #define IDC_TOGGLE_DATAPLANFUNC         429
 #define IDC_ALARM_CLOCK                 430
-#define IDC_PUSHBACK							431
+#define IDC_PULLBACK                    431
 #define IDC_EXITWIN                     506
 #define IDC_USEDATAPLANFUNC             1001
 #define IDC_DATAPLANYEAR                1002
@@ -544,7 +545,9 @@
 #define IDC_ZERO                        1253
 #define IDS_BM_THRESHOLD_ENG            1253
 #define IDS_PROP_KEYWORDS_ENG           1254
-#define IDS_PUSHBACK_ENG                     1255
+#define IDS_PULLBACK_ENG                1255
+#define IDS_STRING257                   1256
+#define IDS_TCLOCKMENU_ENG              1256
 #define IDC_DROPFILES                   1401
 #define IDC_LABDROPFILESAPP             1402
 #define IDC_DROPFILESAPP                1403
