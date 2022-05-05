@@ -100,7 +100,8 @@ extern char activeAPName[];
 
 extern int NetMIX_Length;
 extern int SSID_AP_Length;
-
+extern int ExtTXT_Length;
+extern char ExtTXT_String[];
 
 extern BOOL b_FlagTimerAdjust;
 
@@ -2347,6 +2348,20 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 							{
 								*dp++ = ' '; *infop++ = 0x01;
 							}
+						}
+					}
+				}
+				else if (*sp == 'E' && *(sp + 1) == 'x' && *(sp + 2) == 't' && *(sp + 3) == 'T' && *(sp + 4) == 'X' && *(sp + 5) == 'T') // ExtTXT
+				{
+					int slen;
+					sp += 6;
+					slen = strlen(ExtTXT_String);
+					for (int i = 0; i < ExtTXT_Length; i++) {
+						if (i < slen) {
+							*dp++ = ExtTXT_String[i]; *infop++ = 0x01;
+						}
+						else {
+							*dp++ = ' '; *infop++ = 0x01;
 						}
 					}
 				}

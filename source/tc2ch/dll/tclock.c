@@ -487,6 +487,9 @@ int LogDigit = 4;
 int LogDigit2 = 4;
 int NetMIX_Length = 10;
 int SSID_AP_Length = 10;
+int ExtTXT_Length = 10;
+char ExtTXT_String[256];
+
 int TimerCountForSec = 1000;
 int intervalTimerAdjust = 0;
 BOOL b_InitialTimerAdjust = FALSE;
@@ -536,6 +539,7 @@ HWND hwndWin11Notify = NULL;
 //通知ウィンドウ用
 //利用設定・フラグ
 BOOL bEnabledWin11Notify = TRUE;	//利用するかどうか(通知ウィンドウ自体は常に作る)
+BOOL bEnableWin11NotifyIcon = TRUE;	//上記がTRUEの際にTClock-Win10オリジナルの通知アイコンを表示するか
 //通知ウィンドウ描画用
 HDC hdcYesWin11Notify = NULL;
 HDC hdcNoWin11Notify = NULL;
@@ -647,6 +651,9 @@ BOOL b_WININICHANGED = FALSE;
 
 extern BOOL b_ShowingTClockBarWin11;
 BOOL b_ShowingTClockBarWin11_backup = FALSE;
+
+BOOL bSuppressGetTaskbarColor_Win11Type2 = FALSE;
+
 
 void GetMainClock(void)
 {
@@ -1255,7 +1262,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 				return 0;
 			}
-
 			PostMessage(hwndTClockExeMain, message, wParam, lParam);
 			return 0;
 
@@ -1266,6 +1272,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_XBUTTONUP:
 			if (message == WM_RBUTTONUP && (wParam & MK_LBUTTON || ((wParam&MK_CONTROL)&&(wParam&MK_SHIFT)) || bRClickMenu))
 			{
+
+				//{
+				//	//test code
+				//	char tempString[1024];
+				//	strcpy(tempString, "test45678901234567890123456789");
+				//	PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, (LPARAM)tempString);
+				//}
+
 				DWORD mp;
 				mp = GetMessagePos();
 				PostMessage(hwndTClockExeMain, WM_CONTEXTMENU, (WPARAM)tempHwnd, (LPARAM)mp);
@@ -1289,6 +1303,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			// 右クリックの場合は↑で自前で変換しないと､独自処理を割り当てたときも
 			// メニューが開いてしまう
 			//if (bRClickMenu) {
+
+
 				PostMessage(hwndTClockExeMain, message, wParam, lParam);
 			//}
 			return 0;
@@ -1347,6 +1363,74 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc] CLOCKM_REFRESHCLOCK received", 999);
 			RestartOnRefresh();
+			return 0;
+		}
+		//case CLOCKM_UPDATE_FORMAT:
+		//{
+		//	if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc()] CLOCKM_UPDATE_FORMAT received", 999);
+
+		//	if (wParam == 1) {
+		//		strcpy_s(format, 1024, (char*)lParam);
+		//	}
+		//	else
+		//	{
+		//		GetMyRegStr("Format", "Format", format, 1024, "mm/dd ddd\\n hh:nn:ss ");
+		//	}
+
+
+
+		//	char fmt_tmp[1024];
+		//	strcpy(fmt_tmp, "<%");
+		//	strcat(fmt_tmp, format);
+		//	strcat(fmt_tmp, "%>");
+		//	strcpy(format, fmt_tmp);
+
+		//	int prevWidth, prevHeight;
+		//	prevWidth = widthMainClockFrame;
+		//	prevHeight = heightMainClockFrame;
+
+		//	CalcMainClockSize();
+
+		//	if ((prevWidth != widthMainClockFrame) || (prevHeight != heightMainClockFrame))
+		//	{
+		//		if (bWin11Main) {
+		//			if (Win11Type == 2)
+		//			{
+		//				bSuppressGetTaskbarColor_Win11Type2 = TRUE;
+		//			}
+
+		//			SetMainClockOnTasktray_Win11();
+		//		}
+		//		else {
+		//			RedrawMainTaskbar();
+		//			//b_WININICHANGED = TRUE;
+		//			//RedrawTClock();
+		//			//SetMainClockOnTasktray();
+		//		}
+		//	}
+
+		//	return 0;
+		//}
+		case CLOCKM_UPDATE_EXTTEXT:	//0x0404
+		{
+			// To Update "ExtTXT" in format
+			// PostMessage(****TCLOCK_MAIN_HWND****, 0x0404, NULL, (LPARAM)char* string);
+
+			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc()] CLOCKM_UPDATE_EXTTEXT received", 999);
+
+			if (lParam != NULL) {
+				if (strlen((char*)lParam) < 256) {
+					strcpy_s(ExtTXT_String, 256, (char*)lParam);
+				}
+				else {
+					strcpy_s(ExtTXT_String, 255, (char*)lParam);
+					ExtTXT_String[127] = '\0';
+				}
+			}
+			else {
+				ExtTXT_String[0] = '\0';
+			}
+
 			return 0;
 		}
 		case CLOCKM_VISTACALENDAR:
@@ -2085,7 +2169,9 @@ void ReadData()
 	SSID_AP_Length = GetMyRegLong("ETC", "SSID_AP_Length", 10);
 	SetMyRegLong("ETC", "SSID_AP_Length", SSID_AP_Length);
 
-
+	ExtTXT_Length = GetMyRegLong("ETC", "ExtTXT_Length", 10);
+	if (ExtTXT_Length > 128) ExtTXT_Length = 128;
+	SetMyRegLong("ETC", "ExtTXT_Length", ExtTXT_Length);
 
 	strAdditionalMountPath[10][64];
 
@@ -2118,6 +2204,9 @@ void ReadData()
 
 	adjustWin11DetectNotify = (int)(short)GetMyRegLong("Win11", "AdjustDetectNotify", 0);
 	SetMyRegLong("Win11", "AdjustDetectNotify", adjustWin11DetectNotify);
+
+	bEnableWin11NotifyIcon = (BOOL)GetMyRegLong("Win11", "EnableWin11NotifyIcon", TRUE);
+	SetMyRegLong("Win11", "EnableWin11NotifyIcon", bEnableWin11NotifyIcon);
 
 	if (bWin11Main && hwndWin11Notify) {
 		bEnabledWin11Notify = TRUE;
@@ -5545,10 +5634,18 @@ void CheckPixel_Win10(int posX, int posY)
 	}
 }
 
+
+
 void GetTaskbarColor_Win11Type2(BOOL bBoundary)	//bBoundary == TRUEだとTClockの境界付近、FALSEだど左端
 {
 	//extern BOOL b_ShowingTClockBarWin11;
 	//if (b_ShowingTClockBarWin11)return;
+
+	if (bSuppressGetTaskbarColor_Win11Type2) {
+		bSuppressGetTaskbarColor_Win11Type2 = FALSE;
+		return;
+	}
+
 
 	HWND tempHwnd = NULL;
 	HDC tempDC = NULL;

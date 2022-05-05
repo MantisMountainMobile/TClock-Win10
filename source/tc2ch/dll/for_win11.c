@@ -50,6 +50,8 @@ extern HWND hwndWin11Notify;
 //通知ウィンドウ用
 //利用設定・フラグ
 extern BOOL bEnabledWin11Notify;	//利用するかどうか(通知ウィンドウ自体は常に作る)
+extern BOOL bEnableWin11NotifyIcon;	//上記がTRUEの際、アイコンを表示するかどうか
+
 									//通知ウィンドウ描画用
 extern HDC hdcYesWin11Notify;
 extern HDC hdcNoWin11Notify;
@@ -699,45 +701,49 @@ void GetWin11ElementSize(void)
 
 	if (bEnabledWin11Notify)
 	{
-//		widthWin11Notify = widthWin11Button * 12 / 10;		//これは自分で決めてよい値
-		widthWin11Notify = widthWin11Icon;		//これは自分で決めてよい値
-		heightWin11Notify = heightTaskbar;
+		if (bEnableWin11NotifyIcon) {	//TClock-Win10のWin11用通知アイコンを表示する場合
+			widthWin11Notify = widthWin11Icon;		//これは自分で決めてよい値, 32, widthWin11Button * 4 / 3;
+			heightWin11Notify = heightTaskbar;
 
-		//posNotifyIcon.x = widthWin11Notify * 1 / 10;
-		//widthNotifyIcon = widthWin11Notify * 8 / 10;
+			//posNotifyIcon.x = widthWin11Notify * 1 / 10;
+			//widthNotifyIcon = widthWin11Notify * 8 / 10;
 
-		posNotifyIcon.x = widthWin11Button * 0 / 3;		//0
-		widthNotifyIcon = widthWin11Button * 3 / 3;		//24
-		posXShowDesktopArea = widthWin11Button * 9 / 8;
+			posNotifyIcon.x = widthWin11Button * 0 / 3;		//0
+			widthNotifyIcon = widthWin11Button * 3 / 3;		//24
+			posXShowDesktopArea = widthWin11Button * 9 / 8;	//27
 
-		if (typeWin11Taskbar == 0)
-		{
-			posNotifyIcon.y = heightWin11Notify * 0 / 10;
-			heightNotifyIcon = heightWin11Notify * 10 / 10;
+			if (typeWin11Taskbar == 0)
+			{
+				posNotifyIcon.y = heightWin11Notify * 0 / 10;
+				heightNotifyIcon = heightWin11Notify * 10 / 10;
+			}
+			else
+			{
+				posNotifyIcon.y = heightWin11Notify * 1 / 10;
+				heightNotifyIcon = heightWin11Notify * 8 / 10;
+			}
+
+			LoadBitMapWin11Notify();		//通知アイコンサイズが決まらないとロードできない。
+
+
+											//通知数表示用のフォント作成・位置決定
+			posNotifyText.x = widthNotifyIcon / 2;
+			if (typeWin11Taskbar == 0)	//小さいタスクバーの場合
+			{
+				posNotifyText.y = heightWin11Notify * 3 / 4;
+				CreateMyNotificationFont(heightWin11Notify / 2, widthNotifyIcon / 5);
+			}
+			else	//小さいタスクバーでない場合
+			{
+				posNotifyText.y = heightWin11Notify * 7 / 10;
+				CreateMyNotificationFont(heightWin11Notify * 2 / 5, widthNotifyIcon / 5);
+			}
 		}
-		else
-		{
-			posNotifyIcon.y = heightWin11Notify * 1 / 10;
-			heightNotifyIcon = heightWin11Notify * 8 / 10;
+		else {	//TClock-Win10のWin11用通知アイコンを表示せず、デスクトップ表示領域のみ使う場合
+			widthWin11Notify = widthWin11Button * 5 / 24;
+			heightWin11Notify = heightTaskbar;
+			posXShowDesktopArea = 0;	//27
 		}
-
-		LoadBitMapWin11Notify();		//通知アイコンサイズが決まらないとロードできない。
-
-
-		//通知数表示用のフォント作成・位置決定
-		posNotifyText.x = widthNotifyIcon / 2;
-		if (typeWin11Taskbar == 0)	//小さいタスクバーの場合
-		{
-			posNotifyText.y = heightWin11Notify * 3 / 4;
-			CreateMyNotificationFont(heightWin11Notify / 2, widthNotifyIcon / 5);
-		}
-		else	//小さいタスクバーでない場合
-		{
-			posNotifyText.y = heightWin11Notify * 7 / 10;
-			CreateMyNotificationFont(heightWin11Notify * 2 / 5, widthNotifyIcon / 5);
-		}
-
-
 	}
 	else {		//使わない場合は単にサイズをゼロにしてウィンドウは残しておく。
 		widthWin11Notify = 0;
@@ -1408,13 +1414,10 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 	{	//通知ウィンドウが消されていたら作り直す。
 		ReCreateWin11Notify();
 	}
-	else 
+	else if (bEnableWin11NotifyIcon)
 	{
 		intWin11FocusAssist = GetFocusAssistState();
 		intWin11NotificationNumber = GetNotificationNumber();
-
-		//for test
-//		intWin11NotificationNumber = rand() % 100;
 
 		if (intWin11FocusAssistPrev != intWin11FocusAssist)
 		{
@@ -1506,9 +1509,43 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 			BitBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, hdcWin11Notify, 0, 0, SRCCOPY);
 		}
 
+		ReleaseDC(hwndWin11Notify, hdc);
+	}
+	else {
+	//	if (b_update) {
 
+			if (fillbackcolor)
+			{
+				FillBack(hdc, widthWin11Notify, heightWin11Notify);
+			}
+			else
+			{
+				if (Win11Type == 2)
+				{
+					originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
+					FillBack(hdc, widthWin11Notify, heightWin11Notify);
+				}
+				else
+				{
+					SelectObject(hdc, hBrushWin11Notify);
+					PatBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
+				}
+			}
 
-		ReleaseDC(hwndWin11Notify, hdc);;
+			hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+			SelectObject(hdc, hPenWin11Notify);
+			MoveToEx(hdc, posXShowDesktopArea, 0, NULL);
+			LineTo(hdc, posXShowDesktopArea, heightWin11Notify);
+
+			if (Win11Type == 2) {		//Win11Type2での上端ライン再現
+				hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
+				SelectObject(hdc, hPenWin11Notify);
+				MoveToEx(hdc, 0, 0, NULL);
+				LineTo(hdc, widthWin11Notify, 0);
+			}
+	//	}
+
+		ReleaseDC(hwndWin11Notify, hdc);
 	}
 
 }
