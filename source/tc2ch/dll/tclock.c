@@ -1273,12 +1273,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (message == WM_RBUTTONUP && (wParam & MK_LBUTTON || ((wParam&MK_CONTROL)&&(wParam&MK_SHIFT)) || bRClickMenu))
 			{
 
-				//{
-				//	//test code
-				//	char tempString[1024];
-				//	strcpy(tempString, "test45678901234567890123456789");
-				//	PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, (LPARAM)tempString);
-				//}
+//				{
+//					//test code
+//					char tempString[1024];
+//					strcpy(tempString, "test45678901234567890123456789");
+//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, (LPARAM)tempString);		//read from lParam
+//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, NULL);					//read from tclock-win10.ini ([ETC]ExtTXT_String)
+//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, 1, (LPARAM)tempString);		//read from tclock-win10.ini ([ETC]ExtTXT_String)
+//				}
 
 				DWORD mp;
 				mp = GetMessagePos();
@@ -1415,20 +1417,20 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// To Update "ExtTXT" in format
 			// PostMessage(****TCLOCK_MAIN_HWND****, 0x0404, NULL, (LPARAM)char* string);
+			// if wParam == 1 or lParam == NULL, text is read from tclock-win10.ini
 
 			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc()] CLOCKM_UPDATE_EXTTEXT received", 999);
 
-			if (lParam != NULL) {
+			if ((lParam == NULL) || (wParam == 1)){
+				GetMyRegStr("ETC", "ExtTXT_String", ExtTXT_String, 255, "");
+			}
+			else {
 				if (strlen((char*)lParam) < 256) {
 					strcpy_s(ExtTXT_String, 256, (char*)lParam);
 				}
 				else {
-					strcpy_s(ExtTXT_String, 255, (char*)lParam);
-					ExtTXT_String[127] = '\0';
+					strcpy(ExtTXT_String, "Too Long");
 				}
-			}
-			else {
-				ExtTXT_String[0] = '\0';
 			}
 
 			return 0;
@@ -2172,6 +2174,8 @@ void ReadData()
 	ExtTXT_Length = GetMyRegLong("ETC", "ExtTXT_Length", 10);
 	if (ExtTXT_Length > 128) ExtTXT_Length = 128;
 	SetMyRegLong("ETC", "ExtTXT_Length", ExtTXT_Length);
+
+	SetMyRegStr("ETC", "ExtTXT_String", "");
 
 	strAdditionalMountPath[10][64];
 
