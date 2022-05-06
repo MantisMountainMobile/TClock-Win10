@@ -1,0 +1,10 @@
+LIBRARY 	tcdll-win10.dll
+
+SECTIONS
+MYDATA    SHARED READ WRITE
+
+EXPORTS
+HookStart  @1
+HookEnd    @2
+CheckWinVersion_Win10	@3
+CheckModernStandbyCapability_Win10	@4
