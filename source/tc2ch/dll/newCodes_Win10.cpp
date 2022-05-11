@@ -312,13 +312,13 @@ extern "C" int CheckWinVersion_Win10(void)
 		{
 			Win11Type = 0;		//Windows10
 		}
-		else if (buildNumber < 22579)
+		else if ((buildNumber < 22579) || (buildNumber >= 22616))
 		{
 			Win11Type = 1;		//Windows11 Type1 (時計がトレイに載っっている)
 		}
 		else 
 		{
-			Win11Type = 2;		//Windows11 Type2 (時計がContentBridgeに載っていて、タスクバー処理が大きく変わった)
+			Win11Type = 2;		//Windows11 Type2 (時計がContentBridgeに載っていて、タスクバー処理が大きく変わった->Build22616で撤回された)
 		}
 
 		if (b_DebugLog)
@@ -326,6 +326,7 @@ extern "C" int CheckWinVersion_Win10(void)
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MajorVersion = ", majorVersion);
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MinorVersion = ", minorVersion);
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] BuildNumber = ", buildNumber);
+			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] Win11Type = ", Win11Type);
 		}
 
 	}

@@ -590,6 +590,7 @@ void CleanSettingFile(void)
 	DelMyReg_DLL("ETC", "DisplayString_Single");
 	DelMyReg_DLL("ETC", "DisplayString_Clone");
 	DelMyReg_DLL("ETC", "DisplayString_Extend");
+	DelMyReg_DLL("ETC", "ExtTXT_Length");
 
 	DelMyReg_DLL("Graph", "CpuHigh");
 	

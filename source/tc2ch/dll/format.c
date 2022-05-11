@@ -2356,13 +2356,9 @@ void MakeFormat(char* s, char* s_info, SYSTEMTIME* pt, int beat100, char* fmt)
 					int slen;
 					sp += 6;
 					slen = strlen(ExtTXT_String);
-					for (int i = 0; i < ExtTXT_Length; i++) {
-						if (i < slen) {
+					if (slen > ExtTXT_Length) slen = ExtTXT_Length;
+					for (int i = 0; i < slen; i++) {
 							*dp++ = ExtTXT_String[i]; *infop++ = 0x01;
-						}
-						else {
-							*dp++ = ' '; *infop++ = 0x01;
-						}
 					}
 				}
 				else

@@ -487,8 +487,9 @@ int LogDigit = 4;
 int LogDigit2 = 4;
 int NetMIX_Length = 10;
 int SSID_AP_Length = 10;
-int ExtTXT_Length = 10;
-char ExtTXT_String[256];
+
+int ExtTXT_Length = 128;
+char ExtTXT_String[129];
 
 int TimerCountForSec = 1000;
 int intervalTimerAdjust = 0;
@@ -1273,14 +1274,13 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (message == WM_RBUTTONUP && (wParam & MK_LBUTTON || ((wParam&MK_CONTROL)&&(wParam&MK_SHIFT)) || bRClickMenu))
 			{
 
-//				{
-//					//test code
-//					char tempString[1024];
-//					strcpy(tempString, "test45678901234567890123456789");
-//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, (LPARAM)tempString);		//read from lParam
-//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, NULL);					//read from tclock-win10.ini ([ETC]ExtTXT_String)
-//					PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, 1, (LPARAM)tempString);		//read from tclock-win10.ini ([ETC]ExtTXT_String)
-//				}
+			//		{
+			//			//test code
+			//			char tempString[1024];
+			//			strcpy(tempString, "test45678901234567890123456789");
+			//			PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, (LPARAM)tempString);		//read from lParam
+			////			PostMessage(tempHwnd, CLOCKM_UPDATE_EXTTEXT, NULL, NULL);					//read from tclock-win10.ini ([ETC]ExtTXT_String)
+			//		}
 
 				DWORD mp;
 				mp = GetMessagePos();
@@ -1417,19 +1417,46 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			// To Update "ExtTXT" in format
 			// PostMessage(****TCLOCK_MAIN_HWND****, 0x0404, NULL, (LPARAM)char* string);
-			// if wParam == 1 or lParam == NULL, text is read from tclock-win10.ini
+			// if lParam == NULL, text is read from tclock-win10.ini
+			// if wParam == 1, Clock resize is disabled.
 
 			if (b_DebugLog) writeDebugLog_Win10("[tclock.c][WndProc()] CLOCKM_UPDATE_EXTTEXT received", 999);
 
-			if ((lParam == NULL) || (wParam == 1)){
-				GetMyRegStr("ETC", "ExtTXT_String", ExtTXT_String, 255, "");
+			if (lParam == NULL){
+				GetMyRegStr("ETC", "ExtTXT_String", ExtTXT_String, 128, "");
 			}
 			else {
-				if (strlen((char*)lParam) < 256) {
-					strcpy_s(ExtTXT_String, 256, (char*)lParam);
+				if (strlen((char*)lParam) < 129) {
+					strcpy_s(ExtTXT_String, 128, (char*)lParam);
 				}
 				else {
 					strcpy(ExtTXT_String, "Too Long");
+				}
+			}
+
+			if (wParam != 1) {
+				int prevWidth, prevHeight;
+				prevWidth = widthMainClockFrame;
+				prevHeight = heightMainClockFrame;
+
+				CalcMainClockSize();
+
+				if ((prevWidth != widthMainClockFrame) || (prevHeight != heightMainClockFrame))
+				{
+					if (bWin11Main) {
+						if (Win11Type == 2)
+						{
+							bSuppressGetTaskbarColor_Win11Type2 = TRUE;
+						}
+
+						SetMainClockOnTasktray_Win11();
+					}
+					else {
+						RedrawMainTaskbar();
+						//b_WININICHANGED = TRUE;
+						//RedrawTClock();
+						//SetMainClockOnTasktray();
+					}
 				}
 			}
 
@@ -1552,6 +1579,7 @@ void RestartOnRefresh(void)
 --------------------------------------------------*/
 void ReadData()
 {
+	int i;
 	char fontname[80];
 	char strTemp[128];
 	int fontsize;
@@ -2171,15 +2199,20 @@ void ReadData()
 	SSID_AP_Length = GetMyRegLong("ETC", "SSID_AP_Length", 10);
 	SetMyRegLong("ETC", "SSID_AP_Length", SSID_AP_Length);
 
-	ExtTXT_Length = GetMyRegLong("ETC", "ExtTXT_Length", 10);
-	if (ExtTXT_Length > 128) ExtTXT_Length = 128;
-	SetMyRegLong("ETC", "ExtTXT_Length", ExtTXT_Length);
+	//ExtTXT_Length = GetMyRegLong("ETC", "ExtTXT_Length", 10);
+	//SetMyRegLong("ETC", "ExtTXT_Length", ExtTXT_Length);
+
+
+	//for (i = 0; i < ExtTXT_Length; i++) {
+	//	ExtTXT_String[i] = ' ';
+	//}
+	//ExtTXT_String[ExtTXT_Length] = '\0';
 
 	SetMyRegStr("ETC", "ExtTXT_String", "");
 
 	strAdditionalMountPath[10][64];
 
-	for (int i = 0; i < 10; i++) {
+	for (i = 0; i < 10; i++) {
 		sprintf(strTemp, "AdditionalMountPath%1d", i);
 		GetMyRegStr("ETC", strTemp, strAdditionalMountPath[i], 64, "");
 		SetMyRegStr("ETC", strTemp, strAdditionalMountPath[i]);
