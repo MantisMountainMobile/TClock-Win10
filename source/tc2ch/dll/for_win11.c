@@ -39,7 +39,7 @@ extern int originalPosYTaskbar;
 extern BOOL bWin11Main;
 extern BOOL bWin11Sub;
 
-extern int Win11Type;
+//extern int Win11Type;
 
 //Win11—pŠÖ˜AƒEƒBƒ“ƒhƒEƒnƒ“ƒhƒ‹
 extern HWND hwndWin11ReBarWin;
@@ -199,16 +199,16 @@ void CreateWin11MainClock(void)
 {
 
 	//Win11Type2‚Ìê‡‚Í‘S‘Ì‚ğû—e‚·‚éTClockBarWin11‚ğì‚é
-	if (Win11Type == 2) {
-		CreateTClockBarWin11Type2();
-	}
+	//if (Win11Type == 2) {
+	//	CreateTClockBarWin11Type2();
+	//}
 
 
 	//Å‰‚ÉcŠ[‚ªc‚Á‚Ä‚½‚çÁ‚·B
 	HWND tempHwnd;
-	if (Win11Type < 2){
+//	if (Win11Type < 2){
 		while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockMain", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
-	}
+//	}
 
 
 	//Win11—p‚ÌTClock‚ÌƒEƒBƒ“ƒhƒE‚ğ©ì‚·‚éB
@@ -229,15 +229,16 @@ void CreateWin11MainClock(void)
 
 	RegisterClass(&classTClockWin11);
 
-	if (Win11Type == 2) {
-		//hwndClockMain = CreateWindowEx(WS_EX_TOOLWINDOW, szClassName, "TClockMain",
-		//	WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		//	hwndTClockBarWin11, NULL, hmod, NULL);
-		hwndClockMain = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, szClassName, "TClockMain",
-			WS_POPUP | WS_VISIBLE , CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-			NULL, NULL, hmod, NULL);
-	}
-	else {
+	//if (Win11Type == 2) {
+	//	//hwndClockMain = CreateWindowEx(WS_EX_TOOLWINDOW, szClassName, "TClockMain",
+	//	//	WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	//	//	hwndTClockBarWin11, NULL, hmod, NULL);
+	//	hwndClockMain = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, szClassName, "TClockMain",
+	//		WS_POPUP | WS_VISIBLE , CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	//		NULL, NULL, hmod, NULL);
+	//}
+	//else 
+	{
 		hwndClockMain = CreateWindowEx(WS_EX_TOPMOST, szClassName, "TClockMain",
 			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 			hwndTaskBarMain, NULL, hmod, NULL);
@@ -299,9 +300,9 @@ void CreateWin11Notify(void)
 
 	//Å‰‚ÉcŠ[‚ªc‚Á‚Ä‚½‚çÁ‚·B
 	HWND tempHwnd;
-	if (Win11Type < 2) {
+//	if (Win11Type < 2) {
 		while ((tempHwnd = FindWindowEx(hwndTaskBarMain, NULL, "TClockNotify", NULL)) != NULL) PostMessage(tempHwnd, WM_CLOSE, 0, 0);
-	}
+//	}
 
 	//Win11—p‚ÌTClock‚ÌƒEƒBƒ“ƒhƒE‚ğ©ì‚·‚éB
 	WNDCLASS classTClockWin11Notify;
@@ -321,15 +322,16 @@ void CreateWin11Notify(void)
 
 	RegisterClass(&classTClockWin11Notify);
 
-	if (Win11Type == 2) {
-		//hwndWin11Notify = CreateWindowEx(WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
-		//	WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		//	hwndTClockBarWin11, NULL, hmod, NULL);
-		hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
-			WS_POPUP | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-			NULL, NULL, hmod, NULL);
-	}
-	else {
+	//if (Win11Type == 2) {
+	//	//hwndWin11Notify = CreateWindowEx(WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
+	//	//	WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	//	//	hwndTClockBarWin11, NULL, hmod, NULL);
+	//	hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST | WS_EX_TOOLWINDOW, "TClockNotify", "TClockNotify",
+	//		WS_POPUP | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+	//		NULL, NULL, hmod, NULL);
+	//}
+	//else 
+	{
 		hwndWin11Notify = CreateWindowEx(WS_EX_TOPMOST, "TClockNotify", "TClockNotify",
 			WS_VISIBLE | WS_CHILD, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
 			hwndTaskBarMain, NULL, hmod, NULL);
@@ -442,7 +444,8 @@ void LoadBitMapWin11Notify(void)
 	tempB = GetBValue(colWin11Notify);
 
 
-	if ((fillbackcolor || (Win11Type == 2)) && (tempR + tempG + tempB < 255))
+//	if ((fillbackcolor || (Win11Type == 2)) && (tempR + tempG + tempB < 255))
+	if ((fillbackcolor) && (tempR + tempG + tempB < 255))
 	{
 		fillbackWin11NotifyIconInvert = TRUE;
 	}
@@ -459,14 +462,16 @@ void LoadBitMapWin11Notify(void)
 //	CreateMyNotificationFont(heightWin11Notify / 2, widthNotifyIcon / 5);
 	
 
-	//NotificationƒNƒŠƒAE•`‰æ—pƒIƒuƒWƒFƒNƒgw’è
-	if (!hBrushWin11Notify)DeleteObject(hBrushWin11Notify);
-	hBrushWin11Notify = CreateSolidBrush(RGB(0, 0, 0));
-	SelectObject(hdc, hBrushWin11Notify);
+	//ˆÈ‰º‚Ìˆ—‚Ínotification•\¦‚ÉŠÖ‚í‚ç‚¸Às‚·‚é•K—v‚ª‚ ‚é‚Ì‚ÅAGetWin11ElementSize‚ÉˆÚ“®
 
-	if (!hPenWin11Notify)DeleteObject(hPenWin11Notify);
-	hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
-	SelectObject(hdc, hPenWin11Notify);
+	////NotificationƒNƒŠƒAE•`‰æ—pƒIƒuƒWƒFƒNƒgw’è
+	//if (!hBrushWin11Notify)DeleteObject(hBrushWin11Notify);
+	//hBrushWin11Notify = CreateSolidBrush(RGB(0, 0, 0));
+	//SelectObject(hdc, hBrushWin11Notify);
+
+	//if (!hPenWin11Notify)DeleteObject(hPenWin11Notify);
+	//hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+	//SelectObject(hdc, hPenWin11Notify);
 
 
 	//DIB sectionì¬—pbitmap\‘¢‘Ì
@@ -672,7 +677,8 @@ void GetWin11ElementSize(void)
 
 	adjustWin11TrayYpos = 0;
 
-	if ((typeWin11Taskbar == 0) && (Win11Type < 2))	//ƒŒƒWƒXƒgƒŠ‚ÌTaskbarSi‚Ìİ’è‚Íƒrƒ‹ƒh22579–¢–(Win11Type == 1)‚Å‚È‚¢‚Æ–³Œø
+//	if ((typeWin11Taskbar == 0) && (Win11Type < 2))	//ƒŒƒWƒXƒgƒŠ‚ÌTaskbarSi‚Ìİ’è‚Íƒrƒ‹ƒh22579–¢–(Win11Type == 1)‚Å‚È‚¢‚Æ–³Œø
+	if (typeWin11Taskbar == 0)	//ƒŒƒWƒXƒgƒŠ‚ÌTaskbarSi‚Ìİ’è‚Íƒrƒ‹ƒh22579–¢–(Win11Type == 1)‚Å‚È‚¢‚Æ–³Œø
 	{
 		widthWin11Button = heightTaskbar * 3 / 4;
 		if (bAdjustTrayWin11SmallTaskbar) adjustWin11TrayYpos = heightTaskbar / 4;
@@ -697,6 +703,9 @@ void GetWin11ElementSize(void)
 		writeDebugLog_Win10("[for_win11.c][GetWin11ElementSize] (From [Taskbar Height]) widthWin11Icon = ", widthWin11Icon);
 		writeDebugLog_Win10("[for_win11.c][GetWin11ElementSize] (From [Taskbar Height]) defaultWin11ClockWidth = ", defaultWin11ClockWidth);
 	}
+
+
+
 
 
 	if (bEnabledWin11Notify)
@@ -750,6 +759,15 @@ void GetWin11ElementSize(void)
 		heightWin11Notify = 0;
 	}
 
+	//NotificationƒNƒŠƒAE•`‰æ—pƒIƒuƒWƒFƒNƒgw’è
+	if (!hBrushWin11Notify)DeleteObject(hBrushWin11Notify);
+	hBrushWin11Notify = CreateSolidBrush(RGB(0, 0, 0));
+//	SelectObject(hdc, hBrushWin11Notify);
+
+	if (!hPenWin11Notify)DeleteObject(hPenWin11Notify);
+	hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+//	SelectObject(hdc, hPenWin11Notify);
+
 }
 
 
@@ -770,9 +788,9 @@ void GetWin11TrayWidth(void)
 
 void SwitchToTClockBarWin11(void)
 {
+	return;
 
-
-	if (Win11Type < 2) return;
+//	if (Win11Type < 2) return;
 
 	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] SwitchToTClockBarWin11 called.", 999);
 
@@ -1445,32 +1463,33 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 			}
 			else 
 			{
-				if (Win11Type == 2)
-				{
-					originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
-					FillBack(hdcWin11Notify, widthWin11Notify, heightWin11Notify);
-				}
-				else
+				//if (Win11Type == 2)
+				//{
+				//	originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
+				//	FillBack(hdcWin11Notify, widthWin11Notify, heightWin11Notify);
+				//}
+				//else
 				{
 					SelectObject(hdcWin11Notify, hBrushWin11Notify);
 					PatBlt(hdcWin11Notify, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
 				}
 			}
 			
-			hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+			//hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
 			SelectObject(hdcWin11Notify, hPenWin11Notify);
 			MoveToEx(hdcWin11Notify, posXShowDesktopArea, 0, NULL);
 			LineTo(hdcWin11Notify, posXShowDesktopArea, heightWin11Notify);
 
-			if (Win11Type == 2) {		//Win11Type2‚Å‚Ìã’[ƒ‰ƒCƒ“ÄŒ»
-				hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
-				SelectObject(hdcWin11Notify, hPenWin11Notify);
-				MoveToEx(hdcWin11Notify, 0, 0, NULL);
-				LineTo(hdcWin11Notify, widthWin11Notify, 0);
-			}
+			//if (Win11Type == 2) {		//Win11Type2‚Å‚Ìã’[ƒ‰ƒCƒ“ÄŒ»
+			//	hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
+			//	SelectObject(hdcWin11Notify, hPenWin11Notify);
+			//	MoveToEx(hdcWin11Notify, 0, 0, NULL);
+			//	LineTo(hdcWin11Notify, widthWin11Notify, 0);
+			//}
 
 
-			if (fillbackcolor || (Win11Type == 2)) {
+//			if (fillbackcolor || (Win11Type == 2)) {
+			if (fillbackcolor) {
 
 				if (intWin11FocusAssist > 0)
 				{
@@ -1511,43 +1530,40 @@ void DrawWin11Notify(BOOL b_forceUpdate)
 
 		ReleaseDC(hwndWin11Notify, hdc);
 	}
-	else {
-	//	if (b_update) {
-
-			if (fillbackcolor)
+	else 
+	{
+		if (fillbackcolor)
+		{
+			FillBack(hdc, widthWin11Notify, heightWin11Notify);
+		}
+		else
+		{
+			//if (Win11Type == 2)
+			//{
+			//	originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
+			//	FillBack(hdc, widthWin11Notify, heightWin11Notify);
+			//}
+			//else
 			{
-				FillBack(hdc, widthWin11Notify, heightWin11Notify);
+				SelectObject(hdc, hBrushWin11Notify);
+				PatBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
 			}
-			else
-			{
-				if (Win11Type == 2)
-				{
-					originalColorTaskbar_ForWin11Notify = originalColorTaskbar;
-					FillBack(hdc, widthWin11Notify, heightWin11Notify);
-				}
-				else
-				{
-					SelectObject(hdc, hBrushWin11Notify);
-					PatBlt(hdc, 0, 0, widthWin11Notify, heightWin11Notify, BLACKNESS);
-				}
-			}
+		}
 
-			hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
-			SelectObject(hdc, hPenWin11Notify);
-			MoveToEx(hdc, posXShowDesktopArea, 0, NULL);
-			LineTo(hdc, posXShowDesktopArea, heightWin11Notify);
+		//hPenWin11Notify = CreatePen(PS_SOLID, 1, colWin11Notify);
+		SelectObject(hdc, hPenWin11Notify);
+		MoveToEx(hdc, posXShowDesktopArea, 0, NULL);
+		LineTo(hdc, posXShowDesktopArea, heightWin11Notify);
 
-			if (Win11Type == 2) {		//Win11Type2‚Å‚Ìã’[ƒ‰ƒCƒ“ÄŒ»
-				hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
-				SelectObject(hdc, hPenWin11Notify);
-				MoveToEx(hdc, 0, 0, NULL);
-				LineTo(hdc, widthWin11Notify, 0);
-			}
-	//	}
+		//if (Win11Type == 2) {		//Win11Type2‚Å‚Ìã’[ƒ‰ƒCƒ“ÄŒ»
+		//	hPenWin11Notify = CreatePen(PS_SOLID, 1, originalColorTaskbarEdge);
+		//	SelectObject(hdc, hPenWin11Notify);
+		//	MoveToEx(hdc, 0, 0, NULL);
+		//	LineTo(hdc, widthWin11Notify, 0);
+		//}
 
 		ReleaseDC(hwndWin11Notify, hdc);
 	}
-
 }
 
 
@@ -1613,47 +1629,47 @@ void SetMainClockOnTasktray_Win11(void)
 	//Šm•Û‚·‚×‚«Œv‚ÌƒTƒCƒY‚ğæ“¾
 	CalcMainClockSize();
 
-	if (Win11Type == 2)
-	{
-		
+	//if (Win11Type == 2)
+	//{
+	//	
 
-		//ƒ^ƒXƒNƒo[‚ğ’Zk‚·‚éB
-		//SWP_NOSENDCHANGING‚ğ“ü‚ê‚Ä‚¨‚©‚È‚¢‚Æƒ^ƒXƒNƒo[‚ÍˆÚ“®‚µ‚È‚¢(‹­§“I‚É–ß‚³‚ê‚é‚Ì‚©H)
-		//SWP_NOTOPMOST‚ğ“ü‚ê‚Ä‚¢‚Á‚½‚ñTClock‚ğ‘O‚Éo‚·‚ªA‚±‚ê‚Í‚¢‚¸‚êTOPMOST‚É‚È‚éB
-		modifiedWidthTaskbar_Win11Type2 = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify + cutOffWidthWin11Tray;
+	//	//ƒ^ƒXƒNƒo[‚ğ’Zk‚·‚éB
+	//	//SWP_NOSENDCHANGING‚ğ“ü‚ê‚Ä‚¨‚©‚È‚¢‚Æƒ^ƒXƒNƒo[‚ÍˆÚ“®‚µ‚È‚¢(‹­§“I‚É–ß‚³‚ê‚é‚Ì‚©H)
+	//	//SWP_NOTOPMOST‚ğ“ü‚ê‚Ä‚¢‚Á‚½‚ñTClock‚ğ‘O‚Éo‚·‚ªA‚±‚ê‚Í‚¢‚¸‚êTOPMOST‚É‚È‚éB
+	//	modifiedWidthTaskbar_Win11Type2 = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify + cutOffWidthWin11Tray;
 
-		SetWindowPos(hwndTaskBarMain, HWND_TOPMOST, 0, 0, modifiedWidthTaskbar_Win11Type2, heightTaskbar,
-			SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSENDCHANGING);
+	//	SetWindowPos(hwndTaskBarMain, HWND_TOPMOST, 0, 0, modifiedWidthTaskbar_Win11Type2, heightTaskbar,
+	//		SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSENDCHANGING);
 
-		//TClock‚Ì¶’[‚ÌXÀ•W‚ğ‹‚ß‚éB
-		posXMainClock = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify;
-		
+	//	//TClock‚Ì¶’[‚ÌXÀ•W‚ğ‹‚ß‚éB
+	//	posXMainClock = originalWidthTaskbar - widthMainClockFrame - widthWin11Notify;
+	//	
 
-		//ˆÈ‰º‚Ì‘€ì‚ÍMoveWin11ContentBridge(operation == 1)‚ÉˆÚ“®
+	//	//ˆÈ‰º‚Ì‘€ì‚ÍMoveWin11ContentBridge(operation == 1)‚ÉˆÚ“®
 
-		////ContentBridgeƒEƒBƒ“ƒhƒE‚ğƒJƒbƒg‚·‚éB
-		//SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
-		//	SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
+	//	////ContentBridgeƒEƒBƒ“ƒhƒE‚ğƒJƒbƒg‚·‚éB
+	//	//SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+	//	//	SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
 
-		////TClockBarWin11‚ğİ’è‚·‚éB
-		//SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, posYTaskbar, originalWidthTaskbar, heightMainClockFrame,
-		//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//	////TClockBarWin11‚ğİ’è‚·‚éB
+	//	//SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, posYTaskbar, originalWidthTaskbar, heightMainClockFrame,
+	//	//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 
-		////TClock‚ÌƒEƒBƒ“ƒhƒE‚ğŠ’è‚ÌêŠ‚ÉˆÚ“®‚·‚éB
-		////SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
-		////	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-		//SetWindowPos(hwndClockMain, NULL, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
-		//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//	////TClock‚ÌƒEƒBƒ“ƒhƒE‚ğŠ’è‚ÌêŠ‚ÉˆÚ“®‚·‚éB
+	//	////SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+	//	////	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//	//SetWindowPos(hwndClockMain, NULL, posXMainClock, 0, widthMainClockFrame, heightMainClockFrame,
+	//	//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 
-		////©ì’Ê’mƒEƒBƒ“ƒhƒE‚ÌêŠ‚ğÄİ’è‚·‚éB
-		//if (hwndWin11Notify) {
-		//	//SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
-		//	//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-		//	SetWindowPos(hwndWin11Notify, NULL, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
-		//		SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-		//}
-	}
-	else
+	//	////©ì’Ê’mƒEƒBƒ“ƒhƒE‚ÌêŠ‚ğÄİ’è‚·‚éB
+	//	//if (hwndWin11Notify) {
+	//	//	//SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+	//	//	//	SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//	//	SetWindowPos(hwndWin11Notify, NULL, posXMainClock + widthMainClockFrame, 0, widthWin11Notify, heightMainClockFrame,
+	//	//		SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//	//}
+	//}
+	//else
 	{
 		int tempX = widthTaskbar - widthMainClockFrame - modifiedWidthWin11Tray - widthWin11Notify;
 
@@ -1764,57 +1780,58 @@ void MoveWin11ContentBridge(int operation)	//Win11 Type2 (build 22579‚¨‚æ‚Ñ‚»‚êˆ
 {
 	if (b_DebugLog)writeDebugLog_Win10("[for_win11.c] MoveWin11ContentBridge called. operation =", operation);
 
-	if (Win11Type == 2) {
-		switch(operation) 
-		{
-			case 0:
-				SetMainClockOnTasktray_Win11();
-				break;
-			case 1:
+	//if (Win11Type == 2) {
+	//	switch(operation) 
+	//	{
+	//		case 0:
+	//			SetMainClockOnTasktray_Win11();
+	//			break;
+	//		case 1:
 
-				//ContentBridgeƒEƒBƒ“ƒhƒE‚ğƒJƒbƒg‚·‚éB
-				SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
-					SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
+	//			//ContentBridgeƒEƒBƒ“ƒhƒE‚ğƒJƒbƒg‚·‚éB
+	//			SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
+	//				SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_HIDEWINDOW);
 
-				//TClockBarWin11‚ğİ’è‚·‚éB
-				SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, posYTaskbar, originalWidthTaskbar, heightMainClockFrame,
-					SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//			//TClockBarWin11‚ğİ’è‚·‚éB
+	//			SetWindowPos(hwndTClockBarWin11, hwndTaskBarMain, 0, posYTaskbar, originalWidthTaskbar, heightMainClockFrame,
+	//				SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 
-				//TClock‚ÌƒEƒBƒ“ƒhƒE‚ğŠ’è‚ÌêŠ‚ÉˆÚ“®‚·‚éB
-				SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, posYTaskbar, widthMainClockFrame, heightMainClockFrame,
-					SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//			//TClock‚ÌƒEƒBƒ“ƒhƒE‚ğŠ’è‚ÌêŠ‚ÉˆÚ“®‚·‚éB
+	//			SetWindowPos(hwndClockMain, HWND_TOPMOST, posXMainClock, posYTaskbar, widthMainClockFrame, heightMainClockFrame,
+	//				SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 
-				//©ì’Ê’mƒEƒBƒ“ƒhƒE‚ÌêŠ‚ğÄİ’è‚·‚éB
-				if (hwndWin11Notify) {
-					SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, posYTaskbar, widthWin11Notify, heightMainClockFrame,
-						SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-				}
-				break;
-			case 2:
-				//operation == 2‚Å‚ÍAWin11Type2‚É‚¨‚¢‚ÄhwndClockMain‚ÆhwndWin11Notify‚ğÅ‘O–Ê‚Éo‚·‘€ì‚Ì‚İs‚¤B
+	//			//©ì’Ê’mƒEƒBƒ“ƒhƒE‚ÌêŠ‚ğÄİ’è‚·‚éB
+	//			if (hwndWin11Notify) {
+	//				SetWindowPos(hwndWin11Notify, HWND_TOPMOST, posXMainClock + widthMainClockFrame, posYTaskbar, widthWin11Notify, heightMainClockFrame,
+	//					SWP_NOACTIVATE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//			}
+	//			break;
+	//		case 2:
+	//			//operation == 2‚Å‚ÍAWin11Type2‚É‚¨‚¢‚ÄhwndClockMain‚ÆhwndWin11Notify‚ğÅ‘O–Ê‚Éo‚·‘€ì‚Ì‚İs‚¤B
 
-				//TClock‚ÌƒEƒBƒ“ƒhƒE‚ğHWND_TOPMOSTÄİ’è‚·‚é
-				SetWindowPos(hwndClockMain, HWND_TOPMOST, 0, 0, 0, 0,
-					SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//			//TClock‚ÌƒEƒBƒ“ƒhƒE‚ğHWND_TOPMOSTÄİ’è‚·‚é
+	//			SetWindowPos(hwndClockMain, HWND_TOPMOST, 0, 0, 0, 0,
+	//				SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
 
-				//©ì’Ê’mƒEƒBƒ“ƒhƒE‚ğHWND_TOPMOSTÄİ’è‚·‚é
-				if (hwndWin11Notify) {
-					SetWindowPos(hwndWin11Notify, HWND_TOPMOST, 0, 0, 0, 0,
-						SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
-				}
-				break;
-			case 3:
-				
+	//			//©ì’Ê’mƒEƒBƒ“ƒhƒE‚ğHWND_TOPMOSTÄİ’è‚·‚é
+	//			if (hwndWin11Notify) {
+	//				SetWindowPos(hwndWin11Notify, HWND_TOPMOST, 0, 0, 0, 0,
+	//					SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_SHOWWINDOW);
+	//			}
+	//			break;
+	//		case 3:
+	//			
 
-				ReturnToOriginalTaskBar();
-				
+	//			ReturnToOriginalTaskBar();
+	//			
 
-				break;
-			default:
-				break;
-		}
-	}
-	else {
+	//			break;
+	//		default:
+	//			break;
+	//	}
+	//}
+	//else 
+	{
 		SetWindowPos(hwndWin11ContentBridge, NULL, 0, 0, posXMainClock, heightMainClockFrame,
 			SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING | SWP_NOREDRAW | SWP_DEFERERASE);
 

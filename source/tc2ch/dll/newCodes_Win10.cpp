@@ -270,7 +270,7 @@ extern "C" int CheckWinVersion_Win10(void)
 	int minorVersion;
 	int buildNumber;
 	extern int WinBuildNumber;
-	extern int Win11Type;
+	//extern int Win11Type;
 
 	auto versionInfo = RTL_OSVERSIONINFOW{ sizeof(RTL_OSVERSIONINFOW) };
 	HMODULE hModule = GetModuleHandle("ntdll.dll");
@@ -308,25 +308,25 @@ extern "C" int CheckWinVersion_Win10(void)
 		}
 
 
-		if (buildNumber < 22000)
-		{
-			Win11Type = 0;		//Windows10
-		}
-		else if ((buildNumber < 22579) || (buildNumber >= 22616))
-		{
-			Win11Type = 1;		//Windows11 Type1 (時計がトレイに載っっている)
-		}
-		else 
-		{
-			Win11Type = 2;		//Windows11 Type2 (時計がContentBridgeに載っていて、タスクバー処理が大きく変わった->Build22616で撤回された)
-		}
+		//if (buildNumber < 22000)
+		//{
+		//	Win11Type = 0;		//Windows10
+		//}
+		//else if ((buildNumber < 22579) || (buildNumber >= 22616))
+		//{
+		//	Win11Type = 1;		//Windows11 Type1 (時計がトレイに載っっている)
+		//}
+		//else 
+		//{
+		//	Win11Type = 2;		//Windows11 Type2 (時計がContentBridgeに載っていて、タスクバー処理が大きく変わった->Build22616で撤回された)
+		//}
 
 		if (b_DebugLog)
 		{
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MajorVersion = ", majorVersion);
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] MinorVersion = ", minorVersion);
 			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] BuildNumber = ", buildNumber);
-			writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] Win11Type = ", Win11Type);
+			//writeDebugLog_Win10("[newCodes_Win10][CheckWinVersion_Win10] Win11Type = ", Win11Type);
 		}
 
 	}

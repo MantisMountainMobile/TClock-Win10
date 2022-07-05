@@ -6,6 +6,7 @@
 #include "tclock.h"
 #include <winver.h>
 
+#define AUTORESTART_WAIT_WIN11	5000	//Win11でのb_AutoRestart時のウェイト(ms)
 
 // Globals
 HINSTANCE g_hInst;           // instance handle
@@ -185,7 +186,7 @@ BOOL WaitQuitPrevTClock(int cycle)
 		Sleep(100);
 	}
 
-	MessageBox(NULL, "再起動を試みましたが、既存のTClock-Win10のプロセス終了に失敗しました。現時点で正常に時計が改造されていない場合は、タスクマネージャーからTClock-Win10のプロセスを強制終了してください。\n\nFailed to terminate the previous TClock-Win10 proccess. If you don't see the modified Clock on Taskbar, please kill the previous TClock-Win10 in the Taskmanager.",
+	MessageBox(NULL, "TClock-Win10の再起動がうまくいかなかった可能性があります。現時点で正常に時計が改造されていない場合は、タスクマネージャーからTClock-Win10のプロセスを強制終了してください。\n\nRestarting TClock-Win10 may be unsuccessful. If you don't see the modified Clock on Taskbar, please kill the previous TClock-Win10 in the Taskmanager.",
 		"TClock-Win10", MB_ICONEXCLAMATION | MB_SETFOREGROUND);
 
 	return TRUE;
@@ -868,6 +869,11 @@ LRESULT CALLBACK WndProc(HWND hwnd,	UINT message, WPARAM wParam, LPARAM lParam)	
 		}
 		else if (b_AutoRestart)
 		{
+
+			if (GetMyRegLong("Status_DoNotEdit", "Win11TClockMain", 0) == 1) {
+				Sleep(AUTORESTART_WAIT_WIN11);	//Win11の場合はExplorerの再起動に時間がかかるので待つ
+			}
+
 			if (b_DebugLog) WriteDebug_New2("[exemain.c][WndProc] Windows Taskbar restarted. b_AutoRestart = TRUE, Restart TClock-Win10.");
 			if (b_NormalLog) WriteNormalLog("b_AutoRestart = TRUE, Restart TClock-Win10");
 
@@ -1026,14 +1032,26 @@ void OnTimerZombieCheck2(HWND hwnd)
 		}
 		else
 		{
-			if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2] No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
-			if (b_NormalLog) WriteNormalLog("No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
-			TerminateTClockFromDLL(hwnd);		//すでにTClockの改造部は終了/消失していると判断されるため、FromDLLでの終了動作を行う。
+
+			if (GetMyRegLong("Status_DoNotEdit", "Win11TClockMain", 0) == 1) {
+				//Win11の場合は普通にExplorerが再起動したらここに来る。無視してExeを生かしておいたらOSからNotificationが来るのでその時に対処する。
+				//if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2](Win11) No responce from DLL. Explorer.exe may be restarted. Continue operation to wait notification from OS.");
+				//if (b_NormalLog) WriteNormalLog("(Win11) No responce from DLL. Explorer.exe may be restarted. Continue operation to wait notification from OS.");
+				return;
+			}
+			else {
+				//Win10の場合にはここに来た時点でかなり異常なのでそのまま終わることにする。ふつうは起きない。
+				if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2](Win10) No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
+				if (b_NormalLog) WriteNormalLog("(Win10) No responce from DLL. TClock may be unexpectedly dead. Quit TClock, regardless b_AutoRestart.");
+				TerminateTClockFromDLL(hwnd);		//すでにTClockの改造部は終了/消失していると判断されるため、FromDLLでの終了動作を行う。
+			}
+
 
 			//if (b_AutoRestart)
 			//{
 			//	if (b_DebugLog) WriteDebug_New2("[exemain.c][OnTimerZombieCheck2] TClock is dead. b_AutoRestart = TRUE, Restart TClock.");
 			//	if (b_NormalLog) WriteNormalLog("TClock is unexpectedly dead. b_AutoRestart = TRUE, Restart TClock-Win10");
+
 			//	char fname[MAX_PATH];
 			//	strcpy(fname, g_mydir);
 			//	add_title(fname, "TClock-Win10.exe");

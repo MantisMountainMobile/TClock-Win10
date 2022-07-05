@@ -21,7 +21,7 @@ extern char g_mydir[];
 
 //BOOL b_exe_UseSubClks = TRUE;
 
-//extern BOOL b_AutoRestart;
+extern BOOL b_AutoRestart;
 
 extern BOOL b_EnglishMenu;
 extern int Language_Offset;
@@ -204,7 +204,7 @@ static void OnApply(HWND hDlg)
 
 	SetMyRegLong(NULL, "EnableOnSubDisplay", IsDlgButtonChecked(hDlg, IDC_USE_SUBCLKS));
 
-	//b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
+	b_AutoRestart = IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART);
 	SetMyRegLong(NULL, "AutoRestart", IsDlgButtonChecked(hDlg, IDC_ETC_AUTORESTART));
 
 	bTemp = IsDlgButtonChecked(hDlg, IDC_ETC_SHOWTRAYICON);

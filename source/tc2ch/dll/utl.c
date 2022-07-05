@@ -587,6 +587,8 @@ void CleanSettingFile(void)
 
 
 	//”pŽ~‚µ‚½ƒGƒ“ƒgƒŠ
+	DelMyReg_DLL("Status_DoNotEdit", "WindowsType");
+
 	DelMyReg_DLL("ETC", "DisplayString_Single");
 	DelMyReg_DLL("ETC", "DisplayString_Clone");
 	DelMyReg_DLL("ETC", "DisplayString_Extend");
