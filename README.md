@@ -1,7 +1,10 @@
 # Announcement (お知らせ)
-2024/10/7:
+[2024/10/7]
+
 Some users kindly informed me that this application does not work on Windows11 24H2 (2024 October). This repository will not update this application anymore. Thank you very much, and good bye for now.
 2024年10月のWindows11 24H2におきましてTClock-Win10が動作しなくなったとのお知らせを頂きました。本リポジトリによる今後の更新はございません。これまでのご愛用に感謝申し上げます。
+
+[February, 2023]
 
 Due to increased difficulty to comply with updated Windows11, I decided to suspend to update this application at Ver 5.4.1.1. I thank all the users who chose TClock-Win10 and sorry for this decision.  
 2023/2月のWindows11アップデートにより再び時計改造に支障が生じ、対応を試みましたが容易ではありませんでした。開発者自身にとってのこのアプリケーションの必要性が下がってしまったこともあり、Ver 5.4.1.1をもちまして更新を停止させていただきます。これまでのご利用に深く感謝いたしますとともに、ご理解いただきますようお願い申し上げます。
