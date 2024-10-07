@@ -2,6 +2,7 @@
 [2024/10/7]
 
 Some users kindly informed me that this application does not work on Windows11 24H2 (2024 October). This repository will not update this application anymore. Thank you very much, and good bye for now.
+
 2024年10月のWindows11 24H2におきましてTClock-Win10が動作しなくなったとのお知らせを頂きました。本リポジトリによる今後の更新はございません。これまでのご愛用に感謝申し上げます。
 
 [February, 2023]
